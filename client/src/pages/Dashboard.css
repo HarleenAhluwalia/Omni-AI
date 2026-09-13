@@ -1,0 +1,106 @@
+.dashboard-page {
+  min-height: 100vh;
+  display: flex;
+  background: #faf7fc;
+  font-family: Arial, sans-serif;
+}
+
+.dashboard-sidebar {
+  width: 190px;
+  background: #eeeeee;
+  border-right: 1px solid #999;
+  padding: 25px 15px;
+}
+
+.dashboard-sidebar h2 {
+  margin-bottom: 30px;
+}
+
+.dashboard-sidebar h2 span {
+  color: #7267d9;
+}
+
+.dashboard-sidebar p {
+  padding: 12px;
+  margin: 5px 0;
+  cursor: pointer;
+}
+
+.active-menu {
+  background: #ded9f6;
+  border-left: 4px solid #7267d9;
+}
+
+.user-section {
+  margin-top: 50px;
+  font-size: 13px;
+}
+
+.dashboard-main {
+  flex: 1;
+  padding: 30px;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1000px;
+  margin: auto;
+}
+
+.calendar-header h1 {
+  font-size: 36px;
+}
+
+.add-task-header-button {
+  background: #4b91b3;
+  color: white;
+  border: none;
+  padding: 11px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.add-task-header-button:hover {
+  background: #377a9a;
+}
+
+.calendar {
+  max-width: 1000px;
+  margin: 20px auto;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: white;
+  border: 1px solid #999;
+}
+
+.calendar-day {
+  min-height: 100px;
+  padding: 8px;
+  border: 1px solid #bbb;
+}
+
+.calendar-heading {
+  min-height: auto;
+  text-align: center;
+  font-weight: bold;
+  background: #f1f1f1;
+}
+
+.add-task-panel {
+  max-width: 700px;
+  margin: 15px auto;
+  padding: 20px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.close-task-button {
+  margin-top: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
