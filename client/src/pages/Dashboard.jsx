@@ -1,9 +1,35 @@
 import { useState } from "react";
 import AddTask from "./AddTask";
+import TaskList from "./TaskList";
 import "./Dashboard.css";
 
 function Dashboard() {
   const [showAddTask, setShowAddTask] = useState(false);
+
+  // TEMPORARY FRONTEND TEST DATA:
+  // Used only while Supabase/authentication dependencies are unavailable.
+  // TaskList will replace this with real GET /api/tasks data when the
+  // backend connection becomes available.
+  const [tasks, setTasks] = useState([
+    {
+      id: "demo-1",
+      title: "CPSC 491 Sprint Report",
+      description: "Complete Sprint 1 documentation",
+      due_date: "2026-09-17",
+      priority: "high",
+    },
+    {
+      id: "demo-2",
+      title: "Study for Exam",
+      description: "Review chapters and notes",
+      due_date: "2026-09-20",
+      priority: "medium",
+    },
+  ]);
+
+  const handleTaskCreated = (newTask) => {
+    setTasks((currentTasks) => [...currentTasks, newTask]);
+  };
 
   return (
     <div className="dashboard-page">
@@ -37,7 +63,8 @@ function Dashboard() {
 
         {showAddTask && (
           <div className="add-task-panel">
-            <AddTask />
+
+            <AddTask onTaskCreated={handleTaskCreated} />
 
             <button
               className="close-task-button"
@@ -45,6 +72,7 @@ function Dashboard() {
             >
               Close
             </button>
+
           </div>
         )}
 
@@ -62,6 +90,13 @@ function Dashboard() {
               {index < 30 ? index + 1 : ""}
             </div>
           ))}
+        </div>
+
+        <div className="task-list-section">
+          <TaskList
+            tasks={tasks}
+            setTasks={setTasks}
+          />
         </div>
 
       </main>
