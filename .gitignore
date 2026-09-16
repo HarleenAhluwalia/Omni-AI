@@ -1,3 +1,8 @@
 node_modules/
 .env
+.env.local
 dist/
+
+# Flat-file dev store for the auth feature (server/src/config/db.js) -
+# holds real emails + bcrypt hashes once anyone registers locally.
+server/data/
