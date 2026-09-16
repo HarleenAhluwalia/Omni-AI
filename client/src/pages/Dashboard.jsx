@@ -6,26 +6,9 @@ import "./Dashboard.css";
 function Dashboard() {
   const [showAddTask, setShowAddTask] = useState(false);
 
-  // TEMPORARY FRONTEND TEST DATA:
-  // Used only while Supabase/authentication dependencies are unavailable.
-  // TaskList will replace this with real GET /api/tasks data when the
-  // backend connection becomes available.
-  const [tasks, setTasks] = useState([
-    {
-      id: "demo-1",
-      title: "CPSC 491 Sprint Report",
-      description: "Complete Sprint 1 documentation",
-      due_date: "2026-09-17",
-      priority: "high",
-    },
-    {
-      id: "demo-2",
-      title: "Study for Exam",
-      description: "Review chapters and notes",
-      due_date: "2026-09-20",
-      priority: "medium",
-    },
-  ]);
+  // Tasks are loaded from the backend (GET /api/tasks) by TaskList itself.
+  // The database is the source of truth - no demo/sample data here.
+  const [tasks, setTasks] = useState([]);
 
   const handleTaskCreated = (newTask) => {
     setTasks((currentTasks) => [...currentTasks, newTask]);

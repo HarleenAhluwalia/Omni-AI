@@ -104,3 +104,11 @@
   padding: 8px 14px;
   cursor: pointer;
 }
+
+.task-item.completed {
+  opacity: 0.65;
+}
+
+.task-item.completed h3 {
+  text-decoration: line-through;
+}

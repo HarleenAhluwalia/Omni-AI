@@ -1,10 +1,14 @@
 import { useState } from "react";
 
+const TEST_USER_ID = import.meta.env.VITE_TEST_USER_ID;
+
 function AddTask({ onTaskCreated }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState("medium");
+  const [pointValue, setPointValue] = useState("");
+  const [estimatedEffort, setEstimatedEffort] = useState("");
   const [message, setMessage] = useState("");
 
   const handleAddTask = async () => {
@@ -13,27 +17,32 @@ function AddTask({ onTaskCreated }) {
       return;
     }
 
+    // TEMPORARY Sprint 1 auth bridge - see docs/api-contract.md.
+    if (!TEST_USER_ID) {
+      setMessage("Development user ID is not configured.");
+      return;
+    }
+
     const taskData = {
-      title,
-      description,
-      due_date: dueDate || null,
+      user_id: TEST_USER_ID,
+      title: title.trim(),
+      description: description.trim() || null,
+      due_date: dueDate ? new Date(`${dueDate}T23:59:59`).toISOString() : null,
       priority,
+      completion_status: "not_started",
+      point_value: pointValue === "" ? null : Number(pointValue),
+      estimated_effort_minutes:
+        estimatedEffort === "" ? null : Number.parseInt(estimatedEffort, 10),
     };
 
     try {
-      // REAL BACKEND CONNECTION:
-      // This will create the task through POST /api/tasks once
-      // Supabase and authenticated user/profile setup are available.
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/tasks`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(taskData),
-        }
-      );
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/tasks`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(taskData),
+      });
 
       const result = await response.json();
 
@@ -44,29 +53,17 @@ function AddTask({ onTaskCreated }) {
       onTaskCreated(result.data);
       setMessage("Task created successfully.");
 
+      setTitle("");
+      setDescription("");
+      setDueDate("");
+      setPriority("medium");
+      setPointValue("");
+      setEstimatedEffort("");
     } catch (error) {
-      console.error("Backend Create Task unavailable:", error);
-
-      // TEMPORARY FRONTEND FALLBACK:
-      // Allows Create Task UI testing while the backend is blocked
-      // by Supabase/authentication dependencies.
-      // Remove this fallback once backend integration is fully available.
-      const temporaryTask = {
-        id: `demo-${Date.now()}`,
-        ...taskData,
-      };
-
-      onTaskCreated(temporaryTask);
-
-      setMessage(
-        "Task added locally for testing. Backend connection unavailable."
-      );
+      console.error("Create Task failed:", error);
+      setMessage(error.message || "Could not create task.");
+      // No local/demo fallback - a failed request must not look like success.
     }
-
-    setTitle("");
-    setDescription("");
-    setDueDate("");
-    setPriority("medium");
   };
 
   return (
@@ -100,6 +97,22 @@ function AddTask({ onTaskCreated }) {
         <option value="medium">Medium</option>
         <option value="high">High</option>
       </select>
+
+      <input
+        type="number"
+        min="0"
+        placeholder="Point Value"
+        value={pointValue}
+        onChange={(e) => setPointValue(e.target.value)}
+      />
+
+      <input
+        type="number"
+        min="0"
+        placeholder="Estimated Effort (minutes)"
+        value={estimatedEffort}
+        onChange={(e) => setEstimatedEffort(e.target.value)}
+      />
 
       <button onClick={handleAddTask}>
         Add Task
