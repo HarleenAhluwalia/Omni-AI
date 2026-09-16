@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "./Login.css";
 
-function Login({ onLogin }) {
+function Login({ onLogin, onRegister }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -86,9 +86,16 @@ function Login({ onLogin }) {
 
         <p>
           Not registered?{" "}
-          <a href="#" className="link">
-            Create Account
-          </a>
+        <a
+          href="#"
+          className="link"
+          onClick={(e) => {
+            e.preventDefault();
+            onRegister();
+         }}
+    >
+          Create Account
+        </a>
         </p>
 
         <p className="social-title">
