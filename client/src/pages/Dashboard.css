@@ -112,3 +112,21 @@
 .task-item.completed h3 {
   text-decoration: line-through;
 }
+
+.logout-button {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  background: #4b91b3;
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  opacity: 0.85;
+}
