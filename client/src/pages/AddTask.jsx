@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-function AddTask() {
+function AddTask({ onTaskCreated }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -13,48 +13,60 @@ function AddTask() {
       return;
     }
 
+    const taskData = {
+      title,
+      description,
+      due_date: dueDate || null,
+      priority,
+    };
+
     try {
+      // REAL BACKEND CONNECTION:
+      // This will create the task through POST /api/tasks once
+      // Supabase and authenticated user/profile setup are available.
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/tasks`,
         {
           method: "POST",
-
           headers: {
             "Content-Type": "application/json",
           },
-
-          body: JSON.stringify({
-            title: title,
-            description: description,
-            due_date: dueDate || null,
-            priority: priority,
-
-            // TEMPORARY until authentication supplies the user automatically.
-            user_id: "REPLACE_WITH_VALID_TEST_USER_ID",
-          }),
+          body: JSON.stringify(taskData),
         }
       );
 
       const result = await response.json();
 
       if (!response.ok) {
-        setMessage(result.error || "Could not create task.");
-        return;
+        throw new Error(result.error || "Could not create task.");
       }
 
-      setMessage(`Task "${result.data.title}" created successfully!`);
+      onTaskCreated(result.data);
+      setMessage("Task created successfully.");
 
-      setTitle("");
-      setDescription("");
-      setDueDate("");
-      setPriority("medium");
-
-      console.log("Created task:", result.data);
     } catch (error) {
-      console.error("Task creation failed:", error);
+      console.error("Backend Create Task unavailable:", error);
 
-      setMessage("Could not connect to the backend.");
+      // TEMPORARY FRONTEND FALLBACK:
+      // Allows Create Task UI testing while the backend is blocked
+      // by Supabase/authentication dependencies.
+      // Remove this fallback once backend integration is fully available.
+      const temporaryTask = {
+        id: `demo-${Date.now()}`,
+        ...taskData,
+      };
+
+      onTaskCreated(temporaryTask);
+
+      setMessage(
+        "Task added locally for testing. Backend connection unavailable."
+      );
     }
+
+    setTitle("");
+    setDescription("");
+    setDueDate("");
+    setPriority("medium");
   };
 
   return (
@@ -65,24 +77,24 @@ function AddTask() {
         type="text"
         placeholder="Task Title"
         value={title}
-        onChange={(event) => setTitle(event.target.value)}
+        onChange={(e) => setTitle(e.target.value)}
       />
 
       <textarea
         placeholder="Task Description"
         value={description}
-        onChange={(event) => setDescription(event.target.value)}
+        onChange={(e) => setDescription(e.target.value)}
       />
 
       <input
         type="date"
         value={dueDate}
-        onChange={(event) => setDueDate(event.target.value)}
+        onChange={(e) => setDueDate(e.target.value)}
       />
 
       <select
         value={priority}
-        onChange={(event) => setPriority(event.target.value)}
+        onChange={(e) => setPriority(e.target.value)}
       >
         <option value="low">Low</option>
         <option value="medium">Medium</option>
