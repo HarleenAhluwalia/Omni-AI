@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { supabase } from "../lib/supabaseClient";
 import "./Login.css";
 
-function Login({ onLogin, onRegister }) {
+function Login({ onRegister }) {
   const { login, error } = useAuth();
 
   const [email, setEmail] = useState("");
@@ -28,12 +29,50 @@ function Login({ onLogin, onRegister }) {
 
   setErrorMessage("");
 
+  /*
   const success = await login(email, password);
 
   if (success) {
     onLogin();
-  }
+  } */
+  await login(email, password);
 
+};
+/*
+const handleGoogleLogin = async () => {
+  setErrorMessage("");
+
+  const { error: googleError } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: window.location.origin,
+    },
+  });
+
+  if (googleError) {
+    setErrorMessage(googleError.message);
+  }
+};*/
+//temporary fix for google login not working, will be fixed in future updates
+const handleGoogleLogin = async () => {
+  setErrorMessage("");
+
+  console.log("Google login clicked");
+
+  const { data, error: googleError } =
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+
+  console.log("OAuth data:", data);
+  console.log("OAuth error:", googleError);
+
+  if (googleError) {
+    setErrorMessage(googleError.message);
+  }
 };
 
   return (
@@ -50,11 +89,7 @@ function Login({ onLogin, onRegister }) {
         <input
           type="email"
           placeholder="Email"
-          type="email"
-          placeholder="Email"
           className="login-input"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
           value={email}
           onChange={(event) => setEmail(event.target.value)}
         />
@@ -80,12 +115,6 @@ function Login({ onLogin, onRegister }) {
           </p>
         )}
 
-        {error && (
-          <p className="error-message">
-            {error}
-          </p>
-        )}
-
         <a href="#" className="link">
           Forgot Password?
         </a>
@@ -108,7 +137,10 @@ function Login({ onLogin, onRegister }) {
           Or log in with:
         </p>
 
-        <button className="social-button">
+        <button
+          className="social-button"
+          onClick={handleGoogleLogin}
+        >
           Google
         </button>
 
