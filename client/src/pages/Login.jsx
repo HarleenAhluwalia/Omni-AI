@@ -1,44 +1,38 @@
 import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import "./Login.css";
 
-function Login({ onLogin }) {
-  const [username, setUsername] = useState("");
+function Login({ onRegister }) {
+  const { login, error } = useAuth();
+
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  const handleLogin = () => {
-  // Temporary login information for frontend testing
-  const correctUsername = "test";
-  const correctPassword = "omni123";
+  const handleLogin = async () => {
+    if (email.trim() === "" && password.trim() === "") {
+      setErrorMessage("Please enter your email and password.");
+      return;
+    }
 
-  if (username.trim() === "" && password.trim() === "") {
-    setErrorMessage("Please enter your username and password.");
-    return;
-  }
+    if (email.trim() === "") {
+      setErrorMessage("Please enter your email.");
+      return;
+    }
 
-  if (username.trim() === "") {
-    setErrorMessage("Please enter your username.");
-    return;
-  }
+    if (password.trim() === "") {
+      setErrorMessage("Please enter your password.");
+      return;
+    }
 
-  if (password.trim() === "") {
-    setErrorMessage("Please enter your password.");
-    return;
-  }
+    setErrorMessage("");
 
-  // Check temporary username and password
-  if (
-    username !== correctUsername ||
-    password !== correctPassword
-  ) {
-    setErrorMessage("Incorrect username or password.");
-    return;
-  }
+    const success = await login(email, password);
 
-  // Correct login
-  setErrorMessage("");
-  onLogin();
-};
+    if (!success) {
+      setErrorMessage("Incorrect email or password.");
+    }
+  };
 
   return (
     <div className="login-page">
@@ -52,11 +46,11 @@ function Login({ onLogin }) {
         <h2>Omni AI Login</h2>
 
         <input
-          type="text"
-          placeholder="Username"
+          type="email"
+          placeholder="Email"
           className="login-input"
-          value={username}
-          onChange={(event) => setUsername(event.target.value)}
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
         />
 
         <input
@@ -80,13 +74,26 @@ function Login({ onLogin }) {
           </p>
         )}
 
+        {error && (
+          <p className="error-message">
+            {error}
+          </p>
+        )}
+
         <a href="#" className="link">
           Forgot Password?
         </a>
 
         <p>
           Not registered?{" "}
-          <a href="#" className="link">
+          <a
+            href="#"
+            className="link"
+            onClick={(event) => {
+              event.preventDefault();
+              onRegister();
+            }}
+          >
             Create Account
           </a>
         </p>
@@ -95,9 +102,17 @@ function Login({ onLogin }) {
           Or log in with:
         </p>
 
-        <button className="social-button">Google</button>
-        <button className="social-button">Apple</button>
-        <button className="social-button">Microsoft</button>
+        <button className="social-button">
+          Google
+        </button>
+
+        <button className="social-button">
+          Apple
+        </button>
+
+        <button className="social-button">
+          Microsoft
+        </button>
       </div>
     </div>
   );

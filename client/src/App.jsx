@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import RegisterPage from "./pages/RegisterPage";
+import { useAuth } from "./context/AuthContext";
 
 function App() {
-  const [loggedIn, setLoggedIn] = useState(false);
-// use effect from react
+  const { user, loading } = useAuth();
+  const [showRegister, setShowRegister] = useState(false);
+
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/health`)
       .then((response) => response.json())
@@ -16,12 +19,22 @@ function App() {
       });
   }, []);
 
+  if (loading) {
+    return <p>Loading...</p>;
+  }
+
   return (
     <>
-      {loggedIn ? (
+      {user ? (
         <Dashboard />
+      ) : showRegister ? (
+        <RegisterPage
+          onBackToLogin={() => setShowRegister(false)}
+        />
       ) : (
-        <Login onLogin={() => setLoggedIn(true)} />
+        <Login
+          onRegister={() => setShowRegister(true)}
+        />
       )}
     </>
   );
