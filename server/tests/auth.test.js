@@ -1,6 +1,16 @@
+// Registration now calls out to Supabase Auth (supabase.auth.admin.createUser)
+// and upserts a profiles row, so the module must be mocked before app.js
+// (and everything it requires) is loaded. Without this, these tests either
+// throw "Missing Supabase environment variables" or make real network calls.
+jest.mock("../config/supabase", () => {
+  const { createMockSupabase } = require("./helpers/supabaseMock");
+  return createMockSupabase();
+});
+
 const request = require("supertest");
 const { createApp } = require("../src/app");
 const { UserRepository } = require("../src/config/db");
+const supabase = require("../config/supabase");
 
 const app = createApp();
 
@@ -12,6 +22,7 @@ const validUser = {
 
 beforeEach(() => {
   UserRepository._reset();
+  supabase.__reset();
 });
 
 describe("POST /api/auth/register", () => {
