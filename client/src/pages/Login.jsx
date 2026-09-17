@@ -1,23 +1,23 @@
 import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import "./Login.css";
 
 function Login({ onLogin, onRegister }) {
-  const [username, setUsername] = useState("");
+  const { login, error } = useAuth();
+
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  const handleLogin = () => {
-  // Temporary login information for frontend testing
-  const correctUsername = "test";
-  const correctPassword = "omni123";
-
-  if (username.trim() === "" && password.trim() === "") {
-    setErrorMessage("Please enter your username and password.");
+  const handleLogin = async () => {
+  
+  if (email.trim() === "" && password.trim() === "") {
+    setErrorMessage("Please enter your email and password.");
     return;
   }
 
-  if (username.trim() === "") {
-    setErrorMessage("Please enter your username.");
+  if (email.trim() === "") {
+    setErrorMessage("Please enter your email.");
     return;
   }
 
@@ -26,18 +26,14 @@ function Login({ onLogin, onRegister }) {
     return;
   }
 
-  // Check temporary username and password
-  if (
-    username !== correctUsername ||
-    password !== correctPassword
-  ) {
-    setErrorMessage("Incorrect username or password.");
-    return;
+  setErrorMessage("");
+
+  const success = await login(email, password);
+
+  if (success) {
+    onLogin();
   }
 
-  // Correct login
-  setErrorMessage("");
-  onLogin();
 };
 
   return (
@@ -52,11 +48,11 @@ function Login({ onLogin, onRegister }) {
         <h2>Omni AI Login</h2>
 
         <input
-          type="text"
-          placeholder="Username"
+          type="email"
+          placeholder="Email"
           className="login-input"
-          value={username}
-          onChange={(event) => setUsername(event.target.value)}
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
         />
 
         <input
@@ -74,9 +70,9 @@ function Login({ onLogin, onRegister }) {
           Login
         </button>
 
-        {errorMessage && (
+        {(errorMessage || error) && (
           <p className="error-message">
-            {errorMessage}
+          {errorMessage || error}
           </p>
         )}
 

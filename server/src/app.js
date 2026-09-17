@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 
 const authRoutes = require("./routes/auth");
-const taskRoutes = require("../routes/taskRoutes");
+//const taskRoutes = require("../routes/taskRoutes");
 
 function createApp() {
   const app = express();
@@ -24,7 +24,7 @@ function createApp() {
   app.use("/api/auth", authRoutes);
 
   // Harleen - Task CRUD routes
-  app.use("/api/tasks", taskRoutes);
+  // app.use("/api/tasks", taskRoutes);
 
   // Error handler
   app.use((err, req, res, next) => {
