@@ -41,6 +41,13 @@ const pickWritableFields = (body) => {
   return fields;
 };
 
+const isValidUuid = (value) => {
+  const uuidPattern =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  return uuidPattern.test(value);
+};
+
 
 // ---------------------------------------------------------
 // Validate Task fields.
@@ -67,18 +74,60 @@ const validateFields = (fields) => {
 
   if (
     fields.point_value !== undefined &&
-    fields.point_value !== null &&
-    Number(fields.point_value) < 0
+    fields.point_value !== null
   ) {
-    return "point_value must be nonnegative";
+    if (
+      fields.point_value === "" ||
+      !Number.isFinite(Number(fields.point_value))
+    ) {
+      return "point_value must be a number";
+    }
+
+    if (Number(fields.point_value) < 0) {
+      return "point_value must be nonnegative";
+    }
   }
 
   if (
     fields.estimated_effort_minutes !== undefined &&
-    fields.estimated_effort_minutes !== null &&
-    Number(fields.estimated_effort_minutes) < 0
+    fields.estimated_effort_minutes !== null
   ) {
-    return "estimated_effort_minutes must be nonnegative";
+    const effort = Number(fields.estimated_effort_minutes);
+
+    if (
+      fields.estimated_effort_minutes === "" ||
+      !Number.isFinite(effort)
+    ) {
+      return "estimated_effort_minutes must be a number";
+    }
+
+    if (!Number.isInteger(effort)) {
+      return "estimated_effort_minutes must be an integer";
+    }
+
+    if (effort < 0) {
+      return "estimated_effort_minutes must be nonnegative";
+    }
+  }
+
+  if (
+    fields.due_date !== undefined &&
+    fields.due_date !== null &&
+    fields.due_date !== ""
+  ) {
+    const dueDate = new Date(fields.due_date);
+
+    if (Number.isNaN(dueDate.getTime())) {
+      return "due_date must be a valid date";
+    }
+  }
+
+  if (
+    fields.description !== undefined &&
+    fields.description !== null &&
+    typeof fields.description !== "string"
+  ) {
+    return "description must be a string";
   }
 
   return null;
@@ -120,6 +169,13 @@ const getTasks = async (req, res) => {
     });
   }
 
+  if (!isValidUuid(user_id)) {
+    return res.status(400).json({
+      success: false,
+      error: "user_id must be a valid UUID"
+    });
+  }
+
   const {
     data,
     error
@@ -151,6 +207,12 @@ const getTasks = async (req, res) => {
 // =========================================================
 const getTaskById = async (req, res) => {
   const { id } = req.params;
+  if (!isValidUuid(id)) {
+    return res.status(400).json({
+      success: false,
+      error: "task id must be a valid UUID"
+    });
+  }
 
   const user_id =
     getRequestedUserId(req);
@@ -159,6 +221,13 @@ const getTaskById = async (req, res) => {
     return res.status(400).json({
       success: false,
       error: "user_id is required"
+    });
+  }
+
+  if (!isValidUuid(user_id)) {
+    return res.status(400).json({
+      success: false,
+      error: "user_id must be a valid UUID"
     });
   }
 
@@ -204,12 +273,12 @@ const createTask = async (req, res) => {
     getRequestedUserId(req);
 
   if (
-    !title ||
+    typeof title !== "string" ||
     !title.trim()
   ) {
     return res.status(400).json({
       success: false,
-      error: "title is required"
+      error: "title must be a non-empty string"
     });
   }
 
@@ -217,6 +286,13 @@ const createTask = async (req, res) => {
     return res.status(400).json({
       success: false,
       error: "user_id is required"
+    });
+  }
+
+  if (!isValidUuid(user_id)) {
+    return res.status(400).json({
+      success: false,
+      error: "user_id must be a valid UUID"
     });
   }
 
@@ -268,6 +344,12 @@ const createTask = async (req, res) => {
 // =========================================================
 const updateTask = async (req, res) => {
   const { id } = req.params;
+  if (!isValidUuid(id)) {
+    return res.status(400).json({
+      success: false,
+      error: "task id must be a valid UUID"
+    });
+  }
 
   const user_id =
     getRequestedUserId(req);
@@ -282,6 +364,13 @@ const updateTask = async (req, res) => {
     });
   }
 
+  if (!isValidUuid(user_id)) {
+    return res.status(400).json({
+      success: false,
+      error: "user_id must be a valid UUID"
+    });
+  }
+
   if (
     Object.keys(updates).length === 0
   ) {
@@ -291,21 +380,18 @@ const updateTask = async (req, res) => {
     });
   }
 
-  if (
-    updates.title !== undefined &&
-    !updates.title.trim()
-  ) {
-    return res.status(400).json({
-      success: false,
-      error: "title cannot be empty"
-    });
-  }
+  if (updates.title !== undefined) {
+    if (
+      typeof updates.title !== "string" ||
+      !updates.title.trim()
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: "title must be a non-empty string"
+      });
+    }
 
-  if (
-    updates.title !== undefined
-  ) {
-    updates.title =
-      updates.title.trim();
+    updates.title = updates.title.trim();
   }
 
   const validationError =
@@ -356,6 +442,12 @@ const updateTask = async (req, res) => {
 // =========================================================
 const deleteTask = async (req, res) => {
   const { id } = req.params;
+  if (!isValidUuid(id)) {
+    return res.status(400).json({
+      success: false,
+      error: "task id must be a valid UUID"
+    });
+  }
 
   const user_id =
     getRequestedUserId(req);
@@ -364,6 +456,13 @@ const deleteTask = async (req, res) => {
     return res.status(400).json({
       success: false,
       error: "user_id is required"
+    });
+  }
+
+  if (!isValidUuid(user_id)) {
+    return res.status(400).json({
+      success: false,
+      error: "user_id must be a valid UUID"
     });
   }
 
