@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import RegisterPage from "./pages/RegisterPage";
+import { useAuth } from "./context/AuthContext";
 
 function App() {
-  const [loggedIn, setLoggedIn] = useState(false);
+  const { user, loading } = useAuth();
   const [showRegister, setShowRegister] = useState(false);
 
   useEffect(() => {
@@ -18,20 +19,23 @@ function App() {
       });
   }, []);
 
+  if (loading) {
+    return <p>Loading...</p>;
+  }
+
   return (
     <>
-
-      {loggedIn ? (
+      {user ? (
         <Dashboard />
       ) : showRegister ? (
-      <RegisterPage />
+        <RegisterPage
+          onBackToLogin={() => setShowRegister(false)}
+        />
       ) : (
-      <Login
-        onLogin={() => setLoggedIn(true)}
-        onRegister={() => setShowRegister(true)}
-      />
+        <Login
+          onRegister={() => setShowRegister(true)}
+        />
       )}
-
     </>
   );
 }

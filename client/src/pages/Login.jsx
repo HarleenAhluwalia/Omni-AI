@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import "./Login.css";
 
 function Login({ onLogin, onRegister }) {
@@ -21,10 +22,10 @@ function Login({ onLogin, onRegister }) {
     return;
   }
 
-  if (password.trim() === "") {
-    setErrorMessage("Please enter your password.");
-    return;
-  }
+    if (password.trim() === "") {
+      setErrorMessage("Please enter your password.");
+      return;
+    }
 
   setErrorMessage("");
 
@@ -50,7 +51,11 @@ function Login({ onLogin, onRegister }) {
         <input
           type="email"
           placeholder="Email"
+          type="email"
+          placeholder="Email"
           className="login-input"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
           value={email}
           onChange={(event) => setEmail(event.target.value)}
         />
@@ -76,31 +81,45 @@ function Login({ onLogin, onRegister }) {
           </p>
         )}
 
+        {error && (
+          <p className="error-message">
+            {error}
+          </p>
+        )}
+
         <a href="#" className="link">
           Forgot Password?
         </a>
 
         <p>
           Not registered?{" "}
-        <a
-          href="#"
-          className="link"
-          onClick={(e) => {
-            e.preventDefault();
-            onRegister();
-         }}
-    >
-          Create Account
-        </a>
+          <a
+            href="#"
+            className="link"
+            onClick={(event) => {
+              event.preventDefault();
+              onRegister();
+            }}
+          >
+            Create Account
+          </a>
         </p>
 
         <p className="social-title">
           Or log in with:
         </p>
 
-        <button className="social-button">Google</button>
-        <button className="social-button">Apple</button>
-        <button className="social-button">Microsoft</button>
+        <button className="social-button">
+          Google
+        </button>
+
+        <button className="social-button">
+          Apple
+        </button>
+
+        <button className="social-button">
+          Microsoft
+        </button>
       </div>
     </div>
   );

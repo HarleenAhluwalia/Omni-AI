@@ -1,19 +1,30 @@
 import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
 const TEST_USER_ID = import.meta.env.VITE_TEST_USER_ID;
 
 function EditTask({ task, onUpdated, onCancel }) {
+  const { user } = useAuth();
+
   const [title, setTitle] = useState(task.title || "");
-  const [description, setDescription] = useState(task.description || "");
+  const [description, setDescription] = useState(
+    task.description || ""
+  );
   const [dueDate, setDueDate] = useState(
     task.due_date ? task.due_date.slice(0, 10) : ""
   );
-  const [priority, setPriority] = useState(task.priority || "medium");
-  const [pointValue, setPointValue] = useState(task.point_value ?? "");
+  const [priority, setPriority] = useState(
+    task.priority || "medium"
+  );
+  const [pointValue, setPointValue] = useState(
+    task.point_value ?? ""
+  );
   const [estimatedEffort, setEstimatedEffort] = useState(
     task.estimated_effort_minutes ?? ""
   );
   const [message, setMessage] = useState("");
+
+  const userId = user?.id || TEST_USER_ID;
 
   const handleUpdate = async () => {
     if (!title.trim()) {
@@ -21,24 +32,33 @@ function EditTask({ task, onUpdated, onCancel }) {
       return;
     }
 
-    if (!TEST_USER_ID) {
-      setMessage("Development user ID is not configured.");
+    if (!userId) {
+      setMessage(
+        "No authenticated or development user ID is available."
+      );
       return;
     }
 
     const updatePayload = {
       title: title.trim(),
       description: description.trim() || null,
-      due_date: dueDate ? new Date(`${dueDate}T23:59:59`).toISOString() : null,
+      due_date: dueDate
+        ? new Date(`${dueDate}T23:59:59`).toISOString()
+        : null,
       priority,
-      point_value: pointValue === "" ? null : Number(pointValue),
+      point_value:
+        pointValue === "" ? null : Number(pointValue),
       estimated_effort_minutes:
-        estimatedEffort === "" ? null : Number.parseInt(estimatedEffort, 10),
+        estimatedEffort === ""
+          ? null
+          : Number.parseInt(estimatedEffort, 10),
     };
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/tasks/${task.id}?user_id=${encodeURIComponent(TEST_USER_ID)}`,
+        `${import.meta.env.VITE_API_URL}/tasks/${task.id}?user_id=${encodeURIComponent(
+          userId
+        )}`,
         {
           method: "PUT",
           headers: {
@@ -51,14 +71,19 @@ function EditTask({ task, onUpdated, onCancel }) {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "Could not update task.");
+        throw new Error(
+          result.error || "Could not update task."
+        );
       }
 
       onUpdated(result.data);
+      setMessage("Task updated successfully.");
     } catch (error) {
       console.error("Update Task failed:", error);
-      setMessage(error.message || "Could not update task.");
-      // No local fallback - the UI only reflects what actually persisted.
+
+      setMessage(
+        error.message || "Could not update task."
+      );
     }
   };
 
@@ -95,6 +120,7 @@ function EditTask({ task, onUpdated, onCancel }) {
       <input
         type="number"
         min="0"
+        placeholder="Point Value"
         value={pointValue}
         onChange={(e) => setPointValue(e.target.value)}
       />
@@ -102,6 +128,7 @@ function EditTask({ task, onUpdated, onCancel }) {
       <input
         type="number"
         min="0"
+        placeholder="Estimated Effort (minutes)"
         value={estimatedEffort}
         onChange={(e) => setEstimatedEffort(e.target.value)}
       />

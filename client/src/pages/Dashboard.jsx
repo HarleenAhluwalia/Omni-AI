@@ -1,17 +1,22 @@
 import { useState } from "react";
 import AddTask from "./AddTask";
 import TaskList from "./TaskList";
+import { useAuth } from "../context/AuthContext";
 import "./Dashboard.css";
 
 function Dashboard() {
-  const [showAddTask, setShowAddTask] = useState(false);
+  const { user, logout } = useAuth();
 
-  // Tasks are loaded from the backend (GET /api/tasks) by TaskList itself.
-  // The database is the source of truth - no demo/sample data here.
+  const [showAddTask, setShowAddTask] = useState(false);
   const [tasks, setTasks] = useState([]);
 
   const handleTaskCreated = (newTask) => {
-    setTasks((currentTasks) => [...currentTasks, newTask]);
+    setTasks((currentTasks) => [
+      ...currentTasks,
+      newTask,
+    ]);
+
+    setShowAddTask(false);
   };
 
   return (
@@ -27,7 +32,19 @@ function Dashboard() {
         <p>Calendar</p>
 
         <div className="user-section">
-          <strong>Harleen Ahluwalia</strong>
+          <strong>
+            {user?.name ||
+              user?.display_name ||
+              user?.email ||
+              "Omni AI User"}
+          </strong>
+
+          <button
+            className="logout-button"
+            onClick={logout}
+          >
+            Log Out
+          </button>
         </div>
       </div>
 
@@ -38,7 +55,9 @@ function Dashboard() {
 
           <button
             className="add-task-header-button"
-            onClick={() => setShowAddTask(!showAddTask)}
+            onClick={() =>
+              setShowAddTask(!showAddTask)
+            }
           >
             + Add Task
           </button>
@@ -47,11 +66,15 @@ function Dashboard() {
         {showAddTask && (
           <div className="add-task-panel">
 
-            <AddTask onTaskCreated={handleTaskCreated} />
+            <AddTask
+              onTaskCreated={handleTaskCreated}
+            />
 
             <button
               className="close-task-button"
-              onClick={() => setShowAddTask(false)}
+              onClick={() =>
+                setShowAddTask(false)
+              }
             >
               Close
             </button>
@@ -68,11 +91,17 @@ function Dashboard() {
           <div className="calendar-day calendar-heading">Friday</div>
           <div className="calendar-day calendar-heading">Saturday</div>
 
-          {Array.from({ length: 35 }, (_, index) => (
-            <div className="calendar-day" key={index}>
-              {index < 30 ? index + 1 : ""}
-            </div>
-          ))}
+          {Array.from(
+            { length: 35 },
+            (_, index) => (
+              <div
+                className="calendar-day"
+                key={index}
+              >
+                {index < 30 ? index + 1 : ""}
+              </div>
+            )
+          )}
         </div>
 
         <div className="task-list-section">

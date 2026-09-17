@@ -9,33 +9,36 @@ function createApp() {
 
   app.use(
     cors({
-      origin: process.env.CLIENT_ORIGIN || "*",
+      origin:
+        process.env.CLIENT_ORIGIN || "*",
     })
   );
 
   app.use(express.json());
 
-  // Health check
   app.get("/health", (req, res) => {
-    res.json({ status: "ok" });
+    res.json({
+      status: "ok"
+    });
   });
 
-  // Authentication routes
   app.use("/api/auth", authRoutes);
 
   // Harleen - Task CRUD routes
   // app.use("/api/tasks", taskRoutes);
 
-  // Error handler
   app.use((err, req, res, next) => {
     console.error(err);
 
     res.status(500).json({
-      error: "Internal server error.",
+      error:
+        "Internal server error."
     });
   });
 
   return app;
 }
 
-module.exports = { createApp };
+module.exports = {
+  createApp
+};
