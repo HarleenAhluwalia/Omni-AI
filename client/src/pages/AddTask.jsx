@@ -1,8 +1,11 @@
 import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
 const TEST_USER_ID = import.meta.env.VITE_TEST_USER_ID;
 
 function AddTask({ onTaskCreated }) {
+  const { user } = useAuth();
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -11,46 +14,64 @@ function AddTask({ onTaskCreated }) {
   const [estimatedEffort, setEstimatedEffort] = useState("");
   const [message, setMessage] = useState("");
 
+  // Use real authenticated user first.
+  // VITE_TEST_USER_ID remains only as a temporary Sprint 1 fallback.
+  const userId = user?.id || TEST_USER_ID;
+
   const handleAddTask = async () => {
     if (!title.trim()) {
       setMessage("Task title is required.");
       return;
     }
 
-    // TEMPORARY Sprint 1 auth bridge - see docs/api-contract.md.
-    if (!TEST_USER_ID) {
-      setMessage("Development user ID is not configured.");
+    if (!userId) {
+      setMessage(
+        "No authenticated or development user ID is available."
+      );
       return;
     }
 
     const taskData = {
-      user_id: TEST_USER_ID,
+      user_id: userId,
       title: title.trim(),
       description: description.trim() || null,
-      due_date: dueDate ? new Date(`${dueDate}T23:59:59`).toISOString() : null,
+      due_date: dueDate
+        ? new Date(`${dueDate}T23:59:59`).toISOString()
+        : null,
       priority,
       completion_status: "not_started",
-      point_value: pointValue === "" ? null : Number(pointValue),
+      point_value:
+        pointValue === "" ? null : Number(pointValue),
       estimated_effort_minutes:
-        estimatedEffort === "" ? null : Number.parseInt(estimatedEffort, 10),
+        estimatedEffort === ""
+          ? null
+          : Number.parseInt(estimatedEffort, 10),
     };
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/tasks`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(taskData),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/tasks`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(taskData),
+        }
+      );
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "Could not create task.");
+        throw new Error(
+          result.error || "Could not create task."
+        );
       }
 
-      onTaskCreated(result.data);
+      if (onTaskCreated) {
+        onTaskCreated(result.data);
+      }
+
       setMessage("Task created successfully.");
 
       setTitle("");
@@ -61,8 +82,9 @@ function AddTask({ onTaskCreated }) {
       setEstimatedEffort("");
     } catch (error) {
       console.error("Create Task failed:", error);
-      setMessage(error.message || "Could not create task.");
-      // No local/demo fallback - a failed request must not look like success.
+      setMessage(
+        error.message || "Could not create task."
+      );
     }
   };
 
