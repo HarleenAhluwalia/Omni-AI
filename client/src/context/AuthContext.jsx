@@ -1,6 +1,7 @@
 // same file in client-integration/src/context/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { registerUser, loginUser, fetchCurrentUser } from "../api/authApi";
+import { supabase } from "../lib/supabaseClient";
 
 const AuthContext = createContext(null);
 const TOKEN_STORAGE_KEY = "omni_ai_token";
@@ -60,6 +61,59 @@ export function AuthProvider({ children }) {
     setToken(null);
     setUser(null);
   }, []);
+/*
+  useEffect(() => {
+    // Check whether a Supabase/Google session already exists
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user);
+      }
+    });
+
+    // Listen for future Supabase login/logout changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+        if (session?.user) {
+          setUser(session.user);
+        } else {
+          setUser(null);
+        }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+*/
+  // above replaced with:
+  useEffect(() => {
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    console.log("Supabase session on load:", session);
+
+    if (session?.user) {
+      setUser(session.user);
+    }
+  });
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((event, session) => {
+    console.log("Supabase auth event:", event);
+    console.log("Supabase auth session:", session);
+
+    if (session?.user) {
+      setUser(session.user);
+    } else {
+      setUser(null);
+    }
+  });
+
+  return () => {
+    subscription.unsubscribe();
+  };
+}, []);
+
 
   const value = { user, token, loading, error, login, register, logout };
 

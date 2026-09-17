@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { supabase } from "../lib/supabaseClient";
 import "./Login.css";
 
 function Login({ onRegister }) {
@@ -10,29 +11,69 @@ function Login({ onRegister }) {
   const [errorMessage, setErrorMessage] = useState("");
 
   const handleLogin = async () => {
-    if (email.trim() === "" && password.trim() === "") {
-      setErrorMessage("Please enter your email and password.");
-      return;
-    }
+  
+  if (email.trim() === "" && password.trim() === "") {
+    setErrorMessage("Please enter your email and password.");
+    return;
+  }
 
-    if (email.trim() === "") {
-      setErrorMessage("Please enter your email.");
-      return;
-    }
+  if (email.trim() === "") {
+    setErrorMessage("Please enter your email.");
+    return;
+  }
 
     if (password.trim() === "") {
       setErrorMessage("Please enter your password.");
       return;
     }
 
-    setErrorMessage("");
+  setErrorMessage("");
 
-    const success = await login(email, password);
+  /*
+  const success = await login(email, password);
 
-    if (!success) {
-      setErrorMessage("Incorrect email or password.");
-    }
-  };
+  if (success) {
+    onLogin();
+  } */
+  await login(email, password);
+
+};
+/*
+const handleGoogleLogin = async () => {
+  setErrorMessage("");
+
+  const { error: googleError } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: window.location.origin,
+    },
+  });
+
+  if (googleError) {
+    setErrorMessage(googleError.message);
+  }
+};*/
+//temporary fix for google login not working, will be fixed in future updates
+const handleGoogleLogin = async () => {
+  setErrorMessage("");
+
+  console.log("Google login clicked");
+
+  const { data, error: googleError } =
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+
+  console.log("OAuth data:", data);
+  console.log("OAuth error:", googleError);
+
+  if (googleError) {
+    setErrorMessage(googleError.message);
+  }
+};
 
   return (
     <div className="login-page">
@@ -68,15 +109,9 @@ function Login({ onRegister }) {
           Login
         </button>
 
-        {errorMessage && (
+        {(errorMessage || error) && (
           <p className="error-message">
-            {errorMessage}
-          </p>
-        )}
-
-        {error && (
-          <p className="error-message">
-            {error}
+          {errorMessage || error}
           </p>
         )}
 
@@ -102,7 +137,10 @@ function Login({ onRegister }) {
           Or log in with:
         </p>
 
-        <button className="social-button">
+        <button
+          className="social-button"
+          onClick={handleGoogleLogin}
+        >
           Google
         </button>
 

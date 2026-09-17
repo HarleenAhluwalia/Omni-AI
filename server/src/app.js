@@ -24,6 +24,7 @@ function createApp() {
 
   app.use("/api/auth", authRoutes);
 
+  // Harleen - Task CRUD routes
   app.use("/api/tasks", taskRoutes);
 
   app.use((err, req, res, next) => {
