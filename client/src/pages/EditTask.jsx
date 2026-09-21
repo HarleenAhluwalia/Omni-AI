@@ -5,6 +5,7 @@ const TEST_USER_ID = import.meta.env.VITE_TEST_USER_ID;
 
 function EditTask({ task, onUpdated, onCancel }) {
   const { user } = useAuth();
+  const userId = user?.id || TEST_USER_ID;
 
   const [title, setTitle] = useState(task.title || "");
   const [description, setDescription] = useState(
@@ -23,8 +24,6 @@ function EditTask({ task, onUpdated, onCancel }) {
     task.estimated_effort_minutes ?? ""
   );
   const [message, setMessage] = useState("");
-
-  const userId = user?.id || TEST_USER_ID;
 
   const handleUpdate = async () => {
     if (!title.trim()) {
@@ -80,7 +79,6 @@ function EditTask({ task, onUpdated, onCancel }) {
       setMessage("Task updated successfully.");
     } catch (error) {
       console.error("Update Task failed:", error);
-
       setMessage(
         error.message || "Could not update task."
       );
