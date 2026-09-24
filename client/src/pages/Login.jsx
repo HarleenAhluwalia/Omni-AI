@@ -29,49 +29,52 @@ function Login({ onRegister }) {
 
   setErrorMessage("");
 
-  /*
-  const success = await login(email, password);
-
-  if (success) {
-    onLogin();
-  } */
   await login(email, password);
 
 };
-/*
+
 const handleGoogleLogin = async () => {
   setErrorMessage("");
 
-  const { error: googleError } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: window.location.origin,
-    },
-  });
-
-  if (googleError) {
-    setErrorMessage(googleError.message);
-  }
-};*/
-//temporary fix for google login not working, will be fixed in future updates
-const handleGoogleLogin = async () => {
-  setErrorMessage("");
-
-  console.log("Google login clicked");
-
-  const { data, error: googleError } =
+  const { error: googleError } =
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: window.location.origin,
+        queryParams: {
+        prompt: "select_account",
       },
-    });
+    },
+  });
 
-  console.log("OAuth data:", data);
-  console.log("OAuth error:", googleError);
 
   if (googleError) {
     setErrorMessage(googleError.message);
+  }
+};
+
+const handleMicrosoftLogin = async () => {
+  setErrorMessage("");
+
+  console.log("Microsoft login clicked");
+
+  const { error: microsoftError } =
+    await supabase.auth.signInWithOAuth({
+      provider: "azure",
+      options: {
+        redirectTo: window.location.origin,
+        scopes: "email",
+        queryParams: {
+          prompt: "select_account",
+        },
+      },
+    });
+
+    console.log("Microsoft OAuth data:", data);
+    console.log("Microsoft OAuth error:", microsoftError);
+
+  if (microsoftError) {
+    setErrorMessage(microsoftError.message);
   }
 };
 
@@ -148,7 +151,10 @@ const handleGoogleLogin = async () => {
           Apple
         </button>
 
-        <button className="social-button">
+        <button
+          className="social-button"
+          onClick={handleMicrosoftLogin}
+        >
           Microsoft
         </button>
       </div>
