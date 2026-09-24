@@ -497,10 +497,102 @@ const deleteTask = async (req, res) => {
   });
 };
 
+const getPrioritizedTasks = async (req, res) => {
+  const user_id = req.query.user_id;
+
+  if (!user_id) {
+    return res.status(400).json({
+      success: false,
+      error: "user_id is required",
+    });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("user_id", user_id);
+
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+
+    // HARLEEN SPRINT 2:
+    // Basic backend sorting support for prioritized To-Do List.
+    // This is NOT Alan's complete AI prioritization logic.
+    const priorityWeight = {
+      high: 3,
+      medium: 2,
+      low: 1,
+    };
+
+    const sortedTasks = [...(data || [])].sort((a, b) => {
+      const aCompleted =
+        a.completion_status === "completed";
+
+      const bCompleted =
+        b.completion_status === "completed";
+
+      // Active tasks before completed tasks.
+      if (aCompleted !== bCompleted) {
+        return aCompleted ? 1 : -1;
+      }
+
+      // High -> Medium -> Low.
+      const priorityDifference =
+        (priorityWeight[b.priority] || 0) -
+        (priorityWeight[a.priority] || 0);
+
+      if (priorityDifference !== 0) {
+        return priorityDifference;
+      }
+
+      // Earlier deadline first when priority matches.
+      if (a.due_date && b.due_date) {
+        const dueDifference =
+          new Date(a.due_date) -
+          new Date(b.due_date);
+
+        if (dueDifference !== 0) {
+          return dueDifference;
+        }
+      }
+
+      if (a.due_date && !b.due_date) {
+        return -1;
+      }
+
+      if (!a.due_date && b.due_date) {
+        return 1;
+      }
+
+      return 0;
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: sortedTasks,
+    });
+  } catch (error) {
+    console.error(
+      "Prioritized task retrieval failed:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      error: "Could not load prioritized tasks.",
+    });
+  }
+};
 
 module.exports = {
   getTasks,
   getTaskById,
+  getPrioritizedTasks,
   createTask,
   updateTask,
   deleteTask
