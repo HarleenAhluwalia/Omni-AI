@@ -56,11 +56,33 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const logout = useCallback(() => {
+
+/*
+  const logout = useCallback(async() => {
     localStorage.removeItem(TOKEN_STORAGE_KEY);
+
+    await supabase.auth.signOut();
+    
     setToken(null);
     setUser(null);
   }, []);
+*/
+  // above replaced with:
+  const logout = useCallback(async () => {
+  console.log("Logout started");
+
+  localStorage.removeItem(TOKEN_STORAGE_KEY);
+
+  const { error } = await supabase.auth.signOut();
+
+  console.log("Supabase logout error:", error);
+
+  setToken(null);
+  setUser(null);
+
+  console.log("Logout finished");
+}, []);
+
 /*
   useEffect(() => {
     // Check whether a Supabase/Google session already exists
