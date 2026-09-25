@@ -4,7 +4,7 @@ import "./PrioritizedTodo.css";
 
 const TEST_USER_ID = import.meta.env.VITE_TEST_USER_ID;
 
-function PrioritizedTodo({ refreshKey = 0 }) {
+function PrioritizedTodo({ refreshKey = 0, onEditTask }) {
   const { user } = useAuth();
 
   const userId = user?.id || TEST_USER_ID;
@@ -146,6 +146,7 @@ function PrioritizedTodo({ refreshKey = 0 }) {
             <div className="todo-status-header">
               Status
             </div>
+            <div aria-hidden="true"></div>
           </div>
 
           {tasks.length === 0 ? (
@@ -190,6 +191,17 @@ function PrioritizedTodo({ refreshKey = 0 }) {
                       readOnly
                       aria-label={`Completion status for ${task.title}`}
                     />
+                  </div>
+
+                  <div className="todo-actions-cell">
+                    <button
+                      type="button"
+                      className="todo-edit-button"
+                      onClick={() => onEditTask?.(task)}
+                      aria-label={`Edit ${task.title}`}
+                    >
+                      Edit
+                    </button>
                   </div>
                 </div>
               );

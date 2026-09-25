@@ -18,6 +18,7 @@ function Dashboard() {
   const [activeView, setActiveView] = useState("dashboard");
   const [showAddTask, setShowAddTask] = useState(false);
   const [isAddTaskClosing, setIsAddTaskClosing] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [taskRefreshKey, setTaskRefreshKey] = useState(0);
 
@@ -34,6 +35,13 @@ function Dashboard() {
   const days = Array.from({ length: 35 }, (_, index) => index + 1);
 
   const openAddTaskModal = () => {
+    setEditingTask(null);
+    setIsAddTaskClosing(false);
+    setShowAddTask(true);
+  };
+
+  const openEditTaskModal = (task) => {
+    setEditingTask(task);
     setIsAddTaskClosing(false);
     setShowAddTask(true);
   };
@@ -44,6 +52,7 @@ function Dashboard() {
     window.setTimeout(() => {
       setShowAddTask(false);
       setIsAddTaskClosing(false);
+      setEditingTask(null);
     }, ADD_TASK_MODAL_ANIMATION_MS);
   };
 
@@ -76,17 +85,24 @@ function Dashboard() {
     };
   }, [showAddTask]);
 
-  const handleTaskCreated = (newTask) => {
-    if (newTask) {
-      setTasks((currentTasks) => [
-        ...currentTasks,
-        newTask,
-      ]);
+  const handleTaskSaved = (savedTask) => {
+    if (savedTask) {
+      setTasks((currentTasks) => {
+        const alreadyTracked = currentTasks.some(
+          (currentTask) => currentTask.id === savedTask.id
+        );
+
+        return alreadyTracked
+          ? currentTasks.map((currentTask) =>
+              currentTask.id === savedTask.id ? savedTask : currentTask
+            )
+          : [...currentTasks, savedTask];
+      });
     }
 
     closeAddTaskModal();
 
-    // Refresh prioritized To-Do List after creating a task.
+    // Refresh prioritized To-Do List after creating or editing a task.
     setTaskRefreshKey((current) => current + 1);
   };
 
@@ -421,6 +437,7 @@ function Dashboard() {
 
             <PrioritizedTodo
               refreshKey={taskRefreshKey}
+              onEditTask={openEditTaskModal}
             />
 
           </section>
@@ -457,18 +474,20 @@ function Dashboard() {
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            aria-label="Add Task"
+            aria-label={editingTask ? "Edit Task" : "Add Task"}
           >
             <button
               type="button"
               className="modal-close-button"
               onClick={closeAddTaskModal}
-              aria-label="Close Add Task dialog"
+              aria-label={
+                editingTask ? "Close Edit Task dialog" : "Close Add Task dialog"
+              }
             >
               ×
             </button>
 
-            <AddTask onTaskCreated={handleTaskCreated} />
+            <AddTask task={editingTask} onTaskSaved={handleTaskSaved} />
           </div>
         </div>
       )}
