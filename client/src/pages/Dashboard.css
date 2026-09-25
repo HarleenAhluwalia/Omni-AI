@@ -681,3 +681,75 @@ body {
 .full-todo-view .todo-page {
   margin-top: 20px;
 }
+
+.calendar-page {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.calendar-view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.calendar-view-header h1 {
+  margin: 0;
+  font-size: 36px;
+}
+
+.calendar-view-header p {
+  margin-top: 6px;
+  color: #666;
+  font-size: 14px;
+}
+
+.calendar-navigation {
+  display: flex;
+  gap: 8px;
+}
+
+.calendar-navigation button {
+  padding: 8px 12px;
+  border: 1px solid #aaa;
+  border-radius: 5px;
+  background: white;
+  cursor: pointer;
+}
+
+.full-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: white;
+  border: 1px solid #888;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.full-calendar-heading {
+  padding: 10px;
+  background: #eeeeee;
+  border-right: 1px solid #aaa;
+  border-bottom: 1px solid #aaa;
+  text-align: center;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.full-calendar-day {
+  min-height: 120px;
+  padding: 8px;
+  background: white;
+  border-right: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+}
+
+.full-calendar-date {
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.current-day {
+  background: #f0edff;
+}
