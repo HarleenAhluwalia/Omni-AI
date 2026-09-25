@@ -454,6 +454,129 @@ body {
 
 
 /* =========================================
+   DELETE CONFIRMATION MODAL
+========================================= */
+
+.confirm-delete-modal {
+  position: relative;
+
+  width: 100%;
+  max-width: 360px;
+
+  padding: 20px 20px 18px;
+
+  background: #fafafa;
+
+  border: 1px solid #ccc;
+  border-radius: 8px;
+
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+
+  animation: add-task-modal-in 0.18s ease forwards;
+}
+
+
+.confirm-delete-modal--closing {
+  animation: add-task-modal-out 0.18s ease forwards;
+}
+
+
+.confirm-delete-heading {
+  margin: 0 0 8px;
+
+  text-align: center;
+
+  font-size: 17px;
+  font-weight: 600;
+
+  color: #222;
+}
+
+
+.confirm-delete-text {
+  margin: 0 0 16px;
+
+  font-size: 13px;
+  line-height: 1.45;
+
+  color: #333;
+}
+
+
+.confirm-delete-actions {
+  display: flex;
+  justify-content: flex-end;
+
+  gap: 8px;
+}
+
+
+.confirm-cancel-button {
+  padding: 6px 14px;
+
+  background: transparent;
+
+  border: 1px solid #999;
+  border-radius: 5px;
+
+  color: #333;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+
+.confirm-cancel-button:hover:not(:disabled) {
+  background: #e6e6e6;
+}
+
+
+.confirm-cancel-button:disabled {
+  opacity: 0.6;
+
+  cursor: not-allowed;
+}
+
+
+.confirm-delete-button {
+  padding: 6px 14px;
+
+  background: #c23a3a;
+
+  border: none;
+  border-radius: 5px;
+
+  color: white;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+
+.confirm-delete-button:hover:not(:disabled) {
+  background: #a12e2e;
+}
+
+
+.confirm-delete-button:focus-visible {
+  outline: 2px solid #7a1f1f;
+
+  outline-offset: 2px;
+}
+
+
+.confirm-delete-button:disabled {
+  background: #e0a3a3;
+
+  cursor: not-allowed;
+}
+
+
+/* =========================================
    ADD TASK FORM
 ========================================= */
 
