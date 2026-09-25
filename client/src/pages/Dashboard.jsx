@@ -3,6 +3,7 @@ import { useState } from "react";
 import AddTask from "./AddTask";
 import TaskList from "./TaskList";
 import PrioritizedTodo from "./PrioritizedTodo";
+import CalendarView from "./CalendarView";
 
 import { useAuth } from "../context/AuthContext";
 
@@ -25,7 +26,7 @@ function Dashboard() {
   const year = today.getFullYear();
 
   // TEMPORARY calendar shell.
-  // Real Calendar integration is a later Harleen task.
+  // Real Calendar backend integration will be added later.
   const days = Array.from({ length: 35 }, (_, index) => index + 1);
 
   const handleTaskCreated = (newTask) => {
@@ -82,9 +83,12 @@ function Dashboard() {
             </button>
 
             <button
-              className="sidebar-item"
-              disabled
-              title="Calendar functionality will be completed in a later Harleen task."
+              className={
+                activeView === "calendar"
+                  ? "sidebar-item active-menu"
+                  : "sidebar-item"
+              }
+              onClick={() => setActiveView("calendar")}
             >
               <span>▣</span>
               Calendar
@@ -147,6 +151,7 @@ function Dashboard() {
         </div>
 
       </aside>
+
 
       {/* =========================
           MAIN CONTENT
@@ -305,6 +310,7 @@ function Dashboard() {
 
             </div>
 
+
             {/* =========================
                 BOTTOM ROW
             ========================= */}
@@ -358,6 +364,7 @@ function Dashboard() {
           </>
         )}
 
+
         {/* =========================
             FULL TO-DO LIST VIEW
         ========================= */}
@@ -409,6 +416,14 @@ function Dashboard() {
             />
 
           </section>
+        )}
+
+
+        {/* =========================
+            CALENDAR VIEW
+        ========================= */}
+        {activeView === "calendar" && (
+          <CalendarView />
         )}
 
       </main>
