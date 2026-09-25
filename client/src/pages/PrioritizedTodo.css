@@ -52,6 +52,7 @@
     minmax(110px, 1fr)
     minmax(120px, 1fr)
     minmax(100px, 0.8fr)
+    minmax(70px, 0.5fr)
     minmax(70px, 0.5fr);
   align-items: center;
   box-sizing: border-box;
@@ -70,10 +71,12 @@
   padding: 0 24px;
   font-size: 15px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  transition: background 0.12s ease;
 }
 
-.todo-table-row:hover {
-  background: rgba(255, 255, 255, 0.18);
+.todo-table-row:hover,
+.todo-table-row:focus-within {
+  background: rgba(255, 255, 255, 0.4);
 }
 
 .todo-task-name {
@@ -93,6 +96,47 @@
 .todo-status-cell input {
   width: 16px;
   height: 16px;
+}
+
+.todo-actions-cell {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.todo-edit-button {
+  padding: 5px 14px;
+
+  background: #7267d9;
+
+  border: none;
+  border-radius: 4px;
+
+  color: white;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  opacity: 0;
+  pointer-events: none;
+
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.todo-edit-button:hover {
+  background: #5d52c4;
+}
+
+.todo-edit-button:focus-visible {
+  outline: 2px solid #37306f;
+  outline-offset: 2px;
+}
+
+.todo-table-row:hover .todo-edit-button,
+.todo-table-row:focus-within .todo-edit-button {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .todo-high {
@@ -121,6 +165,6 @@
 
   .todo-table-header,
   .todo-table-row {
-    min-width: 760px;
+    min-width: 830px;
   }
 }

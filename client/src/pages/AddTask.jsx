@@ -8,15 +8,27 @@ const TEST_USER_ID = import.meta.env.VITE_TEST_USER_ID;
 const NON_NEGATIVE_INTEGER_PATTERN = /^\d*$/;
 const NON_NEGATIVE_DECIMAL_PATTERN = /^\d*\.?\d*$/;
 
-function AddTask({ onTaskCreated }) {
+// Passing `task` switches this form into edit mode: fields are pre-filled
+// from it and submitting PUTs to that task instead of POSTing a new one.
+function AddTask({ task = null, onTaskSaved }) {
   const { user } = useAuth();
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [priority, setPriority] = useState("medium");
-  const [pointValue, setPointValue] = useState("");
-  const [estimatedEffort, setEstimatedEffort] = useState("");
+  const isEditMode = Boolean(task);
+
+  const [title, setTitle] = useState(task?.title ?? "");
+  const [description, setDescription] = useState(task?.description ?? "");
+  const [dueDate, setDueDate] = useState(
+    task?.due_date ? task.due_date.slice(0, 10) : ""
+  );
+  const [priority, setPriority] = useState(task?.priority ?? "medium");
+  const [pointValue, setPointValue] = useState(
+    task?.point_value != null ? String(task.point_value) : ""
+  );
+  const [estimatedEffort, setEstimatedEffort] = useState(
+    task?.estimated_effort_minutes != null
+      ? String(task.estimated_effort_minutes)
+      : ""
+  );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null);
@@ -48,7 +60,7 @@ function AddTask({ onTaskCreated }) {
     setEstimatedEffort("");
   };
 
-  const handleAddTask = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (isSubmitting) {
@@ -84,15 +96,13 @@ function AddTask({ onTaskCreated }) {
       return;
     }
 
-    const taskData = {
-      user_id: userId,
+    const sharedFields = {
       title: title.trim(),
       description: description.trim() || null,
       due_date: dueDate
         ? new Date(`${dueDate}T23:59:59`).toISOString()
         : null,
       priority,
-      completion_status: "not_started",
       point_value: pointValue === "" ? null : Number(pointValue),
       estimated_effort_minutes:
         estimatedEffort === ""
@@ -100,35 +110,61 @@ function AddTask({ onTaskCreated }) {
           : Number.parseInt(estimatedEffort, 10),
     };
 
+    const requestBody = isEditMode
+      ? sharedFields
+      : { ...sharedFields, user_id: userId, completion_status: "not_started" };
+
+    const url = isEditMode
+      ? `${import.meta.env.VITE_API_URL}/tasks/${task.id}?user_id=${encodeURIComponent(
+          userId
+        )}`
+      : `${import.meta.env.VITE_API_URL}/tasks`;
+
     setIsSubmitting(true);
     setFeedback(null);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/tasks`, {
-        method: "POST",
+      const response = await fetch(url, {
+        method: isEditMode ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(taskData),
+        body: JSON.stringify(requestBody),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "Could not create task.");
+        throw new Error(
+          result.error ||
+            (isEditMode ? "Could not update task." : "Could not create task.")
+        );
       }
 
-      if (onTaskCreated) {
-        onTaskCreated(result.data);
+      if (onTaskSaved) {
+        onTaskSaved(result.data);
       }
 
-      setFeedback({ type: "success", text: "Task created successfully." });
-      resetForm();
+      setFeedback({
+        type: "success",
+        text: isEditMode
+          ? "Task updated successfully."
+          : "Task created successfully.",
+      });
+
+      if (!isEditMode) {
+        resetForm();
+      }
     } catch (error) {
-      console.error("Create Task failed:", error);
+      console.error(
+        isEditMode ? "Update Task failed:" : "Create Task failed:",
+        error
+      );
       setFeedback({
         type: "error",
-        text: error.message || "Could not create task.",
+        text:
+          error.message ||
+          (isEditMode ? "Could not update task." : "Could not create task."),
       });
     } finally {
       setIsSubmitting(false);
@@ -137,11 +173,13 @@ function AddTask({ onTaskCreated }) {
 
   return (
     <div className="add-task-form-wrapper">
-      <h2 className="add-task-heading">Add Task</h2>
+      <h2 className="add-task-heading">
+        {isEditMode ? "Edit Task" : "Add Task"}
+      </h2>
 
       <form
         className="add-task-form"
-        onSubmit={handleAddTask}
+        onSubmit={handleSubmit}
         aria-busy={isSubmitting}
         noValidate
       >
@@ -258,7 +296,13 @@ function AddTask({ onTaskCreated }) {
             className="add-task-submit-button"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Adding Task..." : "Add Task"}
+            {isSubmitting
+              ? isEditMode
+                ? "Saving Changes..."
+                : "Adding Task..."
+              : isEditMode
+                ? "Save Changes"
+                : "Add Task"}
           </button>
         </div>
 
