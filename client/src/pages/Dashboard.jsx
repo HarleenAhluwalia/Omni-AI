@@ -376,9 +376,10 @@ function Dashboard() {
                 </div>
 
                 <TaskList
-                  tasks={tasks}
-                  setTasks={setTasks}
-                />
+  tasks={tasks}
+  setTasks={setTasks}
+  onEditTask={openEditTaskModal}
+/>
 
               </section>
 

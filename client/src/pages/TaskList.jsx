@@ -4,7 +4,11 @@ import { useAuth } from "../context/AuthContext";
 
 const TEST_USER_ID = import.meta.env.VITE_TEST_USER_ID;
 
-function TaskList({ tasks, setTasks }) {
+function TaskList({
+  tasks,
+  setTasks,
+  onEditTask,
+}) {
   const { user } = useAuth();
   const userId = user?.id || TEST_USER_ID;
 
@@ -43,6 +47,7 @@ function TaskList({ tasks, setTasks }) {
         setMessage("");
       } catch (error) {
         console.error("Load Tasks failed:", error);
+
         setMessage(
           error.message || "Could not load tasks."
         );
@@ -82,6 +87,7 @@ function TaskList({ tasks, setTasks }) {
       setMessage("Task deleted successfully.");
     } catch (error) {
       console.error("Delete Task failed:", error);
+
       setMessage(
         error.message || "Could not delete task."
       );
@@ -90,6 +96,11 @@ function TaskList({ tasks, setTasks }) {
 
   const handleComplete = async (task) => {
     try {
+      const newStatus =
+        task.completion_status === "completed"
+          ? "not_started"
+          : "completed";
+
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/tasks/${task.id}?user_id=${encodeURIComponent(
           userId
@@ -100,7 +111,7 @@ function TaskList({ tasks, setTasks }) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            completion_status: "completed",
+            completion_status: newStatus,
           }),
         }
       );
@@ -109,7 +120,7 @@ function TaskList({ tasks, setTasks }) {
 
       if (!response.ok) {
         throw new Error(
-          result.error || "Could not complete task."
+          result.error || "Could not update task."
         );
       }
 
@@ -121,11 +132,16 @@ function TaskList({ tasks, setTasks }) {
         )
       );
 
-      setMessage("Task marked complete.");
+      setMessage(
+        newStatus === "completed"
+          ? "Task marked complete."
+          : "Task marked incomplete."
+      );
     } catch (error) {
       console.error("Complete Task failed:", error);
+
       setMessage(
-        error.message || "Could not complete task."
+        error.message || "Could not update task."
       );
     }
   };
@@ -143,15 +159,27 @@ function TaskList({ tasks, setTasks }) {
     setMessage("Task updated successfully.");
   };
 
+  const handleEditClick = (task) => {
+    if (onEditTask) {
+      onEditTask(task);
+      return;
+    }
+
+    setEditingTask(task);
+  };
+
   if (loading) {
     return <p>Loading tasks...</p>;
   }
 
   return (
-    <div>
-      <h2>Tasks</h2>
+    <div className="task-list">
 
-      {message && <p>{message}</p>}
+      {message && (
+        <p className="task-list-message">
+          {message}
+        </p>
+      )}
 
       {tasks.length === 0 && (
         <p>No tasks available.</p>
@@ -163,65 +191,91 @@ function TaskList({ tasks, setTasks }) {
           className={
             task.completion_status === "completed"
               ? "task-item completed"
-              : "task-item"
+              : `task-item task-priority-${task.priority || "low"}`
           }
         >
-          <h3>{task.title}</h3>
+          <div className="task-item-main">
 
-          {task.description && (
-            <p>{task.description}</p>
-          )}
+            <div>
+              <h3>{task.title}</h3>
 
-          <p>
-            Due:{" "}
-            {task.due_date
-              ? new Date(task.due_date).toLocaleString()
-              : "No deadline"}
-          </p>
+              {task.description && (
+                <p>{task.description}</p>
+              )}
 
-          <p>
-            Points: {task.point_value ?? "Not set"}
-          </p>
+              <div className="task-meta">
+                <span>
+                  Due:{" "}
+                  {task.due_date
+                    ? new Date(
+                        task.due_date
+                      ).toLocaleDateString()
+                    : "No deadline"}
+                </span>
 
-          <p>
-            Estimated effort:
-            {task.estimated_effort_minutes != null
-              ? ` ${task.estimated_effort_minutes} minutes`
-              : " Not set"}
-          </p>
+                <span>
+                  Points:{" "}
+                  {task.point_value ?? "Not set"}
+                </span>
 
-          <p>
-            Priority: {task.priority || "Not set"}
-          </p>
+                <span>
+                  Priority:{" "}
+                  {task.priority || "Not set"}
+                </span>
+              </div>
+            </div>
 
-          <p>
-            Status:{" "}
-            {task.completion_status || "not_started"}
-          </p>
+            <div className="task-actions">
 
-          <button onClick={() => setEditingTask(task)}>
-            Edit
-          </button>
+              <button
+                type="button"
+                className="task-edit-ghost-button"
+                onClick={() =>
+                  handleEditClick(task)
+                }
+              >
+                Edit
+              </button>
 
-          <button onClick={() => handleDelete(task.id)}>
-            Delete
-          </button>
+              <button
+                type="button"
+                className="task-complete-button"
+                onClick={() =>
+                  handleComplete(task)
+                }
+              >
+                {task.completion_status ===
+                "completed"
+                  ? "Undo"
+                  : "Complete"}
+              </button>
 
-          {task.completion_status !== "completed" && (
-            <button onClick={() => handleComplete(task)}>
-              Mark Complete
-            </button>
-          )}
+              <button
+                type="button"
+                className="task-delete-button"
+                onClick={() =>
+                  handleDelete(task.id)
+                }
+              >
+                Delete
+              </button>
+
+            </div>
+
+          </div>
         </div>
       ))}
 
-      {editingTask && (
+      {!onEditTask && editingTask && (
         <EditTask
           task={editingTask}
           onUpdated={handleUpdated}
-          onCancel={() => setEditingTask(null)}
+          onCancel={() =>
+            setEditingTask(null)
+          }
         />
       )}
+
     </div>
   );
 }

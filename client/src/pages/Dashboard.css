@@ -2,16 +2,25 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   margin: 0;
 }
-
 
 /* =========================================
    PAGE
 ========================================= */
 
 .dashboard-page {
+  width: 100%;
   min-height: 100vh;
 
   display: flex;
@@ -22,7 +31,6 @@ body {
 
   color: #222;
 }
-
 
 /* =========================================
    LEFT SIDEBAR
@@ -43,7 +51,6 @@ body {
   border-right: 1px solid #999;
 }
 
-
 .sidebar-logo {
   margin: 0;
 
@@ -53,17 +60,14 @@ body {
   font-weight: 500;
 }
 
-
 .sidebar-logo span {
   color: #7267d9;
 }
-
 
 .sidebar-nav {
   display: flex;
   flex-direction: column;
 }
-
 
 .sidebar-item {
   display: flex;
@@ -89,11 +93,9 @@ body {
   cursor: pointer;
 }
 
-
-.sidebar-item:hover {
+.sidebar-item:hover:not(:disabled) {
   background: #d8d5e8;
 }
-
 
 .sidebar-item.active-menu {
   background: #d8d3ef;
@@ -101,13 +103,17 @@ body {
   border-left-color: #7267d9;
 }
 
+.sidebar-item:disabled {
+  opacity: 0.6;
+
+  cursor: not-allowed;
+}
 
 .user-section {
   padding: 15px;
 
   border-top: 1px solid #999;
 }
-
 
 .user-profile-row {
   display: flex;
@@ -116,13 +122,11 @@ body {
   gap: 10px;
 }
 
-
 .user-profile-row strong {
   display: block;
 
   font-size: 12px;
 }
-
 
 .user-profile-row small {
   display: block;
@@ -131,7 +135,6 @@ body {
 
   font-size: 9px;
 }
-
 
 .user-avatar {
   width: 28px;
@@ -152,7 +155,6 @@ body {
   font-size: 12px;
 }
 
-
 .logout-button {
   width: 100%;
 
@@ -171,11 +173,9 @@ body {
   cursor: pointer;
 }
 
-
 .logout-button:hover {
   background: #377a9a;
 }
-
 
 /* =========================================
    MAIN AREA
@@ -184,32 +184,38 @@ body {
 .dashboard-main {
   flex: 1;
 
+  width: calc(100% - 190px);
   min-width: 0;
 
   padding: 12px 18px 18px;
 }
 
-
 /* =========================================
    TOP ROW
+   Calendar + AI Chat
 ========================================= */
 
 .dashboard-top-row {
   display: grid;
 
   grid-template-columns:
-    minmax(600px, 1fr)
-    290px;
+    minmax(0, 2fr)
+    minmax(320px, 1fr);
 
-  gap: 14px;
+  gap: 12px;
+
+  width: 100%;
+
+  align-items: stretch;
 }
-
 
 /* =========================================
    CALENDAR
 ========================================= */
 
 .dashboard-calendar-card {
+  width: 100%;
+
   overflow: hidden;
 
   background: white;
@@ -218,7 +224,6 @@ body {
 
   border-radius: 8px;
 }
-
 
 .calendar-top-header {
   min-height: 58px;
@@ -230,7 +235,6 @@ body {
   padding: 4px 10px 2px;
 }
 
-
 .calendar-top-header h1 {
   margin: 0;
 
@@ -241,14 +245,12 @@ body {
   font-weight: 500;
 }
 
-
 .calendar-actions {
   display: flex;
   align-items: center;
 
   gap: 25px;
 }
-
 
 .text-action-button {
   padding: 5px;
@@ -262,13 +264,11 @@ body {
   cursor: pointer;
 }
 
-
 .text-action-button:disabled {
   opacity: 0.6;
 
   cursor: not-allowed;
 }
-
 
 .calendar-grid {
   display: grid;
@@ -277,7 +277,6 @@ body {
 
   border-top: 1px solid #666;
 }
-
 
 .calendar-heading {
   padding: 6px;
@@ -289,7 +288,6 @@ body {
 
   font-size: 13px;
 }
-
 
 .calendar-day {
   position: relative;
@@ -304,14 +302,12 @@ body {
   background: #fff;
 }
 
-
 .calendar-number {
   font-size: 10px;
 }
 
-
 /* =========================================
-   ADD TASK MODAL
+   ADD / EDIT TASK MODAL
 ========================================= */
 
 .modal-overlay {
@@ -331,11 +327,9 @@ body {
   animation: add-task-overlay-in 0.18s ease forwards;
 }
 
-
 .modal-overlay--closing {
   animation: add-task-overlay-out 0.18s ease forwards;
 }
-
 
 .add-task-modal {
   position: relative;
@@ -358,11 +352,9 @@ body {
   animation: add-task-modal-in 0.18s ease forwards;
 }
 
-
 .add-task-modal--closing {
   animation: add-task-modal-out 0.18s ease forwards;
 }
-
 
 .modal-close-button {
   position: absolute;
@@ -392,18 +384,15 @@ body {
   cursor: pointer;
 }
 
-
 .modal-close-button:hover {
   background: #e6e6e6;
 }
-
 
 .modal-close-button:focus-visible {
   outline: 2px solid #7267d9;
 
   outline-offset: 2px;
 }
-
 
 @keyframes add-task-overlay-in {
   from {
@@ -415,7 +404,6 @@ body {
   }
 }
 
-
 @keyframes add-task-overlay-out {
   from {
     opacity: 1;
@@ -425,7 +413,6 @@ body {
     opacity: 0;
   }
 }
-
 
 @keyframes add-task-modal-in {
   from {
@@ -439,7 +426,6 @@ body {
   }
 }
 
-
 @keyframes add-task-modal-out {
   from {
     opacity: 1;
@@ -452,9 +438,8 @@ body {
   }
 }
 
-
 /* =========================================
-   ADD TASK FORM
+   ADD / EDIT TASK FORM
 ========================================= */
 
 .add-task-heading {
@@ -468,14 +453,12 @@ body {
   color: #222;
 }
 
-
 .add-task-form {
   display: flex;
   flex-direction: column;
 
   gap: 8px;
 }
-
 
 .add-task-field {
   display: flex;
@@ -484,11 +467,9 @@ body {
   gap: 2px;
 }
 
-
 .add-task-field--due-date {
   max-width: 160px;
 }
-
 
 .add-task-label {
   font-size: 11px;
@@ -497,11 +478,9 @@ body {
   color: #333;
 }
 
-
 .add-task-required {
   color: #b3261e;
 }
-
 
 .add-task-input,
 .add-task-textarea,
@@ -521,28 +500,23 @@ body {
   color: #222;
 }
 
-
 .add-task-textarea {
   resize: vertical;
 
   min-height: 42px;
 }
 
-
 .add-task-input--number {
   max-width: 100%;
 }
-
 
 .add-task-input-suffix-wrap {
   position: relative;
 }
 
-
 .add-task-input--suffix {
   padding-right: 52px;
 }
-
 
 .add-task-input-suffix {
   position: absolute;
@@ -559,7 +533,6 @@ body {
   pointer-events: none;
 }
 
-
 .add-task-input:focus,
 .add-task-textarea:focus,
 .add-task-select:focus {
@@ -570,7 +543,6 @@ body {
   box-shadow: 0 0 0 2px rgba(114, 103, 217, 0.25);
 }
 
-
 .add-task-input:disabled,
 .add-task-textarea:disabled,
 .add-task-select:disabled {
@@ -578,7 +550,6 @@ body {
 
   cursor: not-allowed;
 }
-
 
 .add-task-group-row {
   display: grid;
@@ -592,7 +563,6 @@ body {
 
   border: none;
 }
-
 
 .add-task-group-legend {
   grid-column: 1 / -1;
@@ -609,14 +579,12 @@ body {
   letter-spacing: 0.03em;
 }
 
-
 .add-task-actions {
   display: flex;
   justify-content: flex-end;
 
   margin-top: 2px;
 }
-
 
 .add-task-submit-button {
   padding: 6px 14px;
@@ -634,11 +602,9 @@ body {
   cursor: pointer;
 }
 
-
 .add-task-submit-button:hover:not(:disabled) {
   background: #5d52c4;
 }
-
 
 .add-task-submit-button:focus-visible {
   outline: 2px solid #37306f;
@@ -646,13 +612,11 @@ body {
   outline-offset: 2px;
 }
 
-
 .add-task-submit-button:disabled {
   background: #a49cea;
 
   cursor: not-allowed;
 }
-
 
 .add-task-message {
   margin: 0;
@@ -664,7 +628,6 @@ body {
   font-size: 11px;
 }
 
-
 .add-task-message--success {
   background: #e6f4ea;
 
@@ -672,7 +635,6 @@ body {
 
   color: #1e7331;
 }
-
 
 .add-task-message--error {
   background: #fbe9e7;
@@ -682,31 +644,24 @@ body {
   color: #b3261e;
 }
 
-
-@media (max-width: 520px) {
-
-  .add-task-group-row {
-    grid-template-columns: 1fr;
-  }
-}
-
-
 /* =========================================
    AI CHAT
 ========================================= */
 
 .ai-chat-card {
-  min-height: 500px;
-
   position: relative;
+
+  width: 100%;
+  height: 100%;
+  min-width: 0;
 
   padding: 15px 10px 65px;
 
   background: #dedede;
 
   border: 2px solid #777;
+  border-radius: 4px;
 }
-
 
 .chat-message {
   display: flex;
@@ -720,18 +675,15 @@ body {
   line-height: 1.35;
 }
 
-
 .chat-message p {
   margin: 3px 0 0;
 }
-
 
 .user-message {
   justify-content: flex-end;
 
   text-align: right;
 }
-
 
 .ai-avatar,
 .user-chat-avatar {
@@ -749,16 +701,13 @@ body {
   font-size: 9px;
 }
 
-
 .ai-avatar {
   background: #f6aac2;
 }
 
-
 .user-chat-avatar {
   background: #cfc4eb;
 }
-
 
 .chat-placeholder-note {
   margin-top: 30px;
@@ -771,7 +720,6 @@ body {
 
   font-size: 10px;
 }
-
 
 .chat-input-placeholder {
   position: absolute;
@@ -791,29 +739,32 @@ body {
   font-size: 10px;
 }
 
-
 /* =========================================
    BOTTOM SECTION
+   Tasks + Summary
 ========================================= */
 
 .dashboard-bottom-row {
   display: grid;
 
   grid-template-columns:
-    minmax(500px, 1.6fr)
-    minmax(270px, 1fr);
+    minmax(0, 2fr)
+    minmax(320px, 1fr);
 
   gap: 12px;
 
+  width: 100%;
+
   margin-top: 10px;
 }
-
 
 /* =========================================
    TODO CARD
 ========================================= */
 
 .todo-dashboard-card {
+  min-width: 0;
+
   padding: 14px;
 
   background: #dedede;
@@ -823,7 +774,6 @@ body {
   border-radius: 8px;
 }
 
-
 .section-title-row {
   display: flex;
   justify-content: space-between;
@@ -832,13 +782,11 @@ body {
   margin-bottom: 8px;
 }
 
-
 .section-title-row h2 {
   margin: 0;
 
   font-size: 14px;
 }
-
 
 .section-title-row span {
   font-size: 10px;
@@ -846,17 +794,227 @@ body {
   color: #666;
 }
 
+.view-all-button {
+  padding: 5px 10px;
 
-/* Existing PrioritizedTodo component */
+  background: transparent;
+
+  border: 1px solid #777;
+  border-radius: 4px;
+
+  font-size: 10px;
+
+  cursor: pointer;
+}
+
+.view-all-button:hover {
+  background: #d2d2d2;
+}
+
+/* =========================================
+   DASHBOARD TASK LIST
+========================================= */
+
+.task-list {
+  width: 100%;
+}
+
+.task-list-message {
+  margin: 0 0 8px;
+
+  font-size: 11px;
+}
+
+.task-item {
+  position: relative;
+
+  margin-bottom: 6px;
+
+  padding: 10px 12px;
+
+  background: rgba(255, 255, 255, 0.3);
+
+  border: none;
+  border-left: 5px solid #22a957;
+  border-radius: 5px;
+
+  color: #111;
+
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.task-item:hover {
+  background: rgba(255, 255, 255, 0.75);
+
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.08);
+}
+
+/* Priority shown only by the colored left line */
+
+.task-item.task-priority-high {
+  border-left-color: #df2029;
+}
+
+.task-item.task-priority-medium {
+  border-left-color: #d1a516;
+}
+
+.task-item.task-priority-low {
+  border-left-color: #22a957;
+}
+
+.task-item.completed {
+  border-left-color: #7267d9;
+
+  opacity: 0.7;
+}
+
+/* Keep task text black */
+
+.task-item h3 {
+  margin: 0 0 4px;
+
+  color: #111;
+
+  font-size: 12px;
+}
+
+.task-item p {
+  margin: 3px 0;
+
+  color: #111;
+
+  font-size: 10px;
+}
+
+.task-item.completed h3 {
+  text-decoration: line-through;
+}
+
+.task-item-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  gap: 15px;
+}
+
+.task-meta {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 12px;
+
+  margin-top: 5px;
+
+  color: #111;
+
+  font-size: 10px;
+}
+
+/* =========================================
+   TASK ACTIONS
+========================================= */
+
+.task-actions {
+  display: flex;
+  align-items: center;
+
+  gap: 6px;
+
+  flex-shrink: 0;
+}
+
+/* Purple ghost Edit button */
+
+.task-edit-ghost-button {
+  opacity: 0;
+  visibility: hidden;
+
+  padding: 5px 12px;
+
+  background: transparent;
+
+  border: 1px solid #7267d9;
+  border-radius: 5px;
+
+  color: #7267d9;
+
+  font-size: 10px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    opacity 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.task-item:hover .task-edit-ghost-button {
+  opacity: 1;
+  visibility: visible;
+}
+
+.task-edit-ghost-button:hover {
+  background: #7267d9;
+
+  color: white;
+}
+
+.task-complete-button {
+  padding: 5px 10px;
+
+  background: transparent;
+
+  border: 1px solid #666;
+  border-radius: 5px;
+
+  color: #222;
+
+  font-size: 10px;
+
+  cursor: pointer;
+}
+
+.task-complete-button:hover {
+  background: #efefef;
+}
+
+.task-delete-button {
+  padding: 5px 10px;
+
+  background: transparent;
+
+  border: 1px solid #a14646;
+  border-radius: 5px;
+
+  color: #a14646;
+
+  font-size: 10px;
+
+  cursor: pointer;
+}
+
+.task-delete-button:hover {
+  background: #a14646;
+
+  color: white;
+}
+
+/* =========================================
+   OLDER TODO STYLES
+========================================= */
+
 .todo-page {
   padding: 0;
 }
 
-
 .todo-page > h2 {
   display: none;
 }
-
 
 .todo-item {
   display: grid;
@@ -881,7 +1039,6 @@ body {
   box-shadow: none;
 }
 
-
 .todo-rank {
   min-width: auto;
 
@@ -890,13 +1047,11 @@ body {
   font-size: 13px;
 }
 
-
 .todo-item h3 {
   margin: 0 0 4px;
 
   font-size: 12px;
 }
-
 
 .todo-item p {
   display: inline-block;
@@ -906,12 +1061,14 @@ body {
   font-size: 10px;
 }
 
-
 /* =========================================
    SUMMARY COLUMN
 ========================================= */
 
 .summary-column {
+  width: 100%;
+  min-width: 0;
+
   display: flex;
   flex-direction: column;
 
@@ -920,8 +1077,9 @@ body {
   gap: 10px;
 }
 
-
 .summary-card {
+  width: 100%;
+
   min-height: 95px;
 
   padding: 10px;
@@ -933,7 +1091,6 @@ body {
   border-radius: 8px;
 }
 
-
 .summary-card h3 {
   margin: 0 0 10px;
 
@@ -941,7 +1098,6 @@ body {
 
   text-decoration: underline;
 }
-
 
 .summary-card p {
   margin: 6px 0;
@@ -951,32 +1107,148 @@ body {
   line-height: 1.3;
 }
 
+/* =========================================
+   FULL TO-DO VIEW
+========================================= */
+
+.full-todo-view {
+  width: 100%;
+  max-width: 1200px;
+
+  margin: 0 auto;
+}
+
+.full-todo-view .todo-page {
+  margin-top: 20px;
+}
+
+/* =========================================
+   CALENDAR PAGE
+========================================= */
+
+.calendar-page {
+  width: 100%;
+  max-width: 1100px;
+
+  margin: 0 auto;
+}
+
+.calendar-view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: 20px;
+}
+
+.calendar-view-header h1 {
+  margin: 0;
+
+  font-size: 36px;
+}
+
+.calendar-view-header p {
+  margin-top: 6px;
+
+  color: #666;
+
+  font-size: 14px;
+}
+
+.calendar-navigation {
+  display: flex;
+
+  gap: 8px;
+}
+
+.calendar-navigation button {
+  padding: 8px 12px;
+
+  border: 1px solid #aaa;
+  border-radius: 5px;
+
+  background: white;
+
+  cursor: pointer;
+}
+
+.calendar-navigation button:hover {
+  background: #eeeeee;
+}
+
+.full-calendar-grid {
+  display: grid;
+
+  grid-template-columns: repeat(7, 1fr);
+
+  background: white;
+
+  border: 1px solid #888;
+  border-radius: 8px;
+
+  overflow: hidden;
+}
+
+.full-calendar-heading {
+  padding: 10px;
+
+  background: #eeeeee;
+
+  border-right: 1px solid #aaa;
+  border-bottom: 1px solid #aaa;
+
+  text-align: center;
+
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.full-calendar-day {
+  min-height: 120px;
+
+  padding: 8px;
+
+  background: white;
+
+  border-right: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+}
+
+.full-calendar-date {
+  font-size: 13px;
+
+  font-weight: bold;
+}
+
+.current-day {
+  background: #f0edff;
+}
 
 /* =========================================
    RESPONSIVE
 ========================================= */
 
 @media (max-width: 1100px) {
-
-  .dashboard-top-row {
+  .dashboard-top-row,
+  .dashboard-bottom-row {
     grid-template-columns: 1fr;
   }
 
   .ai-chat-card {
     min-height: 250px;
   }
-
-  .dashboard-bottom-row {
-    grid-template-columns: 1fr;
-  }
 }
 
-
 @media (max-width: 750px) {
-
   .dashboard-sidebar {
     width: 150px;
     min-width: 150px;
+  }
+
+  .dashboard-main {
+    width: calc(100% - 150px);
+
+    padding: 10px;
   }
 
   .calendar-top-header h1 {
@@ -993,103 +1265,9 @@ body {
     min-height: 55px;
   }
 }
-.view-all-button {
-  padding: 5px 10px;
 
-  background: transparent;
-
-  border: 1px solid #777;
-  border-radius: 4px;
-
-  font-size: 10px;
-
-  cursor: pointer;
-}
-
-.view-all-button:hover {
-  background: #d2d2d2;
-}
-
-
-.full-todo-view {
-  max-width: 1000px;
-
-  margin: 0 auto;
-}
-
-
-.full-todo-view .todo-page {
-  margin-top: 20px;
-}
-
-.calendar-page {
-  max-width: 1100px;
-  margin: 0 auto;
-}
-
-.calendar-view-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.calendar-view-header h1 {
-  margin: 0;
-  font-size: 36px;
-}
-
-.calendar-view-header p {
-  margin-top: 6px;
-  color: #666;
-  font-size: 14px;
-}
-
-.calendar-navigation {
-  display: flex;
-  gap: 8px;
-}
-
-.calendar-navigation button {
-  padding: 8px 12px;
-  border: 1px solid #aaa;
-  border-radius: 5px;
-  background: white;
-  cursor: pointer;
-}
-
-.full-calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  background: white;
-  border: 1px solid #888;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.full-calendar-heading {
-  padding: 10px;
-  background: #eeeeee;
-  border-right: 1px solid #aaa;
-  border-bottom: 1px solid #aaa;
-  text-align: center;
-  font-size: 13px;
-  font-weight: bold;
-}
-
-.full-calendar-day {
-  min-height: 120px;
-  padding: 8px;
-  background: white;
-  border-right: 1px solid #ccc;
-  border-bottom: 1px solid #ccc;
-}
-
-.full-calendar-date {
-  font-size: 13px;
-  font-weight: bold;
-}
-
-.current-day {
-  background: #f0edff;
+@media (max-width: 520px) {
+  .add-task-group-row {
+    grid-template-columns: 1fr;
+  }
 }

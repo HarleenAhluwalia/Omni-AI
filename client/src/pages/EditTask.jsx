@@ -75,7 +75,10 @@ function EditTask({ task, onUpdated, onCancel }) {
         );
       }
 
-      onUpdated(result.data);
+      <AddTask
+  task={editingTask}
+  onTaskSaved={handleTaskSaved}
+/>
       setMessage("Task updated successfully.");
     } catch (error) {
       console.error("Update Task failed:", error);
