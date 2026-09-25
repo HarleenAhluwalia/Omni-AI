@@ -1,4 +1,7 @@
 const supabase = require("../config/supabase");
+const {
+  calculateTaskPriority,
+} = require("../services/priorityService");
 
 
 // ---------------------------------------------------------
@@ -499,6 +502,19 @@ const deleteTask = async (req, res) => {
 
 const getPrioritizedTasks = async (req, res) => {
   const user_id = req.query.user_id;
+  const availableMinutes = Number(
+    req.query.available_minutes ?? 120
+  );
+
+  if (
+    !Number.isFinite(availableMinutes) ||
+    availableMinutes < 0
+  ) {
+    return res.status(400).json({
+      success: false,
+      error: "available_minutes must be a nonnegative number",
+    });
+  }
 
   if (!user_id) {
     return res.status(400).json({
@@ -520,16 +536,20 @@ const getPrioritizedTasks = async (req, res) => {
       });
     }
 
-    // HARLEEN SPRINT 2:
-    // Basic backend sorting support for prioritized To-Do List.
-    // This is NOT Alan's complete AI prioritization logic.
-    const priorityWeight = {
-      high: 3,
-      medium: 2,
-      low: 1,
-    };
+    const prioritizedTasks = (data || []).map((task) => {
+      const priorityResult = calculateTaskPriority(
+        task,
+        availableMinutes
+      );
 
-    const sortedTasks = [...(data || [])].sort((a, b) => {
+      return {
+        ...task,
+        calculated_priority_score: priorityResult.score,
+        priority_breakdown: priorityResult.breakdown,
+      };
+    });
+
+    const sortedTasks = [...prioritizedTasks].sort((a, b) => {
       const aCompleted =
         a.completion_status === "completed";
 
@@ -541,16 +561,16 @@ const getPrioritizedTasks = async (req, res) => {
         return aCompleted ? 1 : -1;
       }
 
-      // High -> Medium -> Low.
-      const priorityDifference =
-        (priorityWeight[b.priority] || 0) -
-        (priorityWeight[a.priority] || 0);
+      // Higher calculated priority score first.
+      const scoreDifference =
+        b.calculated_priority_score -
+        a.calculated_priority_score;
 
-      if (priorityDifference !== 0) {
-        return priorityDifference;
+      if (scoreDifference !== 0) {
+        return scoreDifference;
       }
 
-      // Earlier deadline first when priority matches.
+      // If scores are tied, earlier deadline first.
       if (a.due_date && b.due_date) {
         const dueDifference =
           new Date(a.due_date) -

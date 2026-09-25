@@ -12,6 +12,7 @@ function PrioritizedTodo({ refreshKey = 0 }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [availableMinutes, setAvailableMinutes] = useState(120);
 
   useEffect(() => {
     const loadPrioritizedTasks = async () => {
@@ -27,6 +28,8 @@ function PrioritizedTodo({ refreshKey = 0 }) {
         const response = await fetch(
           `${import.meta.env.VITE_API_URL}/tasks/prioritized?user_id=${encodeURIComponent(
             userId
+          )}&available_minutes=${encodeURIComponent(
+            availableMinutes
           )}`
         );
 
@@ -52,7 +55,7 @@ function PrioritizedTodo({ refreshKey = 0 }) {
     };
 
     loadPrioritizedTasks();
-  }, [userId, refreshKey]);
+  }, [userId, refreshKey, availableMinutes]);
 
   const getPriorityClass = (priority) => {
     if (priority === "high") {
@@ -113,6 +116,19 @@ function PrioritizedTodo({ refreshKey = 0 }) {
 
         <div className="prioritized-header">
           <h1>To-Do List</h1>
+
+          <label>
+            Available time:
+            <input
+              type="number"
+              min="0"
+              value={availableMinutes}
+              onChange={(event) =>
+                setAvailableMinutes(Number(event.target.value))
+              }
+            />
+            minutes
+          </label>
         </div>
 
         {message && (
@@ -157,9 +173,7 @@ function PrioritizedTodo({ refreshKey = 0 }) {
                   </div>
 
                   <div className={priorityClass}>
-                    {task.point_value != null
-                      ? `${task.point_value} points`
-                      : "—"}
+                    {task.calculated_priority_score ?? "—"}
                   </div>
 
                   <div className={priorityClass}>
