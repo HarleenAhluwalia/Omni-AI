@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import AddTask from "./AddTask";
 import TaskList from "./TaskList";
@@ -8,11 +8,15 @@ import { useAuth } from "../context/AuthContext";
 
 import "./Dashboard.css";
 
+// Must match the CSS fade/pop animation duration for the Add Task modal.
+const ADD_TASK_MODAL_ANIMATION_MS = 180;
+
 function Dashboard() {
   const { user, logout } = useAuth();
 
   const [activeView, setActiveView] = useState("dashboard");
   const [showAddTask, setShowAddTask] = useState(false);
+  const [isAddTaskClosing, setIsAddTaskClosing] = useState(false);
   const [tasks, setTasks] = useState([]);
   const [taskRefreshKey, setTaskRefreshKey] = useState(0);
 
@@ -28,6 +32,49 @@ function Dashboard() {
   // Real Calendar integration is a later Harleen task.
   const days = Array.from({ length: 35 }, (_, index) => index + 1);
 
+  const openAddTaskModal = () => {
+    setIsAddTaskClosing(false);
+    setShowAddTask(true);
+  };
+
+  const closeAddTaskModal = () => {
+    setIsAddTaskClosing(true);
+
+    window.setTimeout(() => {
+      setShowAddTask(false);
+      setIsAddTaskClosing(false);
+    }, ADD_TASK_MODAL_ANIMATION_MS);
+  };
+
+  const toggleAddTaskModal = () => {
+    if (showAddTask) {
+      closeAddTaskModal();
+    } else {
+      openAddTaskModal();
+    }
+  };
+
+  // Close on Escape and lock background scroll while the modal is open.
+  useEffect(() => {
+    if (!showAddTask) {
+      return;
+    }
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        closeAddTaskModal();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [showAddTask]);
+
   const handleTaskCreated = (newTask) => {
     if (newTask) {
       setTasks((currentTasks) => [
@@ -36,7 +83,7 @@ function Dashboard() {
       ]);
     }
 
-    setShowAddTask(false);
+    closeAddTaskModal();
 
     // Refresh prioritized To-Do List after creating a task.
     setTaskRefreshKey((current) => current + 1);
@@ -173,9 +220,7 @@ function Dashboard() {
 
                     <button
                       className="text-action-button"
-                      onClick={() =>
-                        setShowAddTask((current) => !current)
-                      }
+                      onClick={toggleAddTaskModal}
                     >
                       + Add Task
                     </button>
@@ -190,24 +235,6 @@ function Dashboard() {
 
                   </div>
                 </div>
-
-                {/* ADD TASK FORM */}
-                {showAddTask && (
-                  <div className="add-task-panel">
-
-                    <AddTask
-                      onTaskCreated={handleTaskCreated}
-                    />
-
-                    <button
-                      className="close-task-button"
-                      onClick={() => setShowAddTask(false)}
-                    >
-                      Close
-                    </button>
-
-                  </div>
-                )}
 
                 {/* CALENDAR MOCKUP */}
                 <div className="calendar-grid">
@@ -378,31 +405,12 @@ function Dashboard() {
 
               <button
                 className="add-task-header-button"
-                onClick={() =>
-                  setShowAddTask((current) => !current)
-                }
+                onClick={toggleAddTaskModal}
               >
                 + Add Task
               </button>
 
             </div>
-
-            {showAddTask && (
-              <div className="add-task-panel">
-
-                <AddTask
-                  onTaskCreated={handleTaskCreated}
-                />
-
-                <button
-                  className="close-task-button"
-                  onClick={() => setShowAddTask(false)}
-                >
-                  Close
-                </button>
-
-              </div>
-            )}
 
             <PrioritizedTodo
               refreshKey={taskRefreshKey}
@@ -412,6 +420,43 @@ function Dashboard() {
         )}
 
       </main>
+
+      {/* =========================
+          ADD TASK MODAL
+      ========================= */}
+      {(showAddTask || isAddTaskClosing) && (
+        <div
+          className={
+            isAddTaskClosing
+              ? "modal-overlay modal-overlay--closing"
+              : "modal-overlay"
+          }
+          onClick={closeAddTaskModal}
+        >
+          <div
+            className={
+              isAddTaskClosing
+                ? "add-task-modal add-task-modal--closing"
+                : "add-task-modal"
+            }
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Add Task"
+          >
+            <button
+              type="button"
+              className="modal-close-button"
+              onClick={closeAddTaskModal}
+              aria-label="Close Add Task dialog"
+            >
+              ×
+            </button>
+
+            <AddTask onTaskCreated={handleTaskCreated} />
+          </div>
+        </div>
+      )}
 
     </div>
   );
