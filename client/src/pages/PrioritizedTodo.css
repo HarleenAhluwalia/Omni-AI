@@ -53,7 +53,7 @@
     minmax(120px, 1fr)
     minmax(100px, 0.8fr)
     minmax(70px, 0.5fr)
-    minmax(70px, 0.5fr);
+    minmax(150px, 0.9fr);
   align-items: center;
   box-sizing: border-box;
 }
@@ -101,17 +101,15 @@
 .todo-actions-cell {
   display: flex;
   justify-content: flex-end;
+
+  gap: 6px;
 }
 
-.todo-edit-button {
+.todo-edit-button,
+.todo-delete-trigger-button {
   padding: 5px 14px;
 
-  background: #7267d9;
-
-  border: none;
   border-radius: 4px;
-
-  color: white;
 
   font-size: 12px;
   font-weight: 600;
@@ -121,7 +119,15 @@
   opacity: 0;
   pointer-events: none;
 
-  transition: opacity 0.15s ease, background 0.15s ease;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.todo-edit-button {
+  background: #7267d9;
+
+  border: none;
+
+  color: white;
 }
 
 .todo-edit-button:hover {
@@ -133,8 +139,29 @@
   outline-offset: 2px;
 }
 
+.todo-delete-trigger-button {
+  background: transparent;
+
+  border: 1px solid #c23a3a;
+
+  color: #c23a3a;
+}
+
+.todo-delete-trigger-button:hover {
+  background: #c23a3a;
+
+  color: white;
+}
+
+.todo-delete-trigger-button:focus-visible {
+  outline: 2px solid #8f1f1f;
+  outline-offset: 2px;
+}
+
 .todo-table-row:hover .todo-edit-button,
-.todo-table-row:focus-within .todo-edit-button {
+.todo-table-row:focus-within .todo-edit-button,
+.todo-table-row:hover .todo-delete-trigger-button,
+.todo-table-row:focus-within .todo-delete-trigger-button {
   opacity: 1;
   pointer-events: auto;
 }
@@ -165,6 +192,6 @@
 
   .todo-table-header,
   .todo-table-row {
-    min-width: 830px;
+    min-width: 900px;
   }
 }
