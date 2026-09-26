@@ -14,25 +14,30 @@
  * area for authController.js and taskController.js so unit tests can run
  * without a live Supabase project or network access.
  */
-
+ 
 function createMockSupabase() {
   const store = {};
   let idCounter = 1;
-  const nextId = () => `mock-id-${idCounter++}`;
-
+  // taskController.js rejects any id that isn't UUID-shaped, so the mock
+  // must hand out real-looking UUIDs instead of "mock-id-N" strings.
+  const nextId = () => {
+    const n = String(idCounter++).padStart(12, "0");
+    return `00000000-0000-4000-8000-${n}`;
+  };
+ 
   const matchFilters = (row, filters) =>
     Object.entries(filters).every(([key, value]) => row[key] === value);
-
+ 
   function makeQueryBuilder(table) {
     if (!store[table]) store[table] = [];
-
+ 
     let mode = null;
     let filters = {};
     let insertRows = null;
     let updateFields = null;
     let upsertRow = null;
     let upsertOptions = null;
-
+ 
     const builder = {
       select() {
         if (!mode) mode = "select";
@@ -142,10 +147,10 @@ function createMockSupabase() {
         );
       },
     };
-
+ 
     return builder;
   }
-
+ 
   const client = {
     auth: {
       admin: {
@@ -169,8 +174,9 @@ function createMockSupabase() {
       client.auth.admin.deleteUser.mockClear();
     },
   };
-
+ 
   return client;
 }
-
+ 
 module.exports = { createMockSupabase };
+ 
