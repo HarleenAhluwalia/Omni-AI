@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const aiRoutes = require("./routes/aiRoutes");
 
 const authRoutes = require("./routes/auth");
 const taskRoutes = require("../routes/taskRoutes");
@@ -23,7 +24,7 @@ function createApp() {
   });
 
   app.use("/api/auth", authRoutes);
-
+  app.use("/api/ai", aiRoutes);
   // Harleen - Task CRUD routes
   app.use("/api/tasks", taskRoutes);
 
