@@ -21,6 +21,20 @@ function Dashboard() {
   const [editingTask, setEditingTask] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [taskRefreshKey, setTaskRefreshKey] = useState(0);
+  const [chatInput, setChatInput] = useState("");
+  const [availableMinutes, setAvailableMinutes] = useState(120);
+
+  const [chatMessages, setChatMessages] = useState([
+    {
+      role: "assistant",
+      content:
+        "Hello! I can help organize your tasks and upcoming deadlines.",
+    },
+  ]);
+
+
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatError, setChatError] = useState("");
 
   const today = new Date();
 
@@ -104,6 +118,71 @@ function Dashboard() {
 
     // Refresh prioritized To-Do List after creating or editing a task.
     setTaskRefreshKey((current) => current + 1);
+  };
+
+  const handleSendChatMessage = async (e) => {
+  e.preventDefault();
+
+  const trimmedMessage = chatInput.trim();
+
+  if (!trimmedMessage || !user?.id || chatLoading) {
+    return;
+  }
+
+  setChatError("");
+
+  setChatMessages((currentMessages) => [
+    ...currentMessages,
+    {
+      role: "user",
+      content: trimmedMessage,
+    },
+  ]);
+
+  setChatInput("");
+  setChatLoading(true);
+
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/ai/chat?user_id=${encodeURIComponent(
+        user.id
+      )}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: trimmedMessage,
+          available_minutes: Number(availableMinutes),
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result.error || "Could not generate AI response."
+      );
+    }
+
+    setChatMessages((currentMessages) => [
+      ...currentMessages,
+      {
+        role: "assistant",
+        content: result.data.response,
+      },
+    ]);
+  } catch (error) {
+    console.error("AI Chat failed:", error);
+
+    setChatError(
+      error.message || "Could not generate AI response."
+    );
+  } finally {
+    setChatLoading(false);
+  }
   };
 
   return (
@@ -294,61 +373,99 @@ function Dashboard() {
 
               {/* AI CHAT VISUAL PLACEHOLDER */}
               <aside className="ai-chat-card">
+                <div className="chat-messages">
+                  {chatMessages.map((message, index) => (
+                    <div
+                      key={`${message.role}-${index}`}
+                      className={
+                          message.role === "user"
+                          ? "chat-message user-message"
+                          : "chat-message"
+                      }
+                    >
+                      {message.role === "assistant" && (
+                        <div className="ai-avatar">
+                          AI
+                        </div>
+                      )}
 
-                <div className="chat-message">
+                      <div className="chat-bubble">
+                        <p>{message.content}</p>
+                      </div>
 
-                  <div className="ai-avatar">
-                    AI
-                  </div>
+                      {message.role === "user" && (
+                        <div className="user-chat-avatar">
+                          {(user?.name || user?.email || "U")
+                            .charAt(0)
+                            .toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                  ))}
 
-                  <div>
-                    <strong>Hello!</strong>
+                  {chatLoading && (
+                    <div className="chat-message">
+                      <div className="ai-avatar">
+                        AI
+                      </div>
 
-                    <p>
-                      I can help organize your tasks and
-                      upcoming deadlines.
-                    </p>
-                  </div>
-
+                      <div className="chat-bubble">
+                        <p>Omni AI is thinking...</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <div className="chat-message user-message">
+                {chatError && (
+                  <div className="chat-error">
+                    {chatError}
+                  </div>
+                )}
 
-                  <div>
-                    <p>
-                      What should I work on today?
-                    </p>
+                <form
+                  className="chat-form"
+                  onSubmit={handleSendChatMessage}
+                >
+                  <div className="chat-time-row">
+                    <label htmlFor="available-minutes">
+                      Available time
+                    </label>
+
+                    <input
+                        id="available-minutes"
+                      type="number"
+                      min="0"
+                      value={availableMinutes}
+                      onChange={(e) =>
+                        setAvailableMinutes(e.target.value)
+                      }
+                    />
+
+                    <span>minutes</span>
                   </div>
 
-                  <div className="user-chat-avatar">
-                    H
+                  <div className="chat-input-row">
+                    <input
+                      type="text"
+                      value={chatInput}
+                      onChange={(e) =>
+                        setChatInput(e.target.value)
+                      }
+                      placeholder="Ask Omni AI..."
+                      disabled={chatLoading}
+                    />
+
+                    <button
+                      type="submit"
+                      disabled={
+                        chatLoading ||
+                        !chatInput.trim()
+                      }
+                    >
+                      {chatLoading ? "Sending..." : "Send"}
+                    </button>
                   </div>
-
-                </div>
-
-                <div className="chat-message">
-
-                  <div className="ai-avatar">
-                    AI
-                  </div>
-
-                  <div>
-                    <p>
-                      Start with your highest-priority task.
-                    </p>
-                  </div>
-
-                </div>
-
-                <div className="chat-placeholder-note">
-                  AI Chat functionality will be connected
-                  by the assigned team member.
-                </div>
-
-                <div className="chat-input-placeholder">
-                  Generate a new schedule with these tasks...
-                </div>
-
+                </form>
               </aside>
 
             </div>

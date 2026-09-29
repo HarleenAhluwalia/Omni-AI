@@ -72,6 +72,9 @@ const chat = async (req, res) => {
       };
     });
 
+      console.log("Tasks from Supabase:", tasks);
+      console.log("Prioritized tasks:", prioritizedTasks);
+
     const response = await askAI(
       message.trim(),
       prioritizedTasks
