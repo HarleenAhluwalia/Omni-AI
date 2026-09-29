@@ -1,13 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import EditTask from "./EditTask";
 import { useAuth } from "../context/AuthContext";
+import {
+  paginateTasks,
+  getTotalPages,
+} from "../utils/taskPagination";
 
 const TEST_USER_ID = import.meta.env.VITE_TEST_USER_ID;
+
+const TASKS_PER_PAGE = 5;
 
 function TaskList({
   tasks,
   setTasks,
   onEditTask,
+  refreshKey = 0,
 }) {
   const { user } = useAuth();
   const userId = user?.id || TEST_USER_ID;
@@ -15,6 +22,7 @@ function TaskList({
   const [editingTask, setEditingTask] = useState(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const loadTasks = async () => {
@@ -30,7 +38,9 @@ function TaskList({
 
       try {
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/tasks?user_id=${encodeURIComponent(
+          `${
+            import.meta.env.VITE_API_URL
+          }/tasks/prioritized?user_id=${encodeURIComponent(
             userId
           )}`
         );
@@ -39,17 +49,18 @@ function TaskList({
 
         if (!response.ok) {
           throw new Error(
-            result.error || "Could not load tasks."
+            result.error || "Could not load prioritized tasks."
           );
         }
 
+        // Preserve the backend's prioritized order.
         setTasks(result.data || []);
         setMessage("");
       } catch (error) {
-        console.error("Load Tasks failed:", error);
+        console.error("Load prioritized Tasks failed:", error);
 
         setMessage(
-          error.message || "Could not load tasks."
+          error.message || "Could not load prioritized tasks."
         );
       } finally {
         setLoading(false);
@@ -57,12 +68,39 @@ function TaskList({
     };
 
     loadTasks();
-  }, [userId, setTasks]);
+  }, [userId, setTasks, refreshKey]);
+
+  const totalPages = getTotalPages(
+    tasks.length,
+    TASKS_PER_PAGE
+  );
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [refreshKey]);
+
+  const visibleTasks = useMemo(
+    () =>
+      paginateTasks(
+        tasks,
+        currentPage,
+        TASKS_PER_PAGE
+      ),
+    [tasks, currentPage]
+  );
 
   const handleDelete = async (taskId) => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/tasks/${taskId}?user_id=${encodeURIComponent(
+        `${
+          import.meta.env.VITE_API_URL
+        }/tasks/${taskId}?user_id=${encodeURIComponent(
           userId
         )}`,
         {
@@ -102,7 +140,9 @@ function TaskList({
           : "completed";
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/tasks/${task.id}?user_id=${encodeURIComponent(
+        `${
+          import.meta.env.VITE_API_URL
+        }/tasks/${task.id}?user_id=${encodeURIComponent(
           userId
         )}`,
         {
@@ -169,12 +209,11 @@ function TaskList({
   };
 
   if (loading) {
-    return <p>Loading tasks...</p>;
+    return <p>Loading prioritized tasks...</p>;
   }
 
   return (
     <div className="task-list">
-
       {message && (
         <p className="task-list-message">
           {message}
@@ -185,17 +224,18 @@ function TaskList({
         <p>No tasks available.</p>
       )}
 
-      {tasks.map((task) => (
+      {visibleTasks.map((task) => (
         <div
           key={task.id}
           className={
             task.completion_status === "completed"
               ? "task-item completed"
-              : `task-item task-priority-${task.priority || "low"}`
+              : `task-item task-priority-${
+                  task.priority || "low"
+                }`
           }
         >
           <div className="task-item-main">
-
             <div>
               <h3>{task.title}</h3>
 
@@ -222,11 +262,17 @@ function TaskList({
                   Priority:{" "}
                   {task.priority || "Not set"}
                 </span>
+
+                {task.calculated_priority_score != null && (
+                  <span>
+                    Score:{" "}
+                    {task.calculated_priority_score}
+                  </span>
+                )}
               </div>
             </div>
 
             <div className="task-actions">
-
               <button
                 type="button"
                 className="task-edit-ghost-button"
@@ -244,8 +290,7 @@ function TaskList({
                   handleComplete(task)
                 }
               >
-                {task.completion_status ===
-                "completed"
+                {task.completion_status === "completed"
                   ? "Undo"
                   : "Complete"}
               </button>
@@ -259,12 +304,46 @@ function TaskList({
               >
                 Delete
               </button>
-
             </div>
-
           </div>
         </div>
       ))}
+
+      {tasks.length > TASKS_PER_PAGE && (
+        <div className="task-pagination">
+          <button
+            type="button"
+            className="task-page-arrow"
+            onClick={() =>
+              setCurrentPage((page) =>
+                Math.max(1, page - 1)
+              )
+            }
+            disabled={currentPage === 1}
+            aria-label="Previous task page"
+          >
+            ←
+          </button>
+
+          <span className="task-page-info">
+            {currentPage} / {totalPages}
+          </span>
+
+          <button
+            type="button"
+            className="task-page-arrow"
+            onClick={() =>
+              setCurrentPage((page) =>
+                Math.min(totalPages, page + 1)
+              )
+            }
+            disabled={currentPage === totalPages}
+            aria-label="Next task page"
+          >
+            →
+          </button>
+        </div>
+      )}
 
       {!onEditTask && editingTask && (
         <EditTask
@@ -275,7 +354,6 @@ function TaskList({
           }
         />
       )}
-
     </div>
   );
 }

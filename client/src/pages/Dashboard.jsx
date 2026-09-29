@@ -496,6 +496,7 @@ function Dashboard() {
   tasks={tasks}
   setTasks={setTasks}
   onEditTask={openEditTaskModal}
+  refreshKey={taskRefreshKey}
 />
 
               </section>
@@ -566,8 +567,11 @@ function Dashboard() {
             CALENDAR VIEW
         ========================= */}
         {activeView === "calendar" && (
-          <CalendarView />
-        )}
+  <CalendarView
+    refreshKey={taskRefreshKey}
+    onEditTask={openEditTaskModal}
+  />
+)}
 
       </main>
 
