@@ -1,91 +1,204 @@
 .prioritized-page {
   width: 100%;
-  min-height: 100%;
+
   box-sizing: border-box;
+
   padding: 24px;
 }
 
+
 .prioritized-card {
   width: 100%;
+
+  overflow: hidden;
+
   background: #d9d9d9;
+
   border: 1px solid #777;
   border-radius: 18px;
-  overflow: hidden;
+
   box-sizing: border-box;
+
+  color: #111;
 }
 
+
 .prioritized-header {
+  min-height: 62px;
+
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: 62px;
+
   padding: 0 22px;
+
   border-bottom: 1px solid #777;
 }
 
+
 .prioritized-header h1 {
   margin: 0;
+
+  color: #111;
+
   font-size: 28px;
   font-weight: 500;
 }
 
+
+.prioritized-subtitle {
+  margin: 3px 0 0;
+
+  color: #555;
+
+  font-size: 11px;
+}
+
+
+.prioritized-count {
+  color: #555;
+
+  font-size: 11px;
+}
+
+
 .todo-error-message {
   padding: 12px 20px;
-  border-bottom: 1px solid #aaa;
+
   background: #fff0f0;
+
+  border-bottom: 1px solid #aaa;
+
+  color: #9b1b1b;
+
   font-size: 14px;
 }
+
 
 .todo-loading {
   padding: 30px;
 }
 
+
 .todo-table-wrapper {
   width: 100%;
 }
 
+
 .todo-table-header,
 .todo-table-row {
   display: grid;
+
   grid-template-columns:
-    minmax(250px, 2.2fr)
-    minmax(110px, 1fr)
-    minmax(120px, 1fr)
-    minmax(100px, 0.8fr)
-    minmax(70px, 0.5fr)
-    minmax(150px, 0.9fr);
+    45px
+    minmax(200px, 2fr)
+    minmax(100px, 1fr)
+    minmax(80px, 0.8fr)
+    minmax(90px, 0.8fr)
+    minmax(90px, 0.8fr)
+    minmax(150px, 1fr);
+
   align-items: center;
+
   box-sizing: border-box;
 }
 
+
 .todo-table-header {
   min-height: 40px;
-  padding: 0 24px;
+
+  padding: 0 20px;
+
   border-bottom: 1px solid #888;
+
+  color: #111;
+
   font-size: 13px;
   font-weight: 600;
 }
 
+
 .todo-table-row {
+  position: relative;
+
   min-height: 62px;
-  padding: 0 24px;
-  font-size: 15px;
+
+  margin: 0;
+
+  padding: 0 20px;
+
+  background: transparent;
+
+  border-left: 6px solid transparent;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  transition: background 0.12s ease;
+
+  color: #111;
+
+  font-size: 14px;
+
+  transition:
+    background 0.12s ease;
 }
+
+
+.todo-table-row > div {
+  color: #111;
+}
+
 
 .todo-table-row:hover,
 .todo-table-row:focus-within {
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(
+    255,
+    255,
+    255,
+    0.45
+  );
 }
+
+
+/* PRIORITY / STATUS LINE */
+
+.todo-row-high {
+  border-left-color: #df2029;
+}
+
+
+.todo-row-medium {
+  border-left-color: #d1a516;
+}
+
+
+.todo-row-low {
+  border-left-color: #22a957;
+}
+
+
+.todo-row-completed {
+  border-left-color: #7267d9;
+
+  opacity: 0.7;
+}
+
+
+.todo-row-completed
+.todo-task-name {
+  text-decoration: line-through;
+}
+
 
 .todo-task-name {
-  font-weight: 500;
+  overflow: hidden;
+
+  color: #111;
+
+  font-weight: 600;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
 }
 
-.todo-status-header {
-  text-align: center;
-}
 
 .todo-status-cell {
   display: flex;
@@ -93,10 +206,16 @@
   align-items: center;
 }
 
+
 .todo-status-cell input {
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
+
+  accent-color: #7267d9;
+
+  cursor: pointer;
 }
+
 
 .todo-actions-cell {
   display: flex;
@@ -104,6 +223,7 @@
 
   gap: 6px;
 }
+
 
 .todo-edit-button,
 .todo-delete-trigger-button {
@@ -117,27 +237,33 @@
   cursor: pointer;
 
   opacity: 0;
+
   pointer-events: none;
 
-  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
-.todo-edit-button {
-  background: #7267d9;
 
-  border: none;
+/* PURPLE GHOST EDIT */
+
+.todo-edit-button {
+  background: transparent;
+
+  border: 1px solid #7267d9;
+
+  color: #7267d9;
+}
+
+
+.todo-edit-button:hover {
+  background: #7267d9;
 
   color: white;
 }
 
-.todo-edit-button:hover {
-  background: #5d52c4;
-}
-
-.todo-edit-button:focus-visible {
-  outline: 2px solid #37306f;
-  outline-offset: 2px;
-}
 
 .todo-delete-trigger-button {
   background: transparent;
@@ -147,43 +273,86 @@
   color: #c23a3a;
 }
 
+
 .todo-delete-trigger-button:hover {
   background: #c23a3a;
 
   color: white;
 }
 
-.todo-delete-trigger-button:focus-visible {
-  outline: 2px solid #8f1f1f;
-  outline-offset: 2px;
-}
 
-.todo-table-row:hover .todo-edit-button,
-.todo-table-row:focus-within .todo-edit-button,
-.todo-table-row:hover .todo-delete-trigger-button,
-.todo-table-row:focus-within .todo-delete-trigger-button {
+.todo-table-row:hover
+.todo-edit-button,
+.todo-table-row:focus-within
+.todo-edit-button,
+.todo-table-row:hover
+.todo-delete-trigger-button,
+.todo-table-row:focus-within
+.todo-delete-trigger-button {
   opacity: 1;
+
   pointer-events: auto;
 }
 
-.todo-high {
-  color: #e60000;
+
+.todo-pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 12px 20px;
+
+  border-top: 1px solid #999;
 }
 
-.todo-medium {
-  color: #b89b1c;
+
+.todo-pagination span {
+  color: #555;
+
+  font-size: 11px;
 }
 
-.todo-low {
-  color: #1eb85c;
+
+.todo-pagination button {
+  padding: 6px 12px;
+
+  background: white;
+
+  border: 1px solid #777;
+  border-radius: 4px;
+
+  color: #111;
+
+  cursor: pointer;
 }
+
+
+.todo-pagination button:hover:not(
+  :disabled
+) {
+  background: #ded9f6;
+}
+
+
+.todo-pagination button:disabled {
+  opacity: 0.4;
+
+  cursor: default;
+}
+
 
 .todo-empty-state {
   padding: 50px 20px;
+
   text-align: center;
+
   color: #666;
+
   font-size: 16px;
 }
+
 
 @media (max-width: 900px) {
   .todo-table-wrapper {
