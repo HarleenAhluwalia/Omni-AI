@@ -126,6 +126,18 @@ function createMockSupabase() {
       // Makes the builder awaitable on its own, which is how the codebase
       // uses upsert() (no .select()/.single() afterwards).
       then(resolve, reject) {
+
+        if (mode === "select") {
+          const rows = store[table].filter((row) =>
+          matchFilters(row, filters)
+          );
+
+          return Promise.resolve({
+            data: rows,
+            error: null,
+         }).then(resolve, reject);
+        }
+        
         if (mode === "upsert") {
           const key = upsertOptions?.onConflict || "id";
           const idx = store[table].findIndex(

@@ -88,3 +88,55 @@ describe("POST /api/ai/chat - error handling", () => {
     });
   });
 
+describe("POST /api/ai/chat - successful request", () => {
+  it("returns a successful AI response for a valid chat request", async () => {
+    supabase.__store.tasks = [
+      {
+        user_id: USER_ID,
+        title: "Software Engineering Project",
+        due_date: null,
+        priority: "high",
+        point_value: 50,
+        estimated_effort_minutes: 60,
+        completion_status: "not_started",
+      },
+    ];
+
+    askAI.mockResolvedValue(
+      "Work on the Software Engineering Project first."
+    );
+
+    const res = await request(app)
+      .post(`/api/ai/chat?user_id=${USER_ID}`)
+      .send({
+        message: "What should I work on?",
+        available_minutes: 120,
+      });
+
+    expect(res.status).toBe(200);
+
+    expect(res.body).toEqual({
+      success: true,
+      data: {
+        response:
+          "Work on the Software Engineering Project first.",
+      },
+    });
+
+    expect(askAI).toHaveBeenCalledTimes(1);
+
+    expect(askAI).toHaveBeenCalledWith(
+      "What should I work on?",
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: "Software Engineering Project",
+          priority: "high",
+          point_value: 50,
+          completion_status: "not_started",
+          calculated_priority_score: expect.any(Number),
+          priority_breakdown: expect.any(Object),
+        }),
+      ])
+    );
+  });
+});
