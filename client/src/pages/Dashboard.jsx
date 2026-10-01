@@ -44,9 +44,53 @@ function Dashboard() {
 
   const year = today.getFullYear();
 
-  // TEMPORARY calendar shell.
-  // Real Calendar backend integration will be added later.
-  const days = Array.from({ length: 35 }, (_, index) => index + 1);
+  const calendarYear = today.getFullYear();
+const calendarMonth = today.getMonth();
+
+const daysInMonth = new Date(
+  calendarYear,
+  calendarMonth + 1,
+  0
+).getDate();
+
+const firstDayOfMonth = new Date(
+  calendarYear,
+  calendarMonth,
+  1
+).getDay();
+
+const dashboardCalendarCells = [];
+
+for (let i = 0; i < firstDayOfMonth; i += 1) {
+  dashboardCalendarCells.push(null);
+}
+
+for (let day = 1; day <= daysInMonth; day += 1) {
+  dashboardCalendarCells.push(day);
+}
+
+while (dashboardCalendarCells.length % 7 !== 0) {
+  dashboardCalendarCells.push(null);
+}
+const getTasksForDashboardDay = (day) => {
+  if (!day) {
+    return [];
+  }
+
+  return tasks.filter((task) => {
+    if (!task.due_date) {
+      return false;
+    }
+
+    const dueDate = new Date(task.due_date);
+
+    return (
+      dueDate.getFullYear() === calendarYear &&
+      dueDate.getMonth() === calendarMonth &&
+      dueDate.getDate() === day
+    );
+  });
+};
 
   const openAddTaskModal = () => {
     setEditingTask(null);
@@ -356,16 +400,58 @@ function Dashboard() {
                     </div>
                   ))}
 
-                  {days.map((day) => (
-                    <div
-                      key={day}
-                      className="calendar-day"
-                    >
-                      <span className="calendar-number">
-                        {day}
-                      </span>
-                    </div>
-                  ))}
+                  {dashboardCalendarCells.map((day, index) => {
+  const dayTasks = day
+    ? getTasksForDashboardDay(day)
+    : [];
+
+  return (
+    <div
+      key={`${calendarYear}-${calendarMonth}-${index}`}
+      className={
+        day === today.getDate()
+          ? "calendar-day dashboard-current-day"
+          : "calendar-day"
+      }
+    >
+      {day && (
+        <>
+          <span className="calendar-number">
+            {day}
+          </span>
+
+          <div className="dashboard-calendar-tasks">
+            {dayTasks.slice(0, 3).map((task) => (
+              <button
+                type="button"
+                key={task.id}
+                className={`dashboard-calendar-task dashboard-calendar-task-${
+                  task.priority || "low"
+                }`}
+                title={task.title}
+                onClick={() => openEditTaskModal(task)}
+              >
+                {task.title}
+              </button>
+            ))}
+
+            {dayTasks.length > 3 && (
+              <button
+                type="button"
+                className="dashboard-calendar-more"
+                onClick={() =>
+                  setActiveView("calendar")
+                }
+              >
+                +{dayTasks.length - 3} more
+              </button>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+})}
 
                 </div>
 
