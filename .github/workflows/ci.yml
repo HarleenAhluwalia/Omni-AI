@@ -134,3 +134,45 @@ jobs:
           else
             echo "FAIL — Medrian AI/API tests"
           fi
+
+  alan-ai-ci:
+    name: Alan - AI Prioritization and Scheduling Tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: server
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Alan build ID
+        id: alan_build_id
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          BUILD_ID="omni-ai-build-${{ github.run_number }}-${SHORT_SHA}"
+          echo "build_id=$BUILD_ID" >> "$GITHUB_OUTPUT"
+          echo "Build ID: $BUILD_ID"
+
+      - name: Run Alan AI prioritization tests
+        run: npx jest tests/priorityService.test.js --runInBand
+
+      - name: Report Alan CI status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "PASS — ${{ steps.alan_build_id.outputs.build_id }}"
+          else
+            echo "FAIL — ${{ steps.alan_build_id.outputs.build_id }}"
+          fi
