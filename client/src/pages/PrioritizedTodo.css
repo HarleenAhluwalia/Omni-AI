@@ -1,143 +1,82 @@
 .prioritized-page {
   width: 100%;
 
+  padding: 20px 28px 28px;
+
   box-sizing: border-box;
-
-  padding: 24px;
 }
-
 
 .prioritized-card {
   width: 100%;
 
-  overflow: hidden;
-
   background: #d9d9d9;
 
   border: 1px solid #777;
-  border-radius: 18px;
+  border-radius: 14px;
+
+  overflow: hidden;
 
   box-sizing: border-box;
-
-  color: #111;
 }
 
-
 .prioritized-header {
-  min-height: 62px;
-
   display: flex;
   justify-content: space-between;
   align-items: center;
 
-  padding: 0 22px;
+  min-height: 72px;
+
+  padding: 0 24px;
 
   border-bottom: 1px solid #777;
 }
 
-
 .prioritized-header h1 {
   margin: 0;
 
-  color: #111;
-
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 500;
 }
-
-
-.prioritized-subtitle {
-  margin: 3px 0 0;
-
-  color: #555;
-
-  font-size: 11px;
-}
-
-
-.prioritized-count {
-  color: #555;
-
-  font-size: 11px;
-}
-
-
-.todo-error-message {
-  padding: 12px 20px;
-
-  background: #fff0f0;
-
-  border-bottom: 1px solid #aaa;
-
-  color: #9b1b1b;
-
-  font-size: 14px;
-}
-
-
-.todo-loading {
-  padding: 30px;
-}
-
-
-.todo-table-wrapper {
-  width: 100%;
-}
-
 
 .todo-table-header,
 .todo-table-row {
   display: grid;
 
   grid-template-columns:
-    45px
-    minmax(200px, 2fr)
-    minmax(100px, 1fr)
-    minmax(80px, 0.8fr)
-    minmax(90px, 0.8fr)
-    minmax(90px, 0.8fr)
-    minmax(150px, 1fr);
+    40px
+    minmax(300px, 2.4fr)
+    minmax(120px, 1fr)
+    minmax(120px, 0.8fr)
+    minmax(120px, 0.9fr)
+    minmax(110px, 0.8fr)
+    minmax(150px, 0.9fr);
 
   align-items: center;
 
   box-sizing: border-box;
 }
 
-
 .todo-table-header {
-  min-height: 40px;
+  min-height: 48px;
 
-  padding: 0 20px;
+  padding: 0 24px;
 
   border-bottom: 1px solid #888;
 
-  color: #111;
-
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
-
 .todo-table-row {
-  position: relative;
+  min-height: 76px;
 
-  min-height: 62px;
+  padding: 0 24px;
 
-  margin: 0;
-
-  padding: 0 20px;
-
-  background: transparent;
-
-  border-left: 6px solid transparent;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 
-  color: #111;
+  font-size: 15px;
 
-  font-size: 14px;
-
-  transition:
-    background 0.12s ease;
+  transition: background 0.12s ease;
 }
 
 
@@ -363,4 +302,48 @@
   .todo-table-row {
     min-width: 900px;
   }
+}
+
+/* =========================================
+   PRIORITIZED TODO PRIORITY COLORS
+   Text stays black.
+   Priority is shown by the left line only.
+========================================= */
+
+.todo-table-row {
+  position: relative;
+
+  border-left: 5px solid transparent;
+
+  color: #111;
+}
+
+.todo-table-row > div {
+  color: #111;
+}
+
+/* High priority */
+.todo-row-high {
+  border-left-color: #df2029;
+}
+
+/* Medium priority */
+.todo-row-medium {
+  border-left-color: #d1a516;
+}
+
+/* Low priority */
+.todo-row-low {
+  border-left-color: #22a957;
+}
+
+/* Completed */
+.todo-row-completed {
+  border-left-color: #7267d9;
+
+  opacity: 0.7;
+}
+
+.todo-row-completed .todo-task-name {
+  text-decoration: line-through;
 }
