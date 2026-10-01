@@ -99,3 +99,38 @@ jobs:
           else
             echo "FAIL — ${{ steps.harleen_build_id.outputs.build_id }}"
           fi
+
+  medrian-ai-api-tests:
+    name: Medrian - AI/API Automated Tests (SCRUM-347)
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: server
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Run AI/API automated tests
+        run: npx jest tests/ai.test.js --runInBand
+
+      - name: Report Medrian AI/API CI status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "PASS — Medrian AI/API tests"
+          else
+            echo "FAIL — Medrian AI/API tests"
+          fi
