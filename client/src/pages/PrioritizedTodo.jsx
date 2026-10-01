@@ -453,10 +453,12 @@ function PrioritizedTodo({
             visibleTasks.map(
               (task) => (
                 <div
-                  className={`todo-table-row ${getStatusClass(
-                    task
-                  )}`}
-                  key={task.id}
+                  className={`todo-table-row ${
+    task.completion_status === "completed"
+      ? "todo-row-completed"
+      : `todo-row-${task.priority || "low"}`
+  }`}
+  key={task.id}
                 >
 
                   <div className="todo-status-cell">
