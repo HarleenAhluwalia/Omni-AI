@@ -6,6 +6,8 @@ const {
   getTasks,
   getTaskById,
   getPrioritizedTasks,
+  getDailySummary,
+  getWeeklySummary,
   createTask,
   updateTask,
   deleteTask,
@@ -32,6 +34,18 @@ router.get(
 router.post(
   "/resolve-schedule",
   resolveSchedule
+);
+
+// Sprint 2 Task 11: Daily Summary. Must be before /:id, same reason.
+router.get(
+  "/summary/daily",
+  getDailySummary
+);
+
+// Sprint 2 Task 12: Weekly Summary. Must be before /:id, same reason.
+router.get(
+  "/summary/weekly",
+  getWeeklySummary
 );
 
 // Existing Task CRUD

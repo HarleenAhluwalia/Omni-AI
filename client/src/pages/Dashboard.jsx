@@ -4,6 +4,8 @@ import AddTask from "./AddTask";
 import TaskList from "./TaskList";
 import PrioritizedTodo from "./PrioritizedTodo";
 import CalendarView from "./CalendarView";
+import DailySummary from "./DailySummary";
+import WeeklySummary from "./WeeklySummary";
 
 import { useAuth } from "../context/AuthContext";
 
@@ -587,24 +589,18 @@ const getTasksForDashboardDay = (day) => {
 
               </section>
 
-              {/* VISUAL PLACEHOLDERS */}
+              {/* SUMMARY COLUMN */}
               <section className="summary-column">
 
-                <div className="summary-card">
-                  <h3>Task Summary</h3>
+                <DailySummary
+                  onEditTask={openEditTaskModal}
+                  refreshKey={taskRefreshKey}
+                />
 
-                  <p>
-                    Your existing Task CRUD actions are shown on the left.
-                  </p>
-                </div>
-
-                <div className="summary-card">
-                  <h3>Weekly Summary</h3>
-
-                  <p>
-                    Weekly analytics will appear here.
-                  </p>
-                </div>
+                <WeeklySummary
+                  onEditTask={openEditTaskModal}
+                  refreshKey={taskRefreshKey}
+                />
 
               </section>
 
