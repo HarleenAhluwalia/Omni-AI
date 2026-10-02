@@ -49,6 +49,11 @@ const chat = async (req, res) => {
         req.body.available_minutes ?? 120
     );
     
+    console.log(
+      "Available minutes in controller:",
+      availableMinutes
+    );
+
     if (
       !Number.isFinite(availableMinutes) ||
       availableMinutes < 0
@@ -75,22 +80,34 @@ const chat = async (req, res) => {
       console.log("Tasks from Supabase:", tasks);
       console.log("Prioritized tasks:", prioritizedTasks);
 
-    const response = await askAI(
-      message.trim(),
-      prioritizedTasks
-    );
+      console.time("AI response time");
 
-    return res.status(200).json({
-      success: true,
-      data: {
-        response,
-      },
-    });
-  } catch (error) {
-    console.error(
-      "AI request failed:",
-      error
-    );
+      try {
+        const response = await askAI(
+          message.trim(),
+          prioritizedTasks,
+          availableMinutes
+        );
+
+        console.timeEnd("AI response time");
+
+        return res.status(200).json({
+          success: true,
+          data: {
+            response,
+          },
+        });
+      } catch (error) {
+        console.timeEnd("AI response time");
+        throw error;
+      }
+
+      } catch (error) {
+        console.error(
+          "AI request failed:",
+          error
+        );
+
 
     return res.status(500).json({
       success: false,
