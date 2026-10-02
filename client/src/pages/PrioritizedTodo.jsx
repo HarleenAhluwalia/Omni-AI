@@ -8,9 +8,6 @@ import { useAuth } from "../context/AuthContext";
 
 import "./PrioritizedTodo.css";
 
-const TEST_USER_ID =
-  import.meta.env.VITE_TEST_USER_ID;
-
 const TASKS_PER_PAGE = 10;
 
 // Must match modal animation duration.
@@ -20,10 +17,7 @@ function PrioritizedTodo({
   refreshKey = 0,
   onEditTask,
 }) {
-  const { user } = useAuth();
-
-  const userId =
-    user?.id || TEST_USER_ID;
+  const { token } = useAuth();
 
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] =
@@ -52,9 +46,9 @@ function PrioritizedTodo({
 
   const loadPrioritizedTasks =
     async () => {
-      if (!userId) {
+      if (!token) {
         setMessage(
-          "No authenticated user is available."
+          "You must be logged in to view tasks."
         );
 
         setLoading(false);
@@ -66,11 +60,12 @@ function PrioritizedTodo({
         setLoading(true);
 
         const response = await fetch(
-          `${
-            import.meta.env.VITE_API_URL
-          }/tasks/prioritized?user_id=${encodeURIComponent(
-            userId
-          )}`
+          `${import.meta.env.VITE_API_URL}/tasks/prioritized`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
 
         const result =
@@ -106,7 +101,7 @@ function PrioritizedTodo({
 
   useEffect(() => {
     loadPrioritizedTasks();
-  }, [userId, refreshKey]);
+  }, [token, refreshKey]);
 
 
   useEffect(() => {
@@ -202,17 +197,14 @@ function PrioritizedTodo({
             `${
               import.meta.env
                 .VITE_API_URL
-            }/tasks/${
-              task.id
-            }?user_id=${encodeURIComponent(
-              userId
-            )}`,
+            }/tasks/${task.id}`,
             {
               method: "PUT",
 
               headers: {
                 "Content-Type":
                   "application/json",
+                Authorization: `Bearer ${token}`,
               },
 
               body: JSON.stringify({
@@ -328,13 +320,12 @@ function PrioritizedTodo({
             `${
               import.meta.env
                 .VITE_API_URL
-            }/tasks/${
-              deletingTask.id
-            }?user_id=${encodeURIComponent(
-              userId
-            )}`,
+            }/tasks/${deletingTask.id}`,
             {
               method: "DELETE",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
             }
           );
 
