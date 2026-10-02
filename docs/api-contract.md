@@ -10,41 +10,44 @@ field names or talking to Supabase directly. If a field needs to change,
 update the database, this doc, and the controller together — see
 [`database-contract.md`](./database-contract.md) for the underlying schema.
 
-## Temporary Sprint 1 auth bridge
+## Authentication
 
-There's no login/session middleware wired into Express yet, so **every**
-task request — including reads — must say which user it's acting as, via a
-`user_id` (query string for `GET`/`PUT`/`DELETE`, request body for `POST`).
+Every task route is protected by `requireAuth` (`server/src/middleware/auth.js`).
+Requests must carry:
 
-> **This is a real, load-bearing gap, not a formality.** Since the backend
-> uses the Supabase service-role key (which bypasses Row Level Security),
-> `user_id` scoping in the controller is the *only* thing stopping one
-> client from reading, editing, or deleting another user's tasks — and
-> right now the client just has to know or guess a UUID to do that. Do not
-> treat this as safe for anything beyond local Sprint 1 development.
->
-> **Local setup**: each developer needs their own Supabase auth user to
-> test against. Create one (Supabase dashboard → Authentication → Users, or
-> via the admin API), confirm a matching row appears in `profiles` (a
-> signup trigger creates it automatically), then add to
-> `client/.env.local` (gitignored, per-developer — **not** the committed
-> `client/.env`):
-> ```env
-> VITE_TEST_USER_ID=<that user's uuid>
-> ```
-> Restart `vite` after changing it. See Section 25 of the Sprint 1 handoff
-> for the real migration path off this bridge (auth middleware deriving
-> `req.user.id` from a verified session).
+```
+Authorization: Bearer <jwt>
+```
+
+where `<jwt>` is the token issued by `POST /auth/register` or `POST /auth/login`
+(see the auth routes). `requireAuth` verifies the token and attaches
+`req.user = { id, email }`; the controller uses `req.user.id` as the owning
+user for every operation. There is no other way to identify the user —
+**`user_id` is never read from the request body or query string**. A
+`user_id` field sent in a `POST`/`PUT` body is silently ignored (it isn't in
+the controller's writable-fields list), so a client cannot create or
+reassign a task to another user.
+
+Missing or invalid tokens get `401`:
+- No `Authorization` header, or not `Bearer <token>` → `401`
+- Expired token → `401` (`"Session expired. Please log in again."`)
+- Token that doesn't verify → `401` (`"Invalid token."`)
+
+> **Known gap**: the Google/Microsoft OAuth buttons in `Login.jsx` sign the
+> user into Supabase directly and never obtain one of these backend JWTs.
+> A user who only ever authenticates that way will get `401`s from every
+> task request until that integration also mints (or exchanges for) this
+> token. Email/password login is unaffected.
 
 ## Endpoints
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/tasks?user_id=<uuid>` | List the given user's tasks |
-| `GET` | `/tasks/:id?user_id=<uuid>` | Get one task (404 if it isn't this user's) |
-| `POST` | `/tasks` | Create a task (`user_id` in the body) |
-| `PUT` | `/tasks/:id?user_id=<uuid>` | Update a task (404 if it isn't this user's) |
-| `DELETE` | `/tasks/:id?user_id=<uuid>` | Delete a task (404 if it isn't this user's) |
+| `GET` | `/tasks` | List the authenticated user's tasks |
+| `GET` | `/tasks/:id` | Get one task (404 if it isn't this user's) |
+| `POST` | `/tasks` | Create a task, owned by the authenticated user |
+| `PUT` | `/tasks/:id` | Update a task (404 if it isn't this user's) |
+| `DELETE` | `/tasks/:id` | Delete a task (404 if it isn't this user's) |
 
 All responses are JSON, shaped as either:
 
@@ -73,8 +76,10 @@ All responses are JSON, shaped as either:
 }
 ```
 
-`id`, `created_at`, and `updated_at` are set by the database — never send
-them in a request body; they're ignored if present.
+`id`, `user_id`, `created_at`, and `updated_at` are never accepted from a
+request body — `id`/`created_at`/`updated_at` are set by the database, and
+`user_id` is set by the backend from the authenticated session. All four are
+ignored if present in the body.
 
 ## Validation
 
@@ -92,24 +97,26 @@ A failed validation returns `400` with an `error` string naming what's wrong
 
 ## POST /tasks
 
-Required: `title`, `user_id`.
+Required: `title`, plus a valid `Authorization: Bearer <jwt>` header.
 
 ```
 POST /api/tasks
+Authorization: Bearer <jwt>
 Content-Type: application/json
 
-{ "title": "Read chapter 4", "user_id": "<uuid>", "priority": "medium" }
+{ "title": "Read chapter 4", "priority": "medium" }
 ```
-→ `201` with the created task.
+→ `201` with the created task, owned by the token's user.
 
-## PUT /tasks/:id?user_id=<uuid>
+## PUT /tasks/:id
 
 Any subset of `title`, `description`, `due_date`, `point_value`,
 `estimated_effort_minutes`, `priority`, `completion_status`. `user_id`
 cannot be changed via this endpoint — ownership is fixed at creation.
 
 ```
-PUT /api/tasks/<id>?user_id=<uuid>
+PUT /api/tasks/<id>
+Authorization: Bearer <jwt>
 Content-Type: application/json
 
 { "completion_status": "completed" }
@@ -117,16 +124,23 @@ Content-Type: application/json
 → `200` with the updated task, or `404` if the id doesn't exist **for that
 user** (also returned if the task exists but belongs to someone else).
 
-## DELETE /tasks/:id?user_id=<uuid>
+## DELETE /tasks/:id
 
+```
+DELETE /api/tasks/<id>
+Authorization: Bearer <jwt>
+```
 → `200` with the deleted task, or `404` (same ownership rule as above).
 
 ## Verification
 
-All of the following were run against the live database through the real
-HTTP API (no mocks): create, read (list + single), update, mark-complete,
-delete, refresh-persistence, cross-user ownership isolation (a second
-user's `PUT`/`DELETE` against the first user's task correctly returns
-`404`), and every invalid-input case in the handoff doc (bad `priority`,
-bad `completion_status`, negative `point_value`/`estimated_effort_minutes`,
-missing `title`, missing `user_id`).
+`server/tests/tasks.test.js` runs every case below against the in-memory
+Supabase mock through the real Express app (no network): create, read
+(list + single), update, mark-complete, delete, cross-user ownership
+isolation (a second user's `GET`/`PUT`/`DELETE` against the first user's
+task correctly returns `404`), rejection of a client-supplied `user_id`
+(create and update both keep the authenticated user as owner regardless of
+what's in the body), every invalid-input case (bad `priority`, bad
+`completion_status`, negative `point_value`/`estimated_effort_minutes`,
+missing `title`), and authentication failures (missing or malformed
+`Authorization` header → `401`).

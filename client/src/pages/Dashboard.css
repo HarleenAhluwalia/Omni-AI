@@ -1058,6 +1058,40 @@ body {
   background: #d2d2d2;
 }
 
+.full-todo-view .calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  margin-bottom: 16px;
+}
+
+.full-todo-view .calendar-header h1 {
+  margin: 0;
+
+  font-size: 42px;
+  font-weight: 500;
+}
+
+.full-todo-view .calendar-header p {
+  margin: 6px 0 0;
+
+  font-size: 14px;
+
+  color: #555;
+}
+
+.add-task-header-button {
+  padding: 8px 14px;
+
+  background: white;
+
+  border: 1px solid #777;
+  border-radius: 5px;
+
+  cursor: pointer;
+}
+
 /* =========================================
    DASHBOARD TASK LIST
 ========================================= */
@@ -1419,9 +1453,11 @@ body {
 
 .full-todo-view {
   width: 100%;
-  max-width: 1200px;
+  max-width: none;
 
-  margin: 0 auto;
+  margin: 0;
+
+  padding: 20px 28px 28px;
 }
 
 .full-todo-view .todo-page {
@@ -1429,32 +1465,33 @@ body {
 }
 
 /* =========================================
-   CALENDAR PAGE
+   FULL CALENDAR PAGE
 ========================================= */
 
 .calendar-page {
   width: 100%;
-  max-width: 1100px;
-
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
+  padding: 20px 28px 28px;
 }
 
 .calendar-view-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
 
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .calendar-view-header h1 {
   margin: 0;
 
-  font-size: 36px;
+  font-size: 42px;
+  font-weight: 500;
 }
 
 .calendar-view-header p {
-  margin-top: 6px;
+  margin: 6px 0 0;
 
   color: #666;
 
@@ -1463,17 +1500,18 @@ body {
 
 .calendar-navigation {
   display: flex;
-
   gap: 8px;
 }
 
 .calendar-navigation button {
-  padding: 8px 12px;
+  padding: 9px 14px;
+
+  background: white;
 
   border: 1px solid #aaa;
   border-radius: 5px;
 
-  background: white;
+  font-size: 13px;
 
   cursor: pointer;
 }
@@ -1484,8 +1522,9 @@ body {
 
 .full-calendar-grid {
   display: grid;
-
   grid-template-columns: repeat(7, 1fr);
+
+  width: 100%;
 
   background: white;
 
@@ -1496,7 +1535,7 @@ body {
 }
 
 .full-calendar-heading {
-  padding: 10px;
+  padding: 12px 10px;
 
   background: #eeeeee;
 
@@ -1505,12 +1544,12 @@ body {
 
   text-align: center;
 
-  font-size: 13px;
-  font-weight: bold;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .full-calendar-day {
-  min-height: 120px;
+  min-height: 165px;
 
   padding: 8px;
 
@@ -1521,9 +1560,10 @@ body {
 }
 
 .full-calendar-date {
-  font-size: 13px;
+  margin-bottom: 6px;
 
-  font-weight: bold;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .current-day {

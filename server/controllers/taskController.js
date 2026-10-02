@@ -140,47 +140,13 @@ const validateFields = (fields) => {
 };
 
 
-// ---------------------------------------------------------
-// TEMPORARY SPRINT 1 AUTH BRIDGE
-//
-// Until Task CRUD uses authentication middleware directly,
-// the frontend provides the user's UUID.
-//
-// GET/PUT/DELETE:
-//     query string user_id
-//
-// POST:
-//     request body user_id
-//
-// Sprint 2:
-// Replace this with req.user.id.
-// ---------------------------------------------------------
-const getRequestedUserId = (req) =>
-  req.query.user_id ||
-  req.body.user_id;
-
-
 // =========================================================
 // READ ALL TASKS
-// GET /api/tasks?user_id=<uuid>
+// GET /api/tasks
+// (requireAuth populates req.user.id)
 // =========================================================
 const getTasks = async (req, res) => {
-  const user_id =
-    getRequestedUserId(req);
-
-  if (!user_id) {
-    return res.status(400).json({
-      success: false,
-      error: "user_id is required"
-    });
-  }
-
-  if (!isValidUuid(user_id)) {
-    return res.status(400).json({
-      success: false,
-      error: "user_id must be a valid UUID"
-    });
-  }
+  const user_id = req.user.id;
 
   const {
     data,
@@ -209,7 +175,7 @@ const getTasks = async (req, res) => {
 
 // =========================================================
 // READ ONE TASK
-// GET /api/tasks/:id?user_id=<uuid>
+// GET /api/tasks/:id
 // =========================================================
 const getTaskById = async (req, res) => {
   const { id } = req.params;
@@ -220,22 +186,7 @@ const getTaskById = async (req, res) => {
     });
   }
 
-  const user_id =
-    getRequestedUserId(req);
-
-  if (!user_id) {
-    return res.status(400).json({
-      success: false,
-      error: "user_id is required"
-    });
-  }
-
-  if (!isValidUuid(user_id)) {
-    return res.status(400).json({
-      success: false,
-      error: "user_id must be a valid UUID"
-    });
-  }
+  const user_id = req.user.id;
 
   const {
     data,
@@ -275,8 +226,7 @@ const getTaskById = async (req, res) => {
 const createTask = async (req, res) => {
   const { title } = req.body;
 
-  const user_id =
-    getRequestedUserId(req);
+  const user_id = req.user.id;
 
   if (
     typeof title !== "string" ||
@@ -285,20 +235,6 @@ const createTask = async (req, res) => {
     return res.status(400).json({
       success: false,
       error: "title must be a non-empty string"
-    });
-  }
-
-  if (!user_id) {
-    return res.status(400).json({
-      success: false,
-      error: "user_id is required"
-    });
-  }
-
-  if (!isValidUuid(user_id)) {
-    return res.status(400).json({
-      success: false,
-      error: "user_id must be a valid UUID"
     });
   }
 
@@ -346,7 +282,7 @@ const createTask = async (req, res) => {
 
 // =========================================================
 // UPDATE TASK
-// PUT /api/tasks/:id?user_id=<uuid>
+// PUT /api/tasks/:id
 // =========================================================
 const updateTask = async (req, res) => {
   const { id } = req.params;
@@ -357,25 +293,10 @@ const updateTask = async (req, res) => {
     });
   }
 
-  const user_id =
-    getRequestedUserId(req);
+  const user_id = req.user.id;
 
   const updates =
     pickWritableFields(req.body);
-
-  if (!user_id) {
-    return res.status(400).json({
-      success: false,
-      error: "user_id is required"
-    });
-  }
-
-  if (!isValidUuid(user_id)) {
-    return res.status(400).json({
-      success: false,
-      error: "user_id must be a valid UUID"
-    });
-  }
 
   if (
     Object.keys(updates).length === 0
@@ -444,7 +365,7 @@ const updateTask = async (req, res) => {
 
 // =========================================================
 // DELETE TASK
-// DELETE /api/tasks/:id?user_id=<uuid>
+// DELETE /api/tasks/:id
 // =========================================================
 const deleteTask = async (req, res) => {
   const { id } = req.params;
@@ -455,22 +376,7 @@ const deleteTask = async (req, res) => {
     });
   }
 
-  const user_id =
-    getRequestedUserId(req);
-
-  if (!user_id) {
-    return res.status(400).json({
-      success: false,
-      error: "user_id is required"
-    });
-  }
-
-  if (!isValidUuid(user_id)) {
-    return res.status(400).json({
-      success: false,
-      error: "user_id must be a valid UUID"
-    });
-  }
+  const user_id = req.user.id;
 
   const {
     data,
@@ -504,7 +410,7 @@ const deleteTask = async (req, res) => {
 };
 
 const getPrioritizedTasks = async (req, res) => {
-  const user_id = req.query.user_id;
+  const user_id = req.user.id;
   const availableMinutes = Number(
     req.query.available_minutes ?? 120
   );
@@ -516,13 +422,6 @@ const getPrioritizedTasks = async (req, res) => {
     return res.status(400).json({
       success: false,
       error: "available_minutes must be a nonnegative number",
-    });
-  }
-
-  if (!user_id) {
-    return res.status(400).json({
-      success: false,
-      error: "user_id is required",
     });
   }
 

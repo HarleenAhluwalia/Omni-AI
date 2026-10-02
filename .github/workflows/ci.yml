@@ -10,19 +10,19 @@ jobs:
   backend-tests:
     name: Backend unit/integration tests (Jerry — SCRUM-321 / SCRUM-324)
     runs-on: ubuntu-latest
- 
+
     defaults:
       run:
         working-directory: server
- 
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
- 
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: server/package-lock.json
  
@@ -51,7 +51,7 @@ jobs:
  
 
   harleen-frontend-ci:
-    name: Harleen - Frontend Build and Prioritized To-Do Tests
+    name: Harleen - SCRUM-326 Build / SCRUM-327 To-Do Tests / SCRUM-328 Build ID
 
     runs-on: ubuntu-latest
 
@@ -73,7 +73,7 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Generate Harleen build ID
+      - name: SCRUM-328 - Generate Build ID
         id: harleen_build_id
         run: |
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
@@ -81,14 +81,14 @@ jobs:
           echo "build_id=$BUILD_ID" >> "$GITHUB_OUTPUT"
           echo "Build ID: $BUILD_ID"
 
-      - name: Build React/Vite frontend
+      - name: SCRUM-326 - React/Vite Frontend Build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_API_URL: http://localhost:4000/api
         run: npm run build
 
-      - name: Run Harleen Prioritized To-Do tests
+      - name: SCRUM-327 - Prioritized To-Do Tests
         run: npm run test:prioritized
 
       - name: Report Harleen CI status

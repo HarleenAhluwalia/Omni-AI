@@ -6,8 +6,6 @@ import {
   getTotalPages,
 } from "../utils/taskPagination";
 
-const TEST_USER_ID = import.meta.env.VITE_TEST_USER_ID;
-
 const TASKS_PER_PAGE = 5;
 
 function TaskList({
@@ -16,8 +14,7 @@ function TaskList({
   onEditTask,
   refreshKey = 0,
 }) {
-  const { user } = useAuth();
-  const userId = user?.id || TEST_USER_ID;
+  const { token } = useAuth();
 
   const [editingTask, setEditingTask] = useState(null);
   const [message, setMessage] = useState("");
@@ -26,10 +23,8 @@ function TaskList({
 
   useEffect(() => {
     const loadTasks = async () => {
-      if (!userId) {
-        setMessage(
-          "No authenticated or development user ID is available."
-        );
+      if (!token) {
+        setMessage("You must be logged in to view tasks.");
         setLoading(false);
         return;
       }
@@ -38,11 +33,12 @@ function TaskList({
 
       try {
         const response = await fetch(
-          `${
-            import.meta.env.VITE_API_URL
-          }/tasks/prioritized?user_id=${encodeURIComponent(
-            userId
-          )}`
+          `${import.meta.env.VITE_API_URL}/tasks/prioritized`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
 
         const result = await response.json();
@@ -68,7 +64,7 @@ function TaskList({
     };
 
     loadTasks();
-  }, [userId, setTasks, refreshKey]);
+  }, [token, setTasks, refreshKey]);
 
   const totalPages = getTotalPages(
     tasks.length,
@@ -98,13 +94,12 @@ function TaskList({
   const handleDelete = async (taskId) => {
     try {
       const response = await fetch(
-        `${
-          import.meta.env.VITE_API_URL
-        }/tasks/${taskId}?user_id=${encodeURIComponent(
-          userId
-        )}`,
+        `${import.meta.env.VITE_API_URL}/tasks/${taskId}`,
         {
           method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
@@ -140,15 +135,12 @@ function TaskList({
           : "completed";
 
       const response = await fetch(
-        `${
-          import.meta.env.VITE_API_URL
-        }/tasks/${task.id}?user_id=${encodeURIComponent(
-          userId
-        )}`,
+        `${import.meta.env.VITE_API_URL}/tasks/${task.id}`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             completion_status: newStatus,
@@ -262,13 +254,6 @@ function TaskList({
                   Priority:{" "}
                   {task.priority || "Not set"}
                 </span>
-
-                {task.calculated_priority_score != null && (
-                  <span>
-                    Score:{" "}
-                    {task.calculated_priority_score}
-                  </span>
-                )}
               </div>
             </div>
 

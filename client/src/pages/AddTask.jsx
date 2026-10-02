@@ -1,25 +1,39 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
-const TEST_USER_ID = import.meta.env.VITE_TEST_USER_ID;
-
 // Only allow digits (and, for point value, a single decimal point) to be
 // typed into the numeric fields so a negative number can never enter state.
 const NON_NEGATIVE_INTEGER_PATTERN = /^\d*$/;
 const NON_NEGATIVE_DECIMAL_PATTERN = /^\d*\.?\d*$/;
 
+// Derives the local calendar date (YYYY-MM-DD) a stored due_date timestamp
+// falls on, for pre-filling a <input type="date">. Using the local-time
+// Date accessors (not a raw slice of the UTC ISO string) keeps this in sync
+// with how the rest of the app displays due dates, and avoids showing a
+// day that's off by one for timezones behind UTC.
+const toDateInputValue = (isoString) => {
+  if (!isoString) {
+    return "";
+  }
+
+  const date = new Date(isoString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
 // Passing `task` switches this form into edit mode: fields are pre-filled
 // from it and submitting PUTs to that task instead of POSTing a new one.
 function AddTask({ task = null, onTaskSaved }) {
-  const { user } = useAuth();
+  const { token } = useAuth();
 
   const isEditMode = Boolean(task);
 
   const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
-  const [dueDate, setDueDate] = useState(
-    task?.due_date ? task.due_date.slice(0, 10) : ""
-  );
+  const [dueDate, setDueDate] = useState(toDateInputValue(task?.due_date));
   const [priority, setPriority] = useState(task?.priority ?? "medium");
   const [pointValue, setPointValue] = useState(
     task?.point_value != null ? String(task.point_value) : ""
@@ -32,10 +46,6 @@ function AddTask({ task = null, onTaskSaved }) {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null);
-
-  // Use real authenticated user first.
-  // VITE_TEST_USER_ID remains only as a temporary Sprint 1 fallback.
-  const userId = user?.id || TEST_USER_ID;
 
   const handlePointValueChange = (e) => {
     const { value } = e.target;
@@ -72,10 +82,10 @@ function AddTask({ task = null, onTaskSaved }) {
       return;
     }
 
-    if (!userId) {
+    if (!token) {
       setFeedback({
         type: "error",
-        text: "No authenticated or development user ID is available.",
+        text: "You must be logged in to save a task.",
       });
       return;
     }
@@ -112,12 +122,10 @@ function AddTask({ task = null, onTaskSaved }) {
 
     const requestBody = isEditMode
       ? sharedFields
-      : { ...sharedFields, user_id: userId, completion_status: "not_started" };
+      : { ...sharedFields, completion_status: "not_started" };
 
     const url = isEditMode
-      ? `${import.meta.env.VITE_API_URL}/tasks/${task.id}?user_id=${encodeURIComponent(
-          userId
-        )}`
+      ? `${import.meta.env.VITE_API_URL}/tasks/${task.id}`
       : `${import.meta.env.VITE_API_URL}/tasks`;
 
     setIsSubmitting(true);
@@ -128,6 +136,7 @@ function AddTask({ task = null, onTaskSaved }) {
         method: isEditMode ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(requestBody),
       });

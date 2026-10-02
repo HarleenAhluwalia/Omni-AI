@@ -8,9 +8,6 @@ import { useAuth } from "../context/AuthContext";
 
 import "./PrioritizedTodo.css";
 
-const TEST_USER_ID =
-  import.meta.env.VITE_TEST_USER_ID;
-
 const TASKS_PER_PAGE = 10;
 
 // Must match modal animation duration.
@@ -20,10 +17,7 @@ function PrioritizedTodo({
   refreshKey = 0,
   onEditTask,
 }) {
-  const { user } = useAuth();
-
-  const userId =
-    user?.id || TEST_USER_ID;
+  const { token } = useAuth();
 
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] =
@@ -52,9 +46,9 @@ function PrioritizedTodo({
 
   const loadPrioritizedTasks =
     async () => {
-      if (!userId) {
+      if (!token) {
         setMessage(
-          "No authenticated user is available."
+          "You must be logged in to view tasks."
         );
 
         setLoading(false);
@@ -66,11 +60,12 @@ function PrioritizedTodo({
         setLoading(true);
 
         const response = await fetch(
-          `${
-            import.meta.env.VITE_API_URL
-          }/tasks/prioritized?user_id=${encodeURIComponent(
-            userId
-          )}`
+          `${import.meta.env.VITE_API_URL}/tasks/prioritized`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
 
         const result =
@@ -106,7 +101,7 @@ function PrioritizedTodo({
 
   useEffect(() => {
     loadPrioritizedTasks();
-  }, [userId, refreshKey]);
+  }, [token, refreshKey]);
 
 
   useEffect(() => {
@@ -202,17 +197,14 @@ function PrioritizedTodo({
             `${
               import.meta.env
                 .VITE_API_URL
-            }/tasks/${
-              task.id
-            }?user_id=${encodeURIComponent(
-              userId
-            )}`,
+            }/tasks/${task.id}`,
             {
               method: "PUT",
 
               headers: {
                 "Content-Type":
                   "application/json",
+                Authorization: `Bearer ${token}`,
               },
 
               body: JSON.stringify({
@@ -328,13 +320,12 @@ function PrioritizedTodo({
             `${
               import.meta.env
                 .VITE_API_URL
-            }/tasks/${
-              deletingTask.id
-            }?user_id=${encodeURIComponent(
-              userId
-            )}`,
+            }/tasks/${deletingTask.id}`,
             {
               method: "DELETE",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
             }
           );
 
@@ -392,30 +383,22 @@ function PrioritizedTodo({
   }
 
 
-  return (
+    return (
     <div className="prioritized-page">
-
       <div className="prioritized-card">
-
         <div className="prioritized-header">
-
           <div>
-            <h1>
-              To-Do List
-            </h1>
+            <h1>To-Do List</h1>
 
             <p className="prioritized-subtitle">
-              Highest-priority tasks
-              are shown first.
+              Highest-priority tasks are shown first.
             </p>
           </div>
 
           <span className="prioritized-count">
             {tasks.length} Tasks
           </span>
-
         </div>
-
 
         {message && (
           <div className="todo-error-message">
@@ -423,183 +406,117 @@ function PrioritizedTodo({
           </div>
         )}
 
-
         <div className="todo-table-wrapper">
-
           <div className="todo-table-header">
-
-            <div></div>
-
+            <div aria-hidden="true"></div>
             <div>Name</div>
-
             <div>Due</div>
-
-            <div>Score</div>
-
             <div>Priority</div>
-
             <div>Status</div>
-
-            <div></div>
-
+            <div aria-hidden="true"></div>
           </div>
-
 
           {tasks.length === 0 ? (
             <div className="todo-empty-state">
               No tasks available.
             </div>
           ) : (
-            visibleTasks.map(
-              (task) => (
-                <div
-                  className={`todo-table-row ${getStatusClass(
-                    task
-                  )}`}
-                  key={task.id}
-                >
-
-                  <div className="todo-status-cell">
-                    <input
-                      type="checkbox"
-                      checked={
-                        task.completion_status ===
-                        "completed"
-                      }
-                      onChange={() =>
-                        handleComplete(
-                          task
-                        )
-                      }
-                      aria-label={`Completion status for ${task.title}`}
-                    />
-                  </div>
-
-
-                  <div className="todo-task-name">
-                    {task.title}
-                  </div>
-
-
-                  <div>
-                    {formatDueDate(
-                      task.due_date
-                    )}
-                  </div>
-
-
-                  <div>
-                    {task.calculated_priority_score ??
-                      "—"}
-                  </div>
-
-
-                  <div>
-                    {formatPriority(
-                      task.priority
-                    )}
-                  </div>
-
-
-                  <div>
-                    {task.completion_status ===
-                    "completed"
-                      ? "Completed"
-                      : "Active"}
-                  </div>
-
-
-                  <div className="todo-actions-cell">
-
-                    <button
-                      type="button"
-                      className="todo-edit-button"
-                      onClick={() =>
-                        onEditTask?.(
-                          task
-                        )
-                      }
-                    >
-                      Edit
-                    </button>
-
-
-                    <button
-                      type="button"
-                      className="todo-delete-trigger-button"
-                      onClick={() =>
-                        openDeleteConfirm(
-                          task
-                        )
-                      }
-                    >
-                      Delete
-                    </button>
-
-                  </div>
-
+            visibleTasks.map((task) => (
+              <div
+                key={task.id}
+                className={`todo-table-row ${getStatusClass(
+                  task
+                )}`}
+              >
+                <div className="todo-checkbox-cell">
+                  <input
+                    type="checkbox"
+                    checked={
+                      task.completion_status === "completed"
+                    }
+                    onChange={() => handleComplete(task)}
+                    aria-label={`Completion status for ${task.title}`}
+                  />
                 </div>
-              )
-            )
-          )}
 
+                <div className="todo-task-name">
+                  {task.title}
+                </div>
+
+                <div>
+                  {formatDueDate(task.due_date)}
+                </div>
+
+                <div>
+                  {formatPriority(task.priority)}
+                </div>
+
+                <div className="todo-status-cell">
+                  {task.completion_status === "completed"
+                    ? "Completed"
+                    : "Active"}
+                </div>
+
+                <div className="todo-actions-cell">
+                  <button
+                    type="button"
+                    className="todo-edit-button"
+                    onClick={() => onEditTask?.(task)}
+                    aria-label={`Edit ${task.title}`}
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    type="button"
+                    className="todo-delete-trigger-button"
+                    onClick={() => openDeleteConfirm(task)}
+                    aria-label={`Delete ${task.title}`}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
-
-        {tasks.length >
-          TASKS_PER_PAGE && (
+        {tasks.length > TASKS_PER_PAGE && (
           <div className="todo-pagination">
-
             <button
               type="button"
               onClick={() =>
-                setCurrentPage(
-                  (page) =>
-                    Math.max(
-                      1,
-                      page - 1
-                    )
+                setCurrentPage((page) =>
+                  Math.max(1, page - 1)
                 )
               }
-              disabled={
-                currentPage === 1
-              }
+              disabled={currentPage === 1}
             >
               Previous
             </button>
 
-
             <span>
-              Page {currentPage} of{" "}
-              {totalPages}
+              Page {currentPage} of {totalPages}
             </span>
-
 
             <button
               type="button"
               onClick={() =>
-                setCurrentPage(
-                  (page) =>
-                    Math.min(
-                      totalPages,
-                      page + 1
-                    )
+                setCurrentPage((page) =>
+                  Math.min(totalPages, page + 1)
                 )
               }
-              disabled={
-                currentPage ===
-                totalPages
-              }
+              disabled={currentPage === totalPages}
             >
               Next
             </button>
-
           </div>
         )}
-
       </div>
 
-
+      {/* =========================
+          DELETE CONFIRMATION MODAL
+      ========================= */}
       {deletingTask && (
         <div
           className={
@@ -607,95 +524,73 @@ function PrioritizedTodo({
               ? "modal-overlay modal-overlay--closing"
               : "modal-overlay"
           }
-          onClick={
-            closeDeleteConfirm
-          }
+          onClick={closeDeleteConfirm}
         >
-
           <div
             className={
               isDeleteClosing
                 ? "confirm-delete-modal confirm-delete-modal--closing"
                 : "confirm-delete-modal"
             }
-            onClick={(event) =>
-              event.stopPropagation()
-            }
+            onClick={(event) => event.stopPropagation()}
             role="dialog"
             aria-modal="true"
+            aria-label="Delete Task"
           >
-
             <button
               type="button"
               className="modal-close-button"
-              onClick={
-                closeDeleteConfirm
-              }
+              onClick={closeDeleteConfirm}
+              aria-label="Close Delete Task dialog"
             >
               ×
             </button>
-
 
             <h2 className="confirm-delete-heading">
               Delete Task
             </h2>
 
-
             <p className="confirm-delete-text">
-              Are you sure you want
-              to delete{" "}
+              Are you sure you want to delete{" "}
               <strong>
-                “{deletingTask.title}”
+                &ldquo;{deletingTask.title}&rdquo;
               </strong>
               ?
             </p>
 
-
             {deleteError && (
-              <p className="add-task-message add-task-message--error">
+              <p
+                role="alert"
+                className="add-task-message add-task-message--error"
+              >
                 {deleteError}
               </p>
             )}
 
-
             <div className="confirm-delete-actions">
-
               <button
                 type="button"
                 className="confirm-cancel-button"
-                onClick={
-                  closeDeleteConfirm
-                }
-                disabled={
-                  isDeleting
-                }
+                onClick={closeDeleteConfirm}
+                disabled={isDeleting}
               >
                 Cancel
               </button>
 
-
               <button
                 type="button"
                 className="confirm-delete-button"
-                onClick={
-                  handleConfirmDelete
-                }
-                disabled={
-                  isDeleting
-                }
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
               >
                 {isDeleting
                   ? "Deleting..."
                   : "Delete Task"}
               </button>
-
             </div>
-
           </div>
-
         </div>
       )}
-
     </div>
   );
 }
