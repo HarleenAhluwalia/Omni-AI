@@ -7,6 +7,7 @@ const {
   createTask,
   updateTask,
   deleteTask,
+  resolveSchedule,
 } = require("../controllers/taskController");
 
 const router = express.Router();
@@ -16,6 +17,14 @@ const router = express.Router();
 router.get(
   "/prioritized",
   getPrioritizedTasks
+);
+
+// ALAN SPRINT 2
+// Adaptive scheduling and conflict resolution.
+// Must be before /:id.
+router.post(
+  "/resolve-schedule",
+  resolveSchedule
 );
 
 // Existing Task CRUD

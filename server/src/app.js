@@ -4,6 +4,7 @@ const aiRoutes = require("./routes/aiRoutes");
 
 const authRoutes = require("./routes/auth");
 const taskRoutes = require("../routes/taskRoutes");
+const scheduleRoutes = require("../routes/scheduleRoutes");
 
 function createApp() {
   const app = express();
@@ -27,6 +28,9 @@ function createApp() {
   app.use("/api/ai", aiRoutes);
   // Harleen - Task CRUD routes
   app.use("/api/tasks", taskRoutes);
+
+  // Alan - Scheduling routes
+  app.use("/api/schedules", scheduleRoutes);
 
   app.use((err, req, res, next) => {
     console.error(err);
