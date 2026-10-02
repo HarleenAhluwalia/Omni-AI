@@ -47,9 +47,7 @@ describe("Create Task — successful creation", () => {
     expect(res.body.success).toBe(true);
 
     const task = res.body.data;
-    // SPRINT 2 TASK 9: intentional, temporary failure to verify CI reports
-    // red. Will be reverted immediately after the failed run is confirmed.
-    expect(task.title).toBe("INTENTIONALLY_WRONG_TITLE_FOR_CI_CHECK");
+    expect(task.title).toBe(baseTask.title);
     expect(task.description).toBe(baseTask.description);
     expect(task.due_date).toBe(baseTask.due_date);
     expect(task.point_value).toBe(baseTask.point_value);
