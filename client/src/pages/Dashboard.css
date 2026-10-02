@@ -1447,6 +1447,220 @@ body {
   line-height: 1.3;
 }
 
+
+/* =========================================
+   DAILY SUMMARY
+========================================= */
+
+.daily-summary-card {
+  display: flex;
+  flex-direction: column;
+
+  gap: 8px;
+}
+
+
+.daily-summary-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+
+  gap: 6px;
+}
+
+
+.daily-summary-header h3 {
+  margin: 0;
+}
+
+
+.daily-summary-date {
+  font-size: 9px;
+
+  color: #555;
+
+  white-space: nowrap;
+}
+
+
+.daily-summary-status {
+  margin: 0;
+
+  font-size: 10px;
+}
+
+
+.daily-summary-status--error {
+  color: #a12e2e;
+}
+
+
+.daily-summary-stats {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 6px;
+}
+
+
+.daily-summary-stat {
+  flex: 1 1 calc(50% - 6px);
+
+  min-width: 70px;
+
+  padding: 6px 8px;
+
+  background: rgba(255, 255, 255, 0.5);
+
+  border-radius: 6px;
+
+  text-align: center;
+}
+
+
+.daily-summary-stat--overdue {
+  background: rgba(223, 32, 41, 0.12);
+}
+
+
+.daily-summary-stat-value {
+  display: block;
+
+  font-size: 16px;
+  font-weight: 700;
+
+  line-height: 1.2;
+}
+
+
+.daily-summary-stat-label {
+  display: block;
+
+  margin-top: 2px;
+
+  font-size: 8px;
+  font-weight: 600;
+
+  color: #555;
+
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+
+.daily-summary-section h4 {
+  margin: 0 0 4px;
+
+  font-size: 9px;
+  font-weight: 700;
+
+  color: #555;
+
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+
+.daily-summary-empty {
+  margin: 0;
+
+  padding: 6px 0;
+
+  font-size: 10px;
+
+  color: #666;
+}
+
+
+.daily-summary-task-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 8px;
+
+  padding: 5px 6px;
+
+  margin-bottom: 4px;
+
+  background: white;
+
+  border-left: 3px solid #999;
+  border-radius: 4px;
+
+  cursor: pointer;
+}
+
+
+.daily-summary-task-row:last-child {
+  margin-bottom: 0;
+}
+
+
+.daily-summary-task-row:hover {
+  background: #f3f3f3;
+}
+
+
+.daily-summary-task-row:focus-visible {
+  outline: 2px solid #7267d9;
+  outline-offset: 1px;
+}
+
+
+.daily-summary-row-high {
+  border-left-color: #df2029;
+}
+
+
+.daily-summary-row-medium {
+  border-left-color: #d1a516;
+}
+
+
+.daily-summary-row-low {
+  border-left-color: #22a957;
+}
+
+
+.daily-summary-task-main {
+  display: flex;
+  flex-direction: column;
+
+  min-width: 0;
+}
+
+
+.daily-summary-task-title {
+  overflow: hidden;
+
+  font-size: 10px;
+  font-weight: 600;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+.daily-summary-task-meta {
+  font-size: 8px;
+
+  color: #666;
+}
+
+
+.daily-summary-task-priority {
+  flex-shrink: 0;
+
+  font-size: 8px;
+  font-weight: 600;
+
+  color: #555;
+
+  text-transform: capitalize;
+}
+
+
 /* =========================================
    FULL TO-DO VIEW
 ========================================= */
