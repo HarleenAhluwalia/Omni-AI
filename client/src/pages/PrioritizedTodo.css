@@ -63,7 +63,7 @@
 
 /*
   Columns:
-  checkbox | name | due | priority | status | actions
+  checkbox | name | due | scheduled | priority | status | actions
 */
 .todo-table-header,
 .todo-table-row {
@@ -71,11 +71,13 @@
 
   grid-template-columns:
     46px
-    minmax(240px, 1fr)
-    120px
-    120px
-    120px
+    minmax(220px, 1fr)
+    100px
+    210px
+    100px
+    100px
     160px;
+    
 
   align-items: center;
 
@@ -154,6 +156,11 @@
   font-weight: 600;
 
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.todo-schedule-cell {
+  font-size: 14px;
   white-space: nowrap;
 }
 
@@ -338,6 +345,6 @@
 
   .todo-table-header,
   .todo-table-row {
-    min-width: 900px;
+    min-width: 1100px;
   }
 }

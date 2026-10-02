@@ -17,9 +17,10 @@ function PrioritizedTodo({
   refreshKey = 0,
   onEditTask,
 }) {
-  const { token } = useAuth();
+  const { user, token } = useAuth();
 
   const [tasks, setTasks] = useState([]);
+  const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] =
     useState(true);
 
@@ -46,7 +47,7 @@ function PrioritizedTodo({
 
   const loadPrioritizedTasks =
     async () => {
-      if (!token) {
+      if (!token || !user?.id) {
         setMessage(
           "You must be logged in to view tasks."
         );
@@ -59,28 +60,58 @@ function PrioritizedTodo({
       try {
         setLoading(true);
 
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/tasks/prioritized`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const [
+          tasksResponse,
+          schedulesResponse,
+        ] = await Promise.all([
+          fetch(
+            `${import.meta.env.VITE_API_URL}/tasks/prioritized`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          ),
 
-        const result =
-          await response.json();
+          fetch(
+            `${import.meta.env.VITE_API_URL
+            }/schedules?user_id=${encodeURIComponent(
+              user.id
+            )}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          ),
+        ]);
 
-        if (!response.ok) {
+        const tasksResult =
+          await tasksResponse.json();
+
+        const schedulesResult =
+          await schedulesResponse.json();
+
+        if (!tasksResponse.ok) {
           throw new Error(
-            result.error ||
-              "Could not load prioritized tasks."
+            tasksResult.error ||
+            "Could not load prioritized tasks."
           );
         }
 
-        // Important:
-        // preserve the backend's prioritized order.
-        setTasks(result.data || []);
+        if (!schedulesResponse.ok) {
+          throw new Error(
+            schedulesResult.error ||
+            "Could not load schedules."
+          );
+        }
+
+        // Preserve backend priority order.
+        setTasks(tasksResult.data || []);
+
+        setSchedules(
+          schedulesResult.data || []
+        );
 
         setMessage("");
       } catch (error) {
@@ -91,7 +122,7 @@ function PrioritizedTodo({
 
         setMessage(
           error.message ||
-            "Could not connect to the backend."
+          "Could not connect to the backend."
         );
       } finally {
         setLoading(false);
@@ -101,8 +132,7 @@ function PrioritizedTodo({
 
   useEffect(() => {
     loadPrioritizedTasks();
-  }, [token, refreshKey]);
-
+  }, [token, user?.id, refreshKey]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -158,6 +188,56 @@ function PrioritizedTodo({
     });
   };
 
+  const getScheduleForTask = (
+    taskId
+  ) => {
+    return schedules.find(
+      (schedule) =>
+        schedule.task_id === taskId
+    );
+  };
+
+
+  const formatScheduledTime = (
+    schedule
+  ) => {
+    if (!schedule) {
+      return "Not scheduled";
+    }
+
+    const start =
+      new Date(schedule.start_time);
+
+    const end =
+      new Date(schedule.end_time);
+
+    const date = start.toLocaleDateString(
+      "en-US",
+      {
+        month: "short",
+        day: "numeric",
+      }
+    );
+
+    const timeOptions = {
+      hour: "numeric",
+      minute: "2-digit",
+    };
+
+    const startTime =
+      start.toLocaleTimeString(
+        [],
+        timeOptions
+      );
+
+    const endTime =
+      end.toLocaleTimeString(
+        [],
+        timeOptions
+      );
+
+    return `${date}, ${startTime} - ${endTime}`;
+  };
 
   const getStatusClass = (
     task
@@ -188,15 +268,14 @@ function PrioritizedTodo({
       try {
         const newStatus =
           task.completion_status ===
-          "completed"
+            "completed"
             ? "not_started"
             : "completed";
 
         const response =
           await fetch(
-            `${
-              import.meta.env
-                .VITE_API_URL
+            `${import.meta.env
+              .VITE_API_URL
             }/tasks/${task.id}`,
             {
               method: "PUT",
@@ -220,7 +299,7 @@ function PrioritizedTodo({
         if (!response.ok) {
           throw new Error(
             result.error ||
-              "Could not update task."
+            "Could not update task."
           );
         }
 
@@ -235,7 +314,7 @@ function PrioritizedTodo({
 
         setMessage(
           error.message ||
-            "Could not update task."
+          "Could not update task."
         );
       }
     };
@@ -317,9 +396,8 @@ function PrioritizedTodo({
       try {
         const response =
           await fetch(
-            `${
-              import.meta.env
-                .VITE_API_URL
+            `${import.meta.env
+              .VITE_API_URL
             }/tasks/${deletingTask.id}`,
             {
               method: "DELETE",
@@ -335,7 +413,7 @@ function PrioritizedTodo({
         if (!response.ok) {
           throw new Error(
             result.error ||
-              "Could not delete task."
+            "Could not delete task."
           );
         }
 
@@ -357,7 +435,7 @@ function PrioritizedTodo({
 
         setDeleteError(
           error.message ||
-            "Could not delete task."
+          "Could not delete task."
         );
       } finally {
         setIsDeleting(false);
@@ -383,7 +461,7 @@ function PrioritizedTodo({
   }
 
 
-    return (
+  return (
     <div className="prioritized-page">
       <div className="prioritized-card">
         <div className="prioritized-header">
@@ -411,6 +489,7 @@ function PrioritizedTodo({
             <div aria-hidden="true"></div>
             <div>Name</div>
             <div>Due</div>
+            <div>Scheduled</div>
             <div>Priority</div>
             <div>Status</div>
             <div aria-hidden="true"></div>
@@ -445,6 +524,12 @@ function PrioritizedTodo({
 
                 <div>
                   {formatDueDate(task.due_date)}
+                </div>
+
+                <div className="todo-schedule-cell">
+                  {formatScheduledTime(
+                    getScheduleForTask(task.id)
+                  )}
                 </div>
 
                 <div>
