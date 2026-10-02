@@ -168,6 +168,9 @@ jobs:
       - name: Run Alan AI prioritization tests
         run: npx jest tests/priorityService.test.js --runInBand
 
+      - name: Run Alan adaptive scheduling and conflict tests
+        run: npx jest tests/schedulingService.test.js --runInBand
+
       - name: Report Alan CI status
         if: always()
         run: |

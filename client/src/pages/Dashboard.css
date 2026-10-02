@@ -2074,3 +2074,12 @@ body {
 .dashboard-calendar-more:hover {
   text-decoration: underline;
 }
+
+.calendar-schedule-chip {
+  background: #eef4ff;
+  font-weight: 600;
+}
+
+.calendar-schedule-chip:hover {
+  background: #e1ebff;
+}
