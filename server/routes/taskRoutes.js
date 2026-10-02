@@ -1,5 +1,7 @@
 const express = require("express");
 
+const { requireAuth } = require("../src/middleware/auth");
+
 const {
   getTasks,
   getTaskById,
@@ -10,6 +12,11 @@ const {
 } = require("../controllers/taskController");
 
 const router = express.Router();
+
+// Sprint 2: Task routes require a verified session. Downstream handlers
+// read the authenticated user from req.user.id rather than trusting a
+// client-supplied user_id.
+router.use(requireAuth);
 
 // HARLEEN SPRINT 2
 // Must be before /:id.

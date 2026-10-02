@@ -1,15 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
-const TEST_USER_ID = import.meta.env.VITE_TEST_USER_ID;
-
 function CalendarView({
   refreshKey = 0,
   onEditTask,
 }) {
-  const { user } = useAuth();
-
-  const userId = user?.id || TEST_USER_ID;
+  const { token } = useAuth();
 
   const today = new Date();
 
@@ -43,8 +39,8 @@ function CalendarView({
 
   useEffect(() => {
     const loadCalendarTasks = async () => {
-      if (!userId) {
-        setMessage("No authenticated user is available.");
+      if (!token) {
+        setMessage("You must be logged in to view tasks.");
         setLoading(false);
         return;
       }
@@ -53,9 +49,12 @@ function CalendarView({
         setLoading(true);
 
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/tasks?user_id=${encodeURIComponent(
-            userId
-          )}`
+          `${import.meta.env.VITE_API_URL}/tasks`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
 
         const result = await response.json();
@@ -84,7 +83,7 @@ function CalendarView({
     };
 
     loadCalendarTasks();
-  }, [userId, refreshKey]);
+  }, [token, refreshKey]);
 
   const calendarCells = useMemo(() => {
     const cells = [];

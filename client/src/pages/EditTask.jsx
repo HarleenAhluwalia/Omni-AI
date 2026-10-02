@@ -1,18 +1,32 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
-const TEST_USER_ID = import.meta.env.VITE_TEST_USER_ID;
+// Derives the local calendar date (YYYY-MM-DD) a stored due_date timestamp
+// falls on, for pre-filling a <input type="date">. Using local-time Date
+// accessors (not a raw slice of the UTC ISO string) avoids showing a day
+// that's off by one for timezones behind UTC.
+const toDateInputValue = (isoString) => {
+  if (!isoString) {
+    return "";
+  }
+
+  const date = new Date(isoString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
 
 function EditTask({ task, onUpdated, onCancel }) {
-  const { user } = useAuth();
-  const userId = user?.id || TEST_USER_ID;
+  const { token } = useAuth();
 
   const [title, setTitle] = useState(task.title || "");
   const [description, setDescription] = useState(
     task.description || ""
   );
   const [dueDate, setDueDate] = useState(
-    task.due_date ? task.due_date.slice(0, 10) : ""
+    toDateInputValue(task.due_date)
   );
   const [priority, setPriority] = useState(
     task.priority || "medium"
@@ -31,10 +45,8 @@ function EditTask({ task, onUpdated, onCancel }) {
       return;
     }
 
-    if (!userId) {
-      setMessage(
-        "No authenticated or development user ID is available."
-      );
+    if (!token) {
+      setMessage("You must be logged in to save a task.");
       return;
     }
 
@@ -55,13 +67,12 @@ function EditTask({ task, onUpdated, onCancel }) {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/tasks/${task.id}?user_id=${encodeURIComponent(
-          userId
-        )}`,
+        `${import.meta.env.VITE_API_URL}/tasks/${task.id}`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(updatePayload),
         }
@@ -75,10 +86,7 @@ function EditTask({ task, onUpdated, onCancel }) {
         );
       }
 
-      <AddTask
-  task={editingTask}
-  onTaskSaved={handleTaskSaved}
-/>
+      onUpdated(result.data);
       setMessage("Task updated successfully.");
     } catch (error) {
       console.error("Update Task failed:", error);
