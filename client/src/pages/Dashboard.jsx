@@ -5,6 +5,7 @@ import TaskList from "./TaskList";
 import PrioritizedTodo from "./PrioritizedTodo";
 import CalendarView from "./CalendarView";
 import DailySummary from "./DailySummary";
+import WeeklySummary from "./WeeklySummary";
 
 import { useAuth } from "../context/AuthContext";
 
@@ -596,13 +597,10 @@ const getTasksForDashboardDay = (day) => {
                   refreshKey={taskRefreshKey}
                 />
 
-                <div className="summary-card">
-                  <h3>Weekly Summary</h3>
-
-                  <p>
-                    Weekly analytics will appear here.
-                  </p>
-                </div>
+                <WeeklySummary
+                  onEditTask={openEditTaskModal}
+                  refreshKey={taskRefreshKey}
+                />
 
               </section>
 

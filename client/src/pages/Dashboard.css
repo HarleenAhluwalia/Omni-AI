@@ -1623,6 +1623,18 @@ body {
 }
 
 
+.daily-summary-row-completed {
+  border-left-color: #7267d9;
+
+  opacity: 0.65;
+}
+
+
+.daily-summary-row-completed .daily-summary-task-title {
+  text-decoration: line-through;
+}
+
+
 .daily-summary-task-main {
   display: flex;
   flex-direction: column;
@@ -1658,6 +1670,62 @@ body {
   color: #555;
 
   text-transform: capitalize;
+}
+
+
+.daily-summary-progress {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+}
+
+
+.daily-summary-progress-track {
+  flex: 1;
+
+  height: 6px;
+
+  background: rgba(0, 0, 0, 0.1);
+
+  border-radius: 999px;
+
+  overflow: hidden;
+}
+
+
+.daily-summary-progress-fill {
+  height: 100%;
+
+  background: #7267d9;
+
+  border-radius: 999px;
+
+  transition: width 0.2s ease;
+}
+
+
+.daily-summary-progress-label {
+  flex-shrink: 0;
+
+  font-size: 9px;
+  font-weight: 600;
+
+  color: #555;
+}
+
+
+.daily-summary-workload-row {
+  margin: 0 0 4px;
+
+  font-size: 10px;
+
+  color: #333;
+}
+
+
+.daily-summary-workload-row:last-child {
+  margin-bottom: 0;
 }
 
 
