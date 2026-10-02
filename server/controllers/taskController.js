@@ -2,6 +2,9 @@ const supabase = require("../config/supabase");
 const {
   calculateTaskPriority,
 } = require("../services/priorityService");
+const {
+  resolveAndReschedule,
+} = require("../services/schedulingService");
 
 
 // ---------------------------------------------------------
@@ -508,11 +511,103 @@ const getPrioritizedTasks = async (req, res) => {
   }
 };
 
+// =========================================================
+// RESOLVE SCHEDULING CONFLICT
+// POST /api/tasks/resolve-schedule
+// =========================================================
+const resolveSchedule = async (req, res) => {
+  try {
+    const {
+      taskA,
+      taskB,
+      scheduledTasks,
+      availableMinutes = 60,
+      incrementMinutes = 30,
+    } = req.body;
+
+    if (!taskA || !taskB) {
+      return res.status(400).json({
+        success: false,
+        error: "taskA and taskB are required",
+      });
+    }
+
+    if (!Array.isArray(scheduledTasks)) {
+      return res.status(400).json({
+        success: false,
+        error: "scheduledTasks must be an array",
+      });
+    }
+
+    if (
+      !taskA.start_time ||
+      !taskA.end_time ||
+      !taskB.start_time ||
+      !taskB.end_time
+    ) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "taskA and taskB must include start_time and end_time",
+      });
+    }
+
+    const available = Number(availableMinutes);
+    const increment = Number(incrementMinutes);
+
+    if (
+      !Number.isFinite(available) ||
+      available < 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "availableMinutes must be a nonnegative number",
+      });
+    }
+
+    if (
+      !Number.isFinite(increment) ||
+      increment <= 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "incrementMinutes must be greater than 0",
+      });
+    }
+
+    const result = resolveAndReschedule(
+      taskA,
+      taskB,
+      scheduledTasks,
+      available,
+      increment
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    console.error(
+      "Schedule resolution failed:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      error: "Could not resolve scheduling conflict.",
+    });
+  }
+};
+
 module.exports = {
   getTasks,
   getTaskById,
   getPrioritizedTasks,
   createTask,
   updateTask,
-  deleteTask
+  deleteTask,
+  resolveSchedule,
 };
