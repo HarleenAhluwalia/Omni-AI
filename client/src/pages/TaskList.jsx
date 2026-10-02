@@ -254,13 +254,6 @@ function TaskList({
                   Priority:{" "}
                   {task.priority || "Not set"}
                 </span>
-
-                {task.calculated_priority_score != null && (
-                  <span>
-                    Score:{" "}
-                    {task.calculated_priority_score}
-                  </span>
-                )}
               </div>
             </div>
 

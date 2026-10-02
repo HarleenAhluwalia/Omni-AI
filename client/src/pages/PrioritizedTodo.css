@@ -1,13 +1,12 @@
 .prioritized-page {
   width: 100%;
-
   padding: 20px 28px 28px;
-
   box-sizing: border-box;
 }
 
 .prioritized-card {
   width: 100%;
+  min-height: 720px;
 
   background: #d9d9d9;
 
@@ -15,18 +14,20 @@
   border-radius: 14px;
 
   overflow: hidden;
-
   box-sizing: border-box;
 }
+
+/* =========================
+   HEADER
+========================= */
 
 .prioritized-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 
-  min-height: 72px;
-
-  padding: 0 24px;
+  min-height: 82px;
+  padding: 0 26px;
 
   border-bottom: 1px solid #777;
 }
@@ -34,32 +35,60 @@
 .prioritized-header h1 {
   margin: 0;
 
-  font-size: 30px;
+  font-size: 32px;
   font-weight: 500;
 }
 
+.prioritized-subtitle {
+  margin: 4px 0 0;
+
+  color: #444;
+
+  font-size: 15px;
+}
+
+.prioritized-count {
+  color: #222;
+
+  font-size: 15px;
+}
+
+/* =========================
+   TABLE
+========================= */
+
+.todo-table-wrapper {
+  width: 100%;
+}
+
+/*
+  Columns:
+  checkbox | name | due | priority | status | actions
+*/
 .todo-table-header,
 .todo-table-row {
   display: grid;
 
   grid-template-columns:
-    40px
-    minmax(300px, 2.4fr)
-    minmax(120px, 1fr)
-    minmax(120px, 0.8fr)
-    minmax(120px, 0.9fr)
-    minmax(110px, 0.8fr)
-    minmax(150px, 0.9fr);
+    46px
+    minmax(240px, 1fr)
+    120px
+    120px
+    120px
+    160px;
 
   align-items: center;
+
+  column-gap: 20px;
+
+  padding-left: 26px;
+  padding-right: 26px;
 
   box-sizing: border-box;
 }
 
 .todo-table-header {
-  min-height: 48px;
-
-  padding: 0 24px;
+  min-height: 50px;
 
   border-bottom: 1px solid #888;
 
@@ -68,50 +97,81 @@
 }
 
 .todo-table-row {
-  min-height: 76px;
+  position: relative;
 
-  padding: 0 24px;
+  min-height: 66px;
 
+  border-left: 5px solid transparent;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+
+  color: #111;
 
   font-size: 15px;
 
-  transition: background 0.12s ease;
+  transition: background 0.15s ease;
 }
 
+.todo-table-row:hover,
+.todo-table-row:focus-within {
+  background: rgba(255, 255, 255, 0.45);
+}
 
 .todo-table-row > div {
   color: #111;
 }
 
+/* =========================
+   CHECKBOX
+========================= */
 
-.todo-table-row:hover,
-.todo-table-row:focus-within {
-  background: rgba(
-    255,
-    255,
-    255,
-    0.45
-  );
+.todo-checkbox-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
+.todo-checkbox-cell input {
+  width: 19px;
+  height: 19px;
 
-/* PRIORITY / STATUS LINE */
+  margin: 0;
+
+  accent-color: #7267d9;
+
+  cursor: pointer;
+}
+
+/* =========================
+   TASK NAME
+========================= */
+
+.todo-task-name {
+  overflow: hidden;
+
+  color: #111;
+
+  font-size: 15px;
+  font-weight: 600;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =========================
+   PRIORITY LEFT LINE
+========================= */
 
 .todo-row-high {
   border-left-color: #df2029;
 }
 
-
 .todo-row-medium {
   border-left-color: #d1a516;
 }
 
-
 .todo-row-low {
   border-left-color: #22a957;
 }
-
 
 .todo-row-completed {
   border-left-color: #7267d9;
@@ -119,54 +179,37 @@
   opacity: 0.7;
 }
 
-
-.todo-row-completed
-.todo-task-name {
+.todo-row-completed .todo-task-name {
   text-decoration: line-through;
 }
 
-
-.todo-task-name {
-  overflow: hidden;
-
-  color: #111;
-
-  font-weight: 600;
-
-  text-overflow: ellipsis;
-
-  white-space: nowrap;
-}
-
+/* =========================
+   STATUS
+========================= */
 
 .todo-status-cell {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  color: #111;
+
+  font-size: 15px;
 }
 
-
-.todo-status-cell input {
-  width: 17px;
-  height: 17px;
-
-  accent-color: #7267d9;
-
-  cursor: pointer;
-}
-
+/* =========================
+   ACTIONS
+========================= */
 
 .todo-actions-cell {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
 
-  gap: 6px;
+  gap: 8px;
 }
-
 
 .todo-edit-button,
 .todo-delete-trigger-button {
-  padding: 5px 14px;
+  padding: 6px 13px;
+
+  background: transparent;
 
   border-radius: 4px;
 
@@ -176,7 +219,6 @@
   cursor: pointer;
 
   opacity: 0;
-
   pointer-events: none;
 
   transition:
@@ -185,17 +227,13 @@
     color 0.15s ease;
 }
 
-
-/* PURPLE GHOST EDIT */
+/* Purple ghost Edit */
 
 .todo-edit-button {
-  background: transparent;
-
   border: 1px solid #7267d9;
 
   color: #7267d9;
 }
-
 
 .todo-edit-button:hover {
   background: #7267d9;
@@ -203,15 +241,13 @@
   color: white;
 }
 
+/* Delete */
 
 .todo-delete-trigger-button {
-  background: transparent;
-
   border: 1px solid #c23a3a;
 
   color: #c23a3a;
 }
-
 
 .todo-delete-trigger-button:hover {
   background: #c23a3a;
@@ -219,43 +255,41 @@
   color: white;
 }
 
-
-.todo-table-row:hover
-.todo-edit-button,
-.todo-table-row:focus-within
-.todo-edit-button,
-.todo-table-row:hover
-.todo-delete-trigger-button,
-.todo-table-row:focus-within
-.todo-delete-trigger-button {
+.todo-table-row:hover .todo-edit-button,
+.todo-table-row:focus-within .todo-edit-button,
+.todo-table-row:hover .todo-delete-trigger-button,
+.todo-table-row:focus-within .todo-delete-trigger-button {
   opacity: 1;
 
   pointer-events: auto;
 }
 
+/* =========================
+   PAGINATION
+========================= */
 
 .todo-pagination {
   display: flex;
   justify-content: flex-end;
   align-items: center;
 
-  gap: 10px;
+  gap: 12px;
 
-  padding: 12px 20px;
+  min-height: 54px;
+
+  padding: 10px 20px;
 
   border-top: 1px solid #999;
 }
 
-
 .todo-pagination span {
   color: #555;
 
-  font-size: 11px;
+  font-size: 13px;
 }
 
-
 .todo-pagination button {
-  padding: 6px 12px;
+  padding: 7px 14px;
 
   background: white;
 
@@ -264,16 +298,14 @@
 
   color: #111;
 
+  font-size: 13px;
+
   cursor: pointer;
 }
 
-
-.todo-pagination button:hover:not(
-  :disabled
-) {
+.todo-pagination button:hover:not(:disabled) {
   background: #ded9f6;
 }
-
 
 .todo-pagination button:disabled {
   opacity: 0.4;
@@ -281,17 +313,23 @@
   cursor: default;
 }
 
+/* =========================
+   EMPTY STATE
+========================= */
 
 .todo-empty-state {
-  padding: 50px 20px;
+  padding: 60px 20px;
 
   text-align: center;
 
   color: #666;
 
-  font-size: 16px;
+  font-size: 17px;
 }
 
+/* =========================
+   RESPONSIVE
+========================= */
 
 @media (max-width: 900px) {
   .todo-table-wrapper {
@@ -302,48 +340,4 @@
   .todo-table-row {
     min-width: 900px;
   }
-}
-
-/* =========================================
-   PRIORITIZED TODO PRIORITY COLORS
-   Text stays black.
-   Priority is shown by the left line only.
-========================================= */
-
-.todo-table-row {
-  position: relative;
-
-  border-left: 5px solid transparent;
-
-  color: #111;
-}
-
-.todo-table-row > div {
-  color: #111;
-}
-
-/* High priority */
-.todo-row-high {
-  border-left-color: #df2029;
-}
-
-/* Medium priority */
-.todo-row-medium {
-  border-left-color: #d1a516;
-}
-
-/* Low priority */
-.todo-row-low {
-  border-left-color: #22a957;
-}
-
-/* Completed */
-.todo-row-completed {
-  border-left-color: #7267d9;
-
-  opacity: 0.7;
-}
-
-.todo-row-completed .todo-task-name {
-  text-decoration: line-through;
 }
