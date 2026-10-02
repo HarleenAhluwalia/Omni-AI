@@ -10,19 +10,19 @@ jobs:
   backend-tests:
     name: Backend unit/integration tests (Jerry — SCRUM-321 / SCRUM-324)
     runs-on: ubuntu-latest
- 
+
     defaults:
       run:
         working-directory: server
- 
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
- 
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: server/package-lock.json
  
