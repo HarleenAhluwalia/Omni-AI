@@ -602,10 +602,309 @@ const resolveSchedule = async (req, res) => {
   }
 };
 
+// ---------------------------------------------------------
+// Daily Summary helpers.
+//
+// "Today" is the current UTC calendar date, and due_date is compared
+// by its UTC calendar date rather than its exact timestamp - Tasks
+// are day-granularity even though due_date is a timestamptz (the
+// frontend always writes end-of-day). Using UTC consistently avoids
+// the summary's classification depending on the server/CI runner's
+// local timezone.
+//
+// Known limitation: due_date is written as "end of the browser's
+// local day, converted to UTC," so a user in a timezone behind UTC
+// can have a task due "today" by their own clock land on tomorrow's
+// UTC date. This will need real per-user timezone support to fix;
+// out of scope for this first Sprint 2 version.
+// ---------------------------------------------------------
+const toUtcDateOnly = (value) => {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return Date.UTC(
+    date.getUTCFullYear(),
+    date.getUTCMonth(),
+    date.getUTCDate()
+  );
+};
+
+const toSummaryItem = (task) => ({
+  id: task.id,
+  title: task.title,
+  description: task.description,
+  due_date: task.due_date,
+  priority: task.priority,
+  point_value: task.point_value,
+  estimated_effort_minutes: task.estimated_effort_minutes,
+  completion_status: task.completion_status,
+});
+
+const byDueDateAscending = (a, b) =>
+  new Date(a.due_date) - new Date(b.due_date);
+
+
+// =========================================================
+// DAILY SUMMARY
+// GET /api/tasks/summary/daily
+// (requireAuth populates req.user.id)
+// =========================================================
+const getDailySummary = async (req, res) => {
+  const user_id = req.user.id;
+
+  const {
+    data,
+    error
+  } = await supabase
+    .from("tasks")
+    .select("*")
+    .eq("user_id", user_id);
+
+  if (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+
+  const tasks = data || [];
+
+  const now = new Date();
+  const todayUtcMs = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate()
+  );
+  const todayDateString = new Date(todayUtcMs)
+    .toISOString()
+    .slice(0, 10);
+
+  const dueToday = [];
+  const overdue = [];
+  const upcoming = [];
+
+  let completedCount = 0;
+  let highPriorityCount = 0;
+
+  for (const task of tasks) {
+    const isCompleted = task.completion_status === "completed";
+
+    if (isCompleted) {
+      completedCount += 1;
+    }
+
+    if (!isCompleted && task.priority === "high") {
+      highPriorityCount += 1;
+    }
+
+    // dueToday/overdue/upcoming only ever hold incomplete tasks -
+    // a completed task is tracked via counts.completed instead, so
+    // it can never be misreported as overdue.
+    if (isCompleted) {
+      continue;
+    }
+
+    const dueDateUtcMs = toUtcDateOnly(task.due_date);
+
+    if (dueDateUtcMs === null) {
+      continue;
+    }
+
+    if (dueDateUtcMs === todayUtcMs) {
+      dueToday.push(task);
+    } else if (dueDateUtcMs < todayUtcMs) {
+      overdue.push(task);
+    } else {
+      upcoming.push(task);
+    }
+  }
+
+  dueToday.sort(byDueDateAscending);
+  overdue.sort(byDueDateAscending);
+  upcoming.sort(byDueDateAscending);
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      date: todayDateString,
+      counts: {
+        dueToday: dueToday.length,
+        overdue: overdue.length,
+        completed: completedCount,
+        highPriority: highPriorityCount,
+        total: tasks.length,
+      },
+      dueToday: dueToday.map(toSummaryItem),
+      overdue: overdue.map(toSummaryItem),
+      upcoming: upcoming.slice(0, 5).map(toSummaryItem),
+    },
+  });
+};
+
+
+// ---------------------------------------------------------
+// Weekly Summary helpers.
+//
+// Week = Monday through Sunday, UTC - matching Daily Summary's UTC
+// "today" so both summaries share one consistent, deterministic time
+// definition. Inherits the same day-boundary caveat documented above
+// getDailySummary for users in timezones behind UTC.
+// ---------------------------------------------------------
+const getUtcWeekStart = (date) => {
+  const utcDayOfWeek = date.getUTCDay(); // 0 = Sunday ... 6 = Saturday
+  const daysSinceMonday = (utcDayOfWeek + 6) % 7;
+
+  return Date.UTC(
+    date.getUTCFullYear(),
+    date.getUTCMonth(),
+    date.getUTCDate() - daysSinceMonday
+  );
+};
+
+const sumField = (tasks, field) =>
+  tasks.reduce(
+    (total, task) => total + (Number(task[field]) || 0),
+    0
+  );
+
+
+// =========================================================
+// WEEKLY SUMMARY
+// GET /api/tasks/summary/weekly
+// (requireAuth populates req.user.id)
+// =========================================================
+const getWeeklySummary = async (req, res) => {
+  const user_id = req.user.id;
+
+  const {
+    data,
+    error
+  } = await supabase
+    .from("tasks")
+    .select("*")
+    .eq("user_id", user_id);
+
+  if (error) {
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+
+  const allTasks = data || [];
+
+  const now = new Date();
+  const todayUtcMs = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate()
+  );
+
+  const weekStartMs = getUtcWeekStart(now);
+  const weekEndExclusiveMs =
+    weekStartMs + 7 * 24 * 60 * 60 * 1000;
+  const weekEndMs = weekEndExclusiveMs - 24 * 60 * 60 * 1000;
+
+  const weekStartDateString = new Date(weekStartMs)
+    .toISOString()
+    .slice(0, 10);
+  const weekEndDateString = new Date(weekEndMs)
+    .toISOString()
+    .slice(0, 10);
+
+  const tasksThisWeek = [];
+  const overdue = [];
+
+  for (const task of allTasks) {
+    const isCompleted = task.completion_status === "completed";
+    const dueDateUtcMs = toUtcDateOnly(task.due_date);
+
+    if (dueDateUtcMs === null) {
+      continue;
+    }
+
+    if (
+      dueDateUtcMs >= weekStartMs &&
+      dueDateUtcMs < weekEndExclusiveMs
+    ) {
+      tasksThisWeek.push(task);
+    }
+
+    if (!isCompleted && dueDateUtcMs < todayUtcMs) {
+      overdue.push(task);
+    }
+  }
+
+  tasksThisWeek.sort(byDueDateAscending);
+  overdue.sort(byDueDateAscending);
+
+  const completedTasks = tasksThisWeek.filter(
+    (task) => task.completion_status === "completed"
+  );
+  const incompleteTasks = tasksThisWeek.filter(
+    (task) => task.completion_status !== "completed"
+  );
+
+  const total = tasksThisWeek.length;
+  const completed = completedTasks.length;
+  const remaining = total - completed;
+
+  const completionPercentage =
+    total === 0
+      ? 0
+      : Math.round((completed / total) * 100);
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      week: {
+        start: weekStartDateString,
+        end: weekEndDateString,
+      },
+      counts: {
+        total,
+        completed,
+        remaining,
+        overdue: overdue.length,
+      },
+      workload: {
+        totalEffortMinutes: sumField(
+          tasksThisWeek,
+          "estimated_effort_minutes"
+        ),
+        completedEffortMinutes: sumField(
+          completedTasks,
+          "estimated_effort_minutes"
+        ),
+        remainingEffortMinutes: sumField(
+          incompleteTasks,
+          "estimated_effort_minutes"
+        ),
+        totalPoints: sumField(tasksThisWeek, "point_value"),
+        completedPoints: sumField(completedTasks, "point_value"),
+        remainingPoints: sumField(incompleteTasks, "point_value"),
+      },
+      completionPercentage,
+      tasks: tasksThisWeek.map(toSummaryItem),
+      overdue: overdue.map(toSummaryItem),
+    },
+  });
+};
+
+
 module.exports = {
   getTasks,
   getTaskById,
   getPrioritizedTasks,
+  getDailySummary,
+  getWeeklySummary,
   createTask,
   updateTask,
   deleteTask,
