@@ -37,6 +37,18 @@ function Dashboard() {
 
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState("");
+  const [theme, setTheme] = useState(() => {
+  return localStorage.getItem("omni-theme") || "light";
+});
+useEffect(() => {
+  localStorage.setItem("omni-theme", theme);
+}, [theme]);
+
+const toggleTheme = () => {
+  setTheme((currentTheme) =>
+    currentTheme === "light" ? "dark" : "light"
+  );
+};
 
   const today = new Date();
 
@@ -232,7 +244,7 @@ const getTasksForDashboardDay = (day) => {
   };
 
   return (
-    <div className="dashboard-page">
+    <div className={`dashboard-page ${theme === "dark" ? "dark-mode" : ""}`}>
 
       {/* =========================
           SIDEBAR
@@ -302,6 +314,30 @@ const getTasksForDashboardDay = (day) => {
 
           </nav>
         </div>
+        <div>
+  <div className="theme-toggle-section">
+    <span className="theme-toggle-label">
+      {theme === "dark" ? "Dark Mode" : "Light Mode"}
+    </span>
+
+    <button
+      type="button"
+      className={`theme-toggle ${
+        theme === "dark" ? "theme-toggle--dark" : ""
+      }`}
+      onClick={toggleTheme}
+      aria-label="Toggle dark and light mode"
+    >
+      <span className="theme-toggle-knob">
+        {theme === "dark" ? "☾" : "☀"}
+      </span>
+    </button>
+  </div>
+
+  <div className="user-section">
+    {/* existing user info */}
+  </div>
+</div>
 
         {/* =========================
             USER SECTION
@@ -339,6 +375,7 @@ const getTasksForDashboardDay = (day) => {
         </div>
 
       </aside>
+      
 
 
       {/* =========================

@@ -2083,3 +2083,340 @@ body {
 .calendar-schedule-chip:hover {
   background: #e1ebff;
 }
+
+/* =========================================
+   THEME TOGGLE
+========================================= */
+
+.theme-toggle-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+
+  padding: 12px 15px;
+
+  border-top: 1px solid #bbb;
+}
+
+.theme-toggle-label {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.theme-toggle {
+  position: relative;
+
+  width: 46px;
+  height: 24px;
+
+  padding: 2px;
+
+  background: #bdbdbd;
+
+  border: none;
+  border-radius: 999px;
+
+  cursor: pointer;
+
+  transition: background 0.2s ease;
+}
+
+.theme-toggle-knob {
+  width: 20px;
+  height: 20px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: white;
+
+  border-radius: 50%;
+
+  font-size: 11px;
+
+  transform: translateX(0);
+
+  transition: transform 0.2s ease;
+}
+
+.theme-toggle--dark {
+  background: #7267d9;
+}
+
+.theme-toggle--dark .theme-toggle-knob {
+  transform: translateX(22px);
+}
+
+/* =========================================
+   DARK MODE
+========================================= */
+
+.dashboard-page.dark-mode {
+  background: #17171c;
+
+  color: #f2f2f2;
+}
+
+.dashboard-page.dark-mode .dashboard-sidebar {
+  background: #24242b;
+
+  border-right-color: #444;
+}
+
+.dashboard-page.dark-mode .sidebar-logo,
+.dashboard-page.dark-mode .sidebar-item,
+.dashboard-page.dark-mode .theme-toggle-label,
+.dashboard-page.dark-mode .user-profile-row {
+  color: #f1f1f1;
+}
+
+.dashboard-page.dark-mode .sidebar-item:hover:not(:disabled) {
+  background: #34343e;
+}
+
+.dashboard-page.dark-mode .sidebar-item.active-menu {
+  background: #3a3650;
+
+  border-left-color: #9b90ff;
+}
+
+.dashboard-page.dark-mode .dashboard-calendar-card,
+.dashboard-page.dark-mode .full-calendar-grid,
+.dashboard-page.dark-mode .calendar-day,
+.dashboard-page.dark-mode .full-calendar-day {
+  background: #23232a;
+
+  color: #f2f2f2;
+
+  border-color: #555;
+}
+
+.dashboard-page.dark-mode .calendar-heading,
+.dashboard-page.dark-mode .full-calendar-heading {
+  background: #303038;
+
+  color: #f2f2f2;
+
+  border-color: #555;
+}
+
+.dashboard-page.dark-mode .dashboard-current-day,
+.dashboard-page.dark-mode .current-day {
+  background: #393451;
+}
+
+.dashboard-page.dark-mode .todo-dashboard-card,
+.dashboard-page.dark-mode .summary-card,
+.dashboard-page.dark-mode .ai-chat-card {
+  background: #292930;
+
+  color: #f2f2f2;
+
+  border-color: #555;
+}
+
+.dashboard-page.dark-mode .task-item {
+  background: #303038;
+
+  color: #f2f2f2;
+}
+
+.dashboard-page.dark-mode .task-item:hover {
+  background: #393943;
+}
+
+.dashboard-page.dark-mode .task-item h3,
+.dashboard-page.dark-mode .task-item p,
+.dashboard-page.dark-mode .task-meta {
+  color: #f2f2f2;
+}
+
+.dashboard-page.dark-mode .prioritized-card {
+  background: #292930;
+
+  border-color: #555;
+}
+
+.dashboard-page.dark-mode .prioritized-header,
+.dashboard-page.dark-mode .todo-table-header,
+.dashboard-page.dark-mode .todo-table-row {
+  color: #f2f2f2;
+}
+
+.dashboard-page.dark-mode .todo-table-row > div,
+.dashboard-page.dark-mode .todo-task-name,
+.dashboard-page.dark-mode .todo-status-cell {
+  color: #f2f2f2;
+}
+
+.dashboard-page.dark-mode .todo-table-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dashboard-page.dark-mode .dashboard-calendar-task,
+.dashboard-page.dark-mode .calendar-task-chip {
+  background: #34343d;
+
+  color: #f2f2f2;
+}
+
+.dashboard-page.dark-mode .add-task-modal,
+.dashboard-page.dark-mode .confirm-delete-modal {
+  background: #292930;
+
+  color: #f2f2f2;
+
+  border-color: #555;
+}
+
+.dashboard-page.dark-mode .add-task-label,
+.dashboard-page.dark-mode .confirm-delete-text,
+.dashboard-page.dark-mode .confirm-delete-heading {
+  color: #f2f2f2;
+}
+
+.dashboard-page.dark-mode .add-task-input,
+.dashboard-page.dark-mode .add-task-textarea,
+.dashboard-page.dark-mode .add-task-select {
+  background: #1f1f25;
+
+  color: #f2f2f2;
+
+  border-color: #555;
+}
+
+.dashboard-page.dark-mode .calendar-navigation button,
+.dashboard-page.dark-mode .todo-pagination button,
+.dashboard-page.dark-mode .add-task-header-button {
+  background: #303038;
+
+  color: #f2f2f2;
+
+  border-color: #666;
+}
+
+/* =========================================
+   DARK MODE TEXT FIXES
+========================================= */
+
+/* Main text */
+.dashboard-page.dark-mode,
+.dashboard-page.dark-mode h1,
+.dashboard-page.dark-mode h2,
+.dashboard-page.dark-mode h3,
+.dashboard-page.dark-mode p,
+.dashboard-page.dark-mode span,
+.dashboard-page.dark-mode label,
+.dashboard-page.dark-mode strong {
+  color: #f2f2f2;
+}
+
+/* Prioritized To-Do text */
+.dashboard-page.dark-mode .prioritized-header h1,
+.dashboard-page.dark-mode .prioritized-subtitle,
+.dashboard-page.dark-mode .prioritized-count,
+.dashboard-page.dark-mode .todo-table-header,
+.dashboard-page.dark-mode .todo-table-row,
+.dashboard-page.dark-mode .todo-table-row > div,
+.dashboard-page.dark-mode .todo-task-name,
+.dashboard-page.dark-mode .todo-status-cell {
+  color: #f2f2f2;
+}
+
+/* Dashboard task cards */
+.dashboard-page.dark-mode .task-item,
+.dashboard-page.dark-mode .task-item h3,
+.dashboard-page.dark-mode .task-item p,
+.dashboard-page.dark-mode .task-meta,
+.dashboard-page.dark-mode .task-meta span {
+  color: #f2f2f2;
+}
+
+/* Calendar */
+.dashboard-page.dark-mode .calendar-number,
+.dashboard-page.dark-mode .calendar-heading,
+.dashboard-page.dark-mode .full-calendar-date,
+.dashboard-page.dark-mode .full-calendar-heading,
+.dashboard-page.dark-mode .calendar-task-chip,
+.dashboard-page.dark-mode .dashboard-calendar-task {
+  color: #f2f2f2;
+}
+
+/* Summary / AI areas */
+.dashboard-page.dark-mode .summary-card h3,
+.dashboard-page.dark-mode .summary-card p,
+.dashboard-page.dark-mode .chat-message,
+.dashboard-page.dark-mode .chat-bubble,
+.dashboard-page.dark-mode .chat-bubble p {
+  color: #f2f2f2;
+}
+
+/* User area */
+.dashboard-page.dark-mode .user-profile-row strong,
+.dashboard-page.dark-mode .user-profile-row small,
+.dashboard-page.dark-mode .theme-toggle-label {
+  color: #f2f2f2;
+}
+
+/* Forms */
+.dashboard-page.dark-mode .add-task-heading,
+.dashboard-page.dark-mode .add-task-label,
+.dashboard-page.dark-mode .add-task-group-legend,
+.dashboard-page.dark-mode .confirm-delete-heading,
+.dashboard-page.dark-mode .confirm-delete-text {
+  color: #f2f2f2;
+}
+
+/* Inputs */
+.dashboard-page.dark-mode input,
+.dashboard-page.dark-mode textarea,
+.dashboard-page.dark-mode select {
+  background: #1f1f25;
+  color: #f2f2f2;
+  border-color: #666;
+}
+
+/* Placeholder text */
+.dashboard-page.dark-mode input::placeholder,
+.dashboard-page.dark-mode textarea::placeholder {
+  color: #aaa;
+}
+
+/* Keep normal buttons readable */
+.dashboard-page.dark-mode .task-complete-button,
+.dashboard-page.dark-mode .view-all-button {
+  color: #f2f2f2;
+  border-color: #888;
+}
+
+/* Keep purple Edit button purple */
+.dashboard-page.dark-mode .task-edit-ghost-button,
+.dashboard-page.dark-mode .todo-edit-button {
+  color: #a99fff;
+  border-color: #a99fff;
+}
+
+/* Keep Delete red because it represents a destructive action */
+.dashboard-page.dark-mode .task-delete-button,
+.dashboard-page.dark-mode .todo-delete-trigger-button {
+  color: #ff8585;
+  border-color: #ff8585;
+}
+
+/* Error messages can remain red */
+.dashboard-page.dark-mode .add-task-message--error,
+.dashboard-page.dark-mode .todo-error-message,
+.dashboard-page.dark-mode .calendar-error-message {
+  color: #ff9b9b;
+}
+
+.task-item h3 {
+  color: #111;
+}
+
+.todo-table-row > div {
+  color: #111;
+}
