@@ -136,7 +136,8 @@ describe("POST /api/ai/chat - successful request", () => {
           calculated_priority_score: expect.any(Number),
           priority_breakdown: expect.any(Object),
         }),
-      ])
+      ]),
+      120
     );
   });
 });
