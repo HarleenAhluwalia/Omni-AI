@@ -9,15 +9,19 @@ const mockCourses = [
         assignments: [
             {
                 id: 101,
+                courseId: 1,
                 title: "Sprint 3 Report",
                 dueDate: "2026-10-12",
                 points: 100,
+                locked: false,
             },
             {
                 id: 102,
+                courseId: 1,
                 title: "Frontend Implementation",
                 dueDate: "2026-10-15",
                 points: 50,
+                locked: false,
             },
         ],
     },
@@ -27,15 +31,19 @@ const mockCourses = [
         assignments: [
             {
                 id: 201,
+                courseId: 2,
                 title: "Marketing Homework",
                 dueDate: "2026-10-18",
                 points: 25,
+                locked: false,
             },
             {
                 id: 202,
+                courseId: 2,
                 title: "Marketing Presentation",
                 dueDate: "2026-10-22",
                 points: 100,
+                locked: false,
             },
         ],
     },
@@ -45,9 +53,11 @@ const mockCourses = [
         assignments: [
             {
                 id: 301,
+                courseId: 3,
                 title: "Art Homework",
                 dueDate: "2026-10-20",
                 points: 20,
+                locked: true,
             },
         ],
     },
