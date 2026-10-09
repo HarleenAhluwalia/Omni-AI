@@ -18,7 +18,6 @@ const { signToken } = require("../middleware/auth");
 // from server/.env.
 const supabase = require("../../config/supabase");
 
-
 // ---------------------------------------------------------
 // UC-5: User Registration
 // ---------------------------------------------------------
@@ -204,6 +203,115 @@ async function login(req, res) {
   });
 }
 
+async function oauthLogin(req, res) {
+  const { access_token } = req.body || {};
+
+  if (!access_token) {
+    return res.status(400).json({
+      errors: ["Missing OAuth access token."]
+    });
+  }
+
+  // Verify the Supabase OAuth token and get the authenticated user.
+  const {
+    data,
+    error
+  } = await supabase.auth.getUser(access_token);
+
+  if (error || !data?.user) {
+    return res.status(401).json({
+      errors: [
+        error?.message ||
+          "Invalid or expired OAuth session."
+      ]
+    });
+  }
+
+  const supabaseUser = data.user;
+
+  if (!supabaseUser.email) {
+    return res.status(400).json({
+      errors: ["OAuth account does not provide an email address."]
+    });
+  }
+
+  const name =
+    supabaseUser.user_metadata?.name ||
+    supabaseUser.user_metadata?.full_name ||
+    supabaseUser.email.split("@")[0];
+
+  let user =
+    UserRepository.findById(supabaseUser.id);
+
+  // If no application user exists for this Supabase UUID,
+  // check whether the same email already exists.
+  if (!user) {
+    const existingByEmail =
+      UserRepository.findByEmail(supabaseUser.email);
+
+    if (existingByEmail) {
+      // Do not issue a token for the wrong UUID.
+      if (existingByEmail.id !== supabaseUser.id) {
+        return res.status(409).json({
+          errors: [
+            "An application account already exists with this email but is linked to a different user ID."
+          ]
+        });
+      }
+
+      user = existingByEmail;
+    }
+  }
+
+  // First OAuth login: create the local/application-side user.
+  if (!user) {
+    user = {
+      id: supabaseUser.id,
+      name,
+      email: supabaseUser.email.toLowerCase(),
+      createdAt: new Date().toISOString()
+    };
+
+    UserRepository.create(user);
+  }
+
+  // Ensure the profile exists and uses the same UUID.
+  const {
+    error: profileError
+  } = await supabase
+    .from("profiles")
+    .upsert(
+      {
+        id: supabaseUser.id,
+        display_name: name
+      },
+      {
+        onConflict: "id"
+      }
+    );
+
+  if (profileError) {
+    console.error(
+      "OAuth profile setup failed:",
+      profileError
+    );
+
+    return res.status(500).json({
+      errors: [
+        profileError.message ||
+          "Could not complete OAuth profile setup."
+      ]
+    });
+  }
+
+  // Create the SAME Omni AI JWT used by native login.
+  const token = signToken(user);
+
+  return res.status(200).json({
+    token,
+    user: toPublicUser(user)
+  });
+}
 
 // ---------------------------------------------------------
 // GET CURRENT USER
@@ -224,9 +332,9 @@ async function me(req, res) {
   });
 }
 
-
 module.exports = {
   register,
   login,
+  oauthLogin,
   me
 };

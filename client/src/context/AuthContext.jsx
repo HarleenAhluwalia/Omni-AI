@@ -1,6 +1,6 @@
 // same file in client-integration/src/context/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { registerUser, loginUser, fetchCurrentUser } from "../api/authApi";
+import { registerUser, loginUser, fetchCurrentUser, exchangeOAuthToken } from "../api/authApi";
 import { supabase } from "../lib/supabaseClient";
 
 const AuthContext = createContext(null);
@@ -57,6 +57,22 @@ export function AuthProvider({ children }) {
   }, []);
 
 
+  const exchangeOAuthSession = useCallback(async (session) => {
+   if (!session?.access_token) return;
+
+   const {
+     token: newToken,
+     user: oauthUser
+   } = await exchangeOAuthToken(session.access_token);
+
+    localStorage.setItem(
+      TOKEN_STORAGE_KEY,
+      newToken
+   );
+
+    setToken(newToken);
+   setUser(oauthUser);
+  }, []);
 /*
   const logout = useCallback(async() => {
     localStorage.removeItem(TOKEN_STORAGE_KEY);
@@ -113,8 +129,11 @@ export function AuthProvider({ children }) {
   supabase.auth.getSession().then(({ data: { session } }) => {
     console.log("Supabase session on load:", session);
 
-    if (session?.user) {
-      setUser(session.user);
+    if (session?.access_token) {
+      exchangeOAuthSession(session).catch((err) => {
+        console.error("OAuth exchange failed:", err);
+        setError(err.message);
+      });
     }
   });
 
@@ -124,17 +143,22 @@ export function AuthProvider({ children }) {
     console.log("Supabase auth event:", event);
     console.log("Supabase auth session:", session);
 
-    if (session?.user) {
-      setUser(session.user);
+    if (session?.access_token) {
+      exchangeOAuthSession(session).catch((err) => {
+        console.error("OAuth exchange failed:", err);
+        setError(err.message);
+      });
     } else {
-      setUser(null);
+        localStorage.removeItem(TOKEN_STORAGE_KEY);
+        setToken(null);
+        setUser(null);
     }
   });
 
   return () => {
     subscription.unsubscribe();
   };
-}, []);
+}, [exchangeOAuthSession]);
 
 
   const value = { user, token, loading, error, login, register, logout };

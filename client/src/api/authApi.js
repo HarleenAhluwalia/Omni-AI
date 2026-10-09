@@ -28,6 +28,18 @@ export async function loginUser({ email, password }) {
   return handleResponse(res);
 }
 
+export async function exchangeOAuthToken(accessToken) {
+  const res = await fetch(`${API_BASE_URL}/auth/oauth`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      access_token: accessToken,
+    }),
+  });
+
+  return handleResponse(res);
+}
+
 export async function fetchCurrentUser(token) {
   const res = await fetch(`${API_BASE_URL}/auth/me`, {
     headers: { Authorization: `Bearer ${token}` },
