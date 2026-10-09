@@ -1,0 +1,448 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f6f7fb;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #222;
+}
+
+button,
+select {
+  font-family: inherit;
+}
+
+.canvas-app {
+  min-height: 100vh;
+}
+
+/* HEADER */
+
+.canvas-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 18px 36px;
+
+  background: white;
+  border-bottom: 1px solid #ddd;
+}
+
+.canvas-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.canvas-logo {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #d93b35;
+  color: white;
+
+  border-radius: 10px;
+
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.canvas-brand h1 {
+  margin: 0;
+  font-size: 23px;
+}
+
+.canvas-brand p {
+  margin: 3px 0 0;
+  color: #777;
+  font-size: 12px;
+}
+
+.canvas-demo-badge {
+  padding: 7px 12px;
+
+  background: #fff1ed;
+  color: #b63b30;
+
+  border-radius: 20px;
+
+  font-size: 11px;
+  font-weight: bold;
+}
+
+/* MAIN */
+
+.canvas-main {
+  width: 100%;
+  max-width: 1400px;
+
+  margin: 0 auto;
+  padding: 28px 36px;
+}
+
+/* CONNECTION */
+
+.canvas-connection-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+
+  padding: 24px;
+
+  background: white;
+
+  border: 1px solid #ddd;
+  border-radius: 12px;
+
+  margin-bottom: 28px;
+}
+
+.canvas-connection-card h2,
+.canvas-section-header h2,
+.canvas-results-card h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.canvas-connection-card p,
+.canvas-section-header p,
+.canvas-results-card > p {
+  margin: 8px 0;
+  color: #666;
+  font-size: 13px;
+}
+
+.canvas-connection-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  margin-top: 15px;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.status-dot.connected {
+  background: #28a745;
+}
+
+.status-dot.disconnected {
+  background: #999;
+}
+
+/* BUTTONS */
+
+.canvas-primary-button {
+  padding: 11px 20px;
+
+  background: #d93b35;
+
+  border: none;
+  border-radius: 6px;
+
+  color: white;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.canvas-primary-button:hover:not(:disabled) {
+  background: #b92c27;
+}
+
+.canvas-disconnect-button {
+  padding: 11px 20px;
+
+  background: white;
+
+  border: 1px solid #c33;
+  border-radius: 6px;
+
+  color: #c33;
+
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ASSIGNMENTS */
+
+.canvas-assignments-section {
+  margin-bottom: 28px;
+}
+
+.canvas-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  gap: 20px;
+  margin-bottom: 18px;
+}
+
+.canvas-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  margin-bottom: 18px;
+}
+
+.canvas-filter-row label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.canvas-filter-row select {
+  padding: 9px 12px;
+
+  background: white;
+
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.canvas-course-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.canvas-course-card {
+  overflow: hidden;
+
+  background: white;
+
+  border: 1px solid #ddd;
+  border-radius: 10px;
+}
+
+.canvas-course-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 17px 20px;
+
+  background: #f1f2f5;
+
+  border-bottom: 1px solid #ddd;
+}
+
+.canvas-course-header h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.canvas-course-header span {
+  color: #666;
+  font-size: 12px;
+}
+
+.canvas-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.canvas-table-header,
+.canvas-table-row {
+  display: grid;
+
+  grid-template-columns:
+    minmax(230px, 2fr)
+    minmax(120px, 1fr)
+    90px
+    130px
+    110px;
+
+  align-items: center;
+  gap: 14px;
+
+  min-width: 750px;
+
+  padding: 0 20px;
+}
+
+.canvas-table-header {
+  min-height: 44px;
+
+  background: #fafafa;
+
+  border-bottom: 1px solid #ddd;
+
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.canvas-table-row {
+  min-height: 64px;
+
+  border-bottom: 1px solid #eee;
+
+  font-size: 13px;
+}
+
+.canvas-table-row:last-child {
+  border-bottom: none;
+}
+
+.canvas-table-row:hover {
+  background: #fafafa;
+}
+
+.assignment-title {
+  font-weight: 600;
+}
+
+.assignment-status {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.assignment-status.imported {
+  color: #258341;
+}
+
+.assignment-status.pending {
+  color: #777;
+}
+
+.canvas-import-button {
+  padding: 7px 12px;
+
+  background: white;
+
+  border: 1px solid #d93b35;
+  border-radius: 5px;
+
+  color: #d93b35;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.canvas-import-button:hover:not(:disabled) {
+  background: #d93b35;
+  color: white;
+}
+
+/* RESULTS */
+
+.canvas-results-card {
+  padding: 24px;
+
+  background: white;
+
+  border: 1px solid #ddd;
+  border-radius: 12px;
+}
+
+.canvas-result-message {
+  padding: 12px 14px;
+  margin: 18px 0;
+
+  border-radius: 6px;
+
+  font-size: 13px;
+}
+
+.canvas-result-message.success {
+  background: #eaf7ed;
+  color: #236d35;
+}
+
+.canvas-result-message.info {
+  background: #edf2ff;
+  color: #345a9c;
+}
+
+.canvas-result-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.canvas-result-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+
+  padding: 18px;
+
+  background: #f6f7fa;
+
+  border-radius: 8px;
+}
+
+.canvas-result-stats strong {
+  font-size: 26px;
+}
+
+.canvas-result-stats span {
+  color: #666;
+  font-size: 12px;
+}
+
+.canvas-empty-state,
+.canvas-empty-results {
+  padding: 40px 20px;
+
+  background: white;
+
+  border: 1px dashed #ccc;
+  border-radius: 8px;
+
+  text-align: center;
+
+  color: #777;
+  font-size: 14px;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 750px) {
+  .canvas-topbar,
+  .canvas-connection-card,
+  .canvas-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .canvas-main {
+    padding: 18px;
+  }
+
+  .canvas-result-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 450px) {
+  .canvas-result-stats {
+    grid-template-columns: 1fr;
+  }
+}
