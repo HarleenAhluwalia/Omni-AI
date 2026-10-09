@@ -39,4 +39,44 @@ describe("Dummy Canvas Service", () => {
         expect(assignment).toBeNull();
     });
 
+
+    test("each course has valid data and associated assignments", () => {
+        const courses = getCourses();
+
+        courses.forEach((course) => {
+            expect(course.id).toBeDefined();
+            expect(typeof course.name).toBe("string");
+            expect(course.name.length).toBeGreaterThan(0);
+            expect(Array.isArray(course.assignments)).toBe(true);
+
+            const assignments = getAssignments(course.id);
+
+            expect(assignments).toEqual(course.assignments);
+        });
+    });
+
+
+    test("assignments contain valid data and course references", () => {
+        const courses = getCourses();
+        const assignments = getAssignments();
+
+        assignments.forEach((assignment) => {
+            // Verify required assignment fields
+            expect(assignment.id).toBeDefined();
+            expect(typeof assignment.title).toBe("string");
+            expect(assignment.title.trim().length).toBeGreaterThan(0);
+            expect(assignment.dueDate).toBeDefined();
+            expect(Number.isNaN(new Date(assignment.dueDate).getTime())).toBe(false);
+            expect(typeof assignment.points).toBe("number");
+
+            // Verify assignment belongs to an existing course
+            const course = courses.find(
+                (course) => course.id === assignment.courseId
+            );
+
+            expect(course).toBeDefined();
+            expect(course.assignments).toContainEqual(assignment);
+        });
+    });
+
 });

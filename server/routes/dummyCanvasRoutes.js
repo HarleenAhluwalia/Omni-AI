@@ -7,6 +7,7 @@ const {
     fetchCourses,
     fetchAssignments,
     fetchAssignmentById,
+    processImportedAssignment,
 } = require("../controllers/dummyCanvasController");
 
 const router = express.Router();
@@ -22,5 +23,8 @@ router.get("/assignments", fetchAssignments);
 
 // GET a specific assignment by ID
 router.get("/assignments/:id", fetchAssignmentById);
+
+// POST - Process imported Canvas assignment
+router.post("/process-assignment", processImportedAssignment);
 
 module.exports = router;

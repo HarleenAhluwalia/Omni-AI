@@ -82,4 +82,127 @@ describe("Dummy Canvas API", () => {
         expect(res.body.error).toBe("Assignment not found");
     });
 
+
+    test("processes a valid imported assignment", async () => {
+        const res = await request(app)
+            .post("/api/dummy-canvas/process-assignment")
+            .set("Authorization", authHeader())
+            .send({
+                assignment: {
+                    id: 101,
+                    courseId: 1,
+                    title: "Sprint 3 Report",
+                    dueDate: "2026-10-12",
+                    points: 100,
+                },
+            });
+
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+
+        expect(res.body.data.source).toEqual({
+            assignmentId: 101,
+            courseId: 1,
+        });
+
+        expect(res.body.data.task).toMatchObject({
+            title: "Sprint 3 Report",
+            due_date: "2026-10-12T23:59:59.999Z",
+            point_value: 100,
+            priority: "medium",
+            completion_status: "not_started",
+        });
+    });
+
+    test("rejects imported assignments with missing titles", async () => {
+        const res = await request(app)
+            .post("/api/dummy-canvas/process-assignment")
+            .set("Authorization", authHeader())
+            .send({
+                assignment: {
+                    id: 101,
+                    courseId: 1,
+                    title: "",
+                    dueDate: "2026-10-12",
+                    points: 100,
+                },
+            });
+
+        expect(res.status).toBe(400);
+        expect(res.body.success).toBe(false);
+        expect(res.body.error).toBe(
+            "Assignment title is required"
+        );
+    });
+
+    test("rejects requests without assignment data", async () => {
+        const res = await request(app)
+            .post("/api/dummy-canvas/process-assignment")
+            .set("Authorization", authHeader())
+            .send({});
+
+        expect(res.status).toBe(400);
+        expect(res.body.error).toBe(
+            "Assignment data is required"
+        );
+    });
+
+    test("requires authentication for assignment processing", async () => {
+        const res = await request(app)
+            .post("/api/dummy-canvas/process-assignment")
+            .send({
+                assignment: {
+                    id: 101,
+                    courseId: 1,
+                    title: "Sprint 3 Report",
+                    dueDate: "2026-10-12",
+                    points: 100,
+                },
+            });
+
+        expect(res.status).toBe(401);
+    });
+
+    test("rejects locked Canvas assignments", async () => {
+        const res = await request(app)
+            .post("/api/dummy-canvas/process-assignment")
+            .set("Authorization", authHeader())
+            .send({
+                assignment: {
+                    id: 301,
+                    courseId: 3,
+                    title: "Art Homework",
+                    dueDate: "2026-10-20",
+                    points: 20,
+                    locked: false,
+                },
+            });
+
+        expect(res.status).toBe(403);
+        expect(res.body.success).toBe(false);
+        expect(res.body.error).toBe(
+            "This Canvas assignment is locked"
+        );
+    });
+
+    test("allows processing unlocked Canvas assignments", async () => {
+        const res = await request(app)
+            .post("/api/dummy-canvas/process-assignment")
+            .set("Authorization", authHeader())
+            .send({
+                assignment: {
+                    id: 101,
+                    courseId: 1,
+                    title: "Sprint 3 Report",
+                    dueDate: "2026-10-12",
+                    points: 100,
+                    locked: false,
+                },
+            });
+
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.source.assignmentId).toBe(101);
+    });
+
 });
