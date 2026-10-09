@@ -38,7 +38,73 @@ profile row with no manual insert).
 | `estimated_effort_minutes` | `integer` | Nullable. |
 | `priority` | `text` | Nullable. Values seen: `low`, `medium`, `high`. |
 | `completion_status` | `text` | Default `not_started`. Values seen: `not_started`, `in_progress`, `completed`. |
+| `canvas_assignment_id` | `integer` | Nullable. Set when this Task was imported from a (mock) Canvas assignment. See "Canvas assignment synchronization" below. |
+| `canvas_course_id` | `integer` | Nullable. The Canvas course the assignment above belongs to. |
+| `canvas_locked` | `boolean` | Not null, default `false`. `true` only for a placeholder Task imported from a locked Canvas assignment. |
 | `created_at` / `updated_at` | `timestamptz` | Default `now()`. |
+
+### Canvas assignment synchronization (PR 1 — foundation only)
+
+> **Not yet live.** This section (and the three columns above it) describe
+> `supabase/migrations/002_canvas_assignment_sync.sql`, which has **not**
+> been run against any shared or production Supabase project as of this PR
+> — it's proposed for review alongside the migration file itself. This is a
+> deliberate, temporary exception to this doc's usual rule of only
+> documenting fields the live database actually has; remove this note once
+> the migration has actually been applied.
+
+**No import or
+update logic exists yet** — this section documents the schema and the
+agreed rules a later PR's synchronization engine will implement against.
+The mock Canvas catalog itself lives in
+[`server/services/canvasService.js`](../server/services/canvasService.js).
+
+**Uniqueness**: `tasks_user_canvas_assignment_unique` is a `unique (user_id,
+canvas_assignment_id)` constraint. Postgres treats every `NULL` as distinct
+from every other `NULL` in a unique constraint, so ordinary Tasks (which
+have `canvas_assignment_id = NULL`) are entirely unaffected — a user can
+have unlimited non-Canvas Tasks. The constraint only ever fires on a second
+row for the same user repeating the same non-null `canvas_assignment_id`,
+i.e. a duplicate import.
+
+**Canvas-owned fields** (a future sync engine updates these on an existing
+Task when the Canvas assignment changes):
+- `title`
+- `due_date`
+- `point_value`
+- `canvas_assignment_id` / `canvas_course_id`
+- `canvas_locked`
+
+**User-managed fields** (a future sync engine must never overwrite these on
+an existing Task, even when re-syncing):
+- `completion_status`
+- `priority`
+- `estimated_effort_minutes`
+- `description`, and any other user-entered field not explicitly listed as
+  Canvas-owned above
+
+**Initial-import defaults** (for a Task created from an assignment that has
+never been imported before): `completion_status` uses the column's own
+default (`not_started`); `priority` and `estimated_effort_minutes` are left
+`null` — they're user-managed and nothing about a fresh import should guess
+at them.
+
+**Locked assignments**: imported as a placeholder Task with `canvas_locked =
+true`, `due_date = null`, and `point_value = null` — the schema already
+allows both to be `null`, so no fallback value is needed for them. `title`
+is the one `not null` Task column with no database default; the mock
+catalog always provides a title even for locked assignments (see
+`canvasService.js`), so this hasn't been exercised in practice, but the
+proposed fallback for a future case where a source assignment truly has no
+title is a clearly-labeled placeholder string such as `"Locked Canvas
+Assignment #<canvas_assignment_id>"`, never a blank or guessed title.
+
+**Synchronization failures**: per the confirmed product decision that sync
+failures must not corrupt existing Task data, the expectation for a future
+sync engine is that each assignment is processed independently (one failing
+assignment doesn't roll back or skip the others), and that updates to
+Canvas-owned fields only ever happen via an explicit, successful write —
+never a partial/best-effort mutation of an existing row.
 
 ## schedules
 

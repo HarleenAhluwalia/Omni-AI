@@ -144,3 +144,81 @@ what's in the body), every invalid-input case (bad `priority`, bad
 `completion_status`, negative `point_value`/`estimated_effort_minutes`,
 missing `title`), and authentication failures (missing or malformed
 `Authorization` header → `401`).
+
+## Canvas synchronization endpoints — PLANNED, NOT IMPLEMENTED
+
+> **Nothing below this line exists yet.** PR 1 (Canvas sync foundation)
+> only adds the database columns and the mock catalog service
+> (`server/services/canvasService.js`). There is no `/api/canvas/*` route,
+> no controller, and nothing mounted in `server/src/app.js`. This section
+> documents the contract a later PR is expected to implement, so the shape
+> is agreed before that code is written — treat every detail below as a
+> proposal, not a guarantee of the eventual implementation.
+
+Proposed base path: `/api/canvas`, protected by the same `requireAuth`
+middleware as every `/api/tasks` route (ownership from `req.user.id`, no
+client-supplied `user_id`).
+
+### `GET /api/canvas/courses` (planned)
+
+Returns the mock catalog from `canvasService.js`, enriched per-user with
+whether each assignment has already been imported (cross-referencing the
+requesting user's existing `tasks.canvas_assignment_id` values), so the
+frontend never has to track import state itself.
+
+```
+GET /api/canvas/courses
+Authorization: Bearer <jwt>
+```
+→ `200`:
+```json
+{
+  "success": true,
+  "data": {
+    "courses": [
+      {
+        "id": 1,
+        "name": "CPSC 491 - Computer Science",
+        "assignments": [
+          {
+            "id": 101,
+            "title": "Sprint 3 Report",
+            "due_date": "2026-10-12",
+            "points": 100,
+            "locked": false,
+            "imported": false,
+            "task_id": null
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### `POST /api/canvas/import` (planned)
+
+```
+POST /api/canvas/import
+Authorization: Bearer <jwt>
+Content-Type: application/json
+
+{ "assignment_ids": [101, 102] }
+```
+→ `200`, with per-item results rather than all-or-nothing (a partial
+import is a normal outcome, not a server error):
+```json
+{
+  "success": true,
+  "data": {
+    "imported": [{ "assignment_id": 101, "task": { "...": "a full Task object" } }],
+    "skipped":  [{ "assignment_id": 102, "reason": "already_imported", "task_id": "uuid" }],
+    "errors":   [{ "assignment_id": 999, "reason": "assignment_not_found" }]
+  }
+}
+```
+
+Proposed status codes: `400` for a malformed body (missing/empty/non-array
+`assignment_ids`, non-integer entries); `401` for missing/invalid auth;
+`500` only for a request-wide database failure that prevented any
+processing at all.
