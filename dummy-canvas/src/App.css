@@ -446,3 +446,132 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* =========================================
+   SPRINT 3 - IMPORT RESULT STATES
+========================================= */
+
+.canvas-result-message.error {
+  background: #fdeaea;
+  color: #a52828;
+  border: 1px solid #e9b2b2;
+}
+
+.canvas-result-message.info {
+  background: #edf2ff;
+  color: #345a9c;
+  border: 1px solid #c6d4f4;
+}
+
+.canvas-test-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  margin: 16px 0;
+
+  font-size: 13px;
+  color: #444;
+  cursor: pointer;
+}
+
+.canvas-test-toggle input {
+  width: 17px;
+  height: 17px;
+  accent-color: #d93b35;
+}
+
+/* =========================================
+   RESPONSIVE TABLE
+========================================= */
+
+.canvas-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.canvas-table-header,
+.canvas-table-row {
+  min-width: 750px;
+}
+
+/* =========================================
+   TABLET
+========================================= */
+
+@media (max-width: 768px) {
+  .canvas-main {
+    padding: 20px;
+  }
+
+  .canvas-topbar {
+    padding: 18px 20px;
+  }
+
+  .canvas-connection-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .canvas-section-header {
+    flex-wrap: wrap;
+  }
+
+  .canvas-result-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 480px) {
+  .canvas-main {
+    padding: 12px;
+  }
+
+  .canvas-topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .canvas-brand h1 {
+    font-size: 20px;
+  }
+
+  .canvas-connection-card,
+  .canvas-results-card {
+    padding: 16px;
+  }
+
+  .canvas-section-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .canvas-section-header .canvas-primary-button {
+    width: 100%;
+  }
+
+  .canvas-filter-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .canvas-filter-row select {
+    width: 100%;
+  }
+
+  .canvas-result-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .canvas-course-header {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+}
