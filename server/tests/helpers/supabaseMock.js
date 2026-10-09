@@ -81,11 +81,37 @@ function createMockSupabase() {
       },
       single() {
         if (mode === "insert") {
+          const newRow = insertRows[0];
+
+          // Generic simulation of the tasks_user_canvas_assignment_unique
+          // constraint (see supabase/migrations/002_canvas_assignment_sync.sql).
+          // Only engages when the inserted row actually sets
+          // canvas_assignment_id, so every other insert (every existing
+          // test, every non-Canvas Task) is completely unaffected.
+          if (newRow.canvas_assignment_id != null) {
+            const conflict = store[table].find(
+              (row) =>
+                row.user_id === newRow.user_id &&
+                row.canvas_assignment_id === newRow.canvas_assignment_id
+            );
+
+            if (conflict) {
+              return Promise.resolve({
+                data: null,
+                error: {
+                  code: "23505",
+                  message:
+                    'duplicate key value violates unique constraint "tasks_user_canvas_assignment_unique"',
+                },
+              });
+            }
+          }
+
           const row = {
             id: nextId(),
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-            ...insertRows[0],
+            ...newRow,
           };
           store[table].push(row);
           return Promise.resolve({ data: row, error: null });
