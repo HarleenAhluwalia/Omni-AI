@@ -7,6 +7,7 @@ const taskRoutes = require("../routes/taskRoutes");
 const scheduleRoutes = require("../routes/scheduleRoutes");
 const dummyCanvasRoutes = require("../routes/dummyCanvasRoutes");
 const canvasRoutes = require("./routes/canvasRoutes");
+const notificationSettingsRoutes = require("../routes/notificationSettingsRoutes");
 
 function createApp() {
   const app = express();
@@ -30,6 +31,9 @@ function createApp() {
   app.use("/api/ai", aiRoutes);
   // Harleen - Task CRUD routes
   app.use("/api/tasks", taskRoutes);
+
+  // Jerry - Notification preferences (Sprint 3)
+  app.use("/api/notification-settings", notificationSettingsRoutes);
 
   // Alan - Scheduling routes
   app.use("/api/schedules", scheduleRoutes);
