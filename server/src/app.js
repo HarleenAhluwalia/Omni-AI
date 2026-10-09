@@ -5,6 +5,7 @@ const aiRoutes = require("./routes/aiRoutes");
 const authRoutes = require("./routes/auth");
 const taskRoutes = require("../routes/taskRoutes");
 const scheduleRoutes = require("../routes/scheduleRoutes");
+const dummyCanvasRoutes = require("../routes/dummyCanvasRoutes");
 
 function createApp() {
   const app = express();
@@ -31,6 +32,9 @@ function createApp() {
 
   // Alan - Scheduling routes
   app.use("/api/schedules", scheduleRoutes);
+
+  // Alan - Dummy Canvas routes
+  app.use("/api/dummy-canvas", dummyCanvasRoutes);
 
   app.use((err, req, res, next) => {
     console.error(err);
