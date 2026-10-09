@@ -145,21 +145,20 @@ what's in the body), every invalid-input case (bad `priority`, bad
 missing `title`), and authentication failures (missing or malformed
 `Authorization` header → `401`).
 
-## Canvas synchronization endpoints — PLANNED, NOT IMPLEMENTED
+## Canvas synchronization endpoints
 
-> **Nothing below this line exists yet.** PR 1 (Canvas sync foundation)
-> only adds the database columns and the mock catalog service
-> (`server/services/canvasService.js`). There is no `/api/canvas/*` route,
-> no controller, and nothing mounted in `server/src/app.js`. This section
-> documents the contract a later PR is expected to implement, so the shape
-> is agreed before that code is written — treat every detail below as a
-> proposal, not a guarantee of the eventual implementation.
+Implemented in PR 2 (Canvas Assignment Synchronization Engine), built on
+PR 1's database columns and mock catalog service
+(`server/services/canvasService.js`). Routes live in
+`server/src/routes/canvasRoutes.js` / `server/src/controllers/canvasController.js`
+and are mounted at `/api/canvas` in `server/src/app.js`, separate from the
+read-only `/api/dummy-canvas` catalog browser.
 
-Proposed base path: `/api/canvas`, protected by the same `requireAuth`
-middleware as every `/api/tasks` route (ownership from `req.user.id`, no
+Base path: `/api/canvas`, protected by the same `requireAuth` middleware as
+every `/api/tasks` route (ownership from `req.user.id`, never a
 client-supplied `user_id`).
 
-### `GET /api/canvas/courses` (planned)
+### `GET /api/canvas/courses`
 
 Returns the mock catalog from `canvasService.js`, enriched per-user with
 whether each assignment has already been imported (cross-referencing the
@@ -196,29 +195,76 @@ Authorization: Bearer <jwt>
 }
 ```
 
-### `POST /api/canvas/import` (planned)
+### `POST /api/canvas/import`
+
+Imports and/or synchronizes one or more Canvas assignments into real Tasks.
+Each requested id is processed independently and lands in exactly one of
+four outcome buckets — a partial import is a normal outcome, not a server
+error. Duplicate ids within the request body are de-duplicated before
+processing.
 
 ```
 POST /api/canvas/import
 Authorization: Bearer <jwt>
 Content-Type: application/json
 
-{ "assignment_ids": [101, 102] }
+{ "assignment_ids": [101, 102, 301, 999] }
 ```
-→ `200`, with per-item results rather than all-or-nothing (a partial
-import is a normal outcome, not a server error):
+→ `200`:
 ```json
 {
   "success": true,
   "data": {
-    "imported": [{ "assignment_id": 101, "task": { "...": "a full Task object" } }],
-    "skipped":  [{ "assignment_id": 102, "reason": "already_imported", "task_id": "uuid" }],
-    "errors":   [{ "assignment_id": 999, "reason": "assignment_not_found" }]
+    "imported": [
+      { "assignment_id": 101, "task": { "...": "a full, newly-created Task object" } }
+    ],
+    "updated": [
+      { "assignment_id": 102, "task": { "...": "the Task object after Canvas-owned fields were refreshed" } }
+    ],
+    "skipped": [
+      { "assignment_id": 301, "reason": "unchanged", "task_id": "uuid" },
+      { "assignment_id": 301, "reason": "already_imported", "task_id": "uuid" }
+    ],
+    "failed": [
+      { "assignment_id": 999, "reason": "assignment_not_found" },
+      { "assignment_id": 999, "reason": "import_failed", "detail": "..." },
+      { "assignment_id": 999, "reason": "update_failed", "detail": "..." }
+    ]
   }
 }
 ```
 
-Proposed status codes: `400` for a malformed body (missing/empty/non-array
-`assignment_ids`, non-integer entries); `401` for missing/invalid auth;
-`500` only for a request-wide database failure that prevented any
-processing at all.
+Outcome semantics:
+- `imported` — no existing Task had this `canvas_assignment_id` for this
+  user, so a new Task was created. New rows are seeded with
+  `completion_status: "not_started"`; every other user-managed field
+  (`priority`, `estimated_effort_minutes`, `description`) is left unset for
+  the user to fill in.
+- `updated` — an existing Task for this assignment had at least one
+  stale Canvas-owned field (`title`, `due_date`, `point_value`,
+  `canvas_course_id`, `canvas_locked`); only those fields were written.
+  User-managed fields on the existing Task are never read or modified.
+- `skipped` — nothing was written. `reason: "unchanged"` means an existing
+  Task already matches the Canvas data exactly; `reason: "already_imported"`
+  means a concurrent request imported this assignment first (detected via
+  the `tasks_user_canvas_assignment_unique` constraint) and this request
+  deferred to that one rather than creating a duplicate or erroring.
+- `failed` — nothing was written for this id. `reason: "assignment_not_found"`
+  means the id doesn't exist in the mock catalog; `reason: "import_failed"` /
+  `"update_failed"` mean the insert/update itself was rejected by the
+  database (with `detail` carrying the underlying error message), and no
+  other Task in the batch is affected.
+
+Locked assignments (`canvasService.isLocked`) import/update the same way as
+any other assignment — `canvas_locked: true` is simply one more
+Canvas-owned field — except their `due_date`/`point_value` are `null`
+because `canvasService.js` represents missing details on a locked
+assignment as `null` rather than inventing a value, and the controller
+passes that straight through.
+
+Status codes: `400` for a malformed body (missing/empty/non-array
+`assignment_ids`, non-integer or non-positive entries); `401` for
+missing/invalid auth; `500` only for a request-wide database failure that
+prevented any per-id processing from starting at all (e.g. the initial
+lookup of the user's existing Tasks failed) — once per-id processing
+begins, failures are reported per-id in the `failed` bucket instead.
