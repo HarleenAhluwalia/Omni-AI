@@ -268,3 +268,47 @@ missing/invalid auth; `500` only for a request-wide database failure that
 prevented any per-id processing from starting at all (e.g. the initial
 lookup of the user's existing Tasks failed) — once per-id processing
 begins, failures are reported per-id in the `failed` bucket instead.
+
+## Notification settings
+
+Base path: `/api/notification-settings`, protected by `requireAuth` (owner is
+always `req.user.id`; a `user_id` in the query or body is ignored).
+
+### `GET /api/notification-settings`
+
+Returns the caller's settings, or the defaults if nothing is saved yet.
+
+```json
+{
+  "success": true,
+  "data": {
+    "enabled": true,
+    "reminder_lead_minutes": 1440,
+    "frequency": "normal",
+    "priority_threshold": "low",
+    "delivery_method": "in_app",
+    "onboarding_completed": false
+  }
+}
+```
+
+### `PUT /api/notification-settings`
+
+Partial update; send only the fields to change. Returns the full settings
+object (same shape as GET).
+
+| Field | Rule |
+|---|---|
+| `enabled` | boolean |
+| `reminder_lead_minutes` | integer >= 0 |
+| `frequency` | `low`, `normal`, `high` |
+| `priority_threshold` | `low`, `medium`, `high` |
+| `delivery_method` | `in_app`, `email`, `push` |
+| `onboarding_completed` | boolean (stored on `profiles`) |
+
+Errors: `400` validation (or no updatable fields), `401` missing/invalid
+token, `404` profile not found, `500` database error.
+
+> The non-default allowed values are proposed and need confirming with the
+> notification owner. Run `supabase/migrations/003_notification_settings_constraints.sql`
+> so a user can only have one settings row.
