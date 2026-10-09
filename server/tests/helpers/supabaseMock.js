@@ -189,6 +189,21 @@ function createMockSupabase() {
     return builder;
   }
  
+  // store[table] is otherwise only created lazily inside makeQueryBuilder(),
+  // on a table's first .from() call. A test that seeds __store directly
+  // (e.g. pushing a fixture row before ever calling .from() on that table)
+  // would hit that table before anything lazily creates it - this proxy
+  // auto-vivifies the same way .from() does, so direct __store access is
+  // safe regardless of what has or hasn't run yet.
+  const storeAccessor = new Proxy(store, {
+    get(target, key) {
+      if (typeof key === "string" && !(key in target)) {
+        target[key] = [];
+      }
+      return target[key];
+    },
+  });
+
   const client = {
     auth: {
       admin: {
@@ -202,7 +217,7 @@ function createMockSupabase() {
     from(table) {
       return makeQueryBuilder(table);
     },
-    __store: store,
+    __store: storeAccessor,
     __reset() {
       Object.keys(store).forEach((key) => {
         store[key] = [];
