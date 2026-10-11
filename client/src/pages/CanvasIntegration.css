@@ -1,0 +1,340 @@
+
+.canvas-integration-page {
+  width: 100%;
+  padding: 20px 28px 28px;
+  color: inherit;
+}
+
+.canvas-integration-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.canvas-integration-header h1 {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 500;
+}
+
+.canvas-integration-header p {
+  margin: 8px 0 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.canvas-integration-badge {
+  padding: 8px 12px;
+  background: #eeeaff;
+  color: #5d52c4;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.canvas-integration-card {
+  margin-bottom: 16px;
+  padding: 22px;
+  background: #fff;
+  border: 1px solid #bbb;
+  border-radius: 10px;
+}
+
+.canvas-integration-card h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.canvas-integration-card p {
+  font-size: 13px;
+  color: #555;
+}
+
+.canvas-integration-connect-row,
+.canvas-integration-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.canvas-integration-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.canvas-integration-dot {
+  width: 10px;
+  height: 10px;
+  background: #aaa;
+  border-radius: 50%;
+}
+
+.canvas-integration-dot.connected {
+  background: #22a957;
+}
+
+.canvas-integration-primary,
+.canvas-integration-disconnect {
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.canvas-integration-primary {
+  background: #7267d9;
+  border: 1px solid #7267d9;
+  color: white;
+}
+
+.canvas-integration-disconnect {
+  background: transparent;
+  border: 1px solid #c23a3a;
+  color: #c23a3a;
+}
+
+.canvas-integration-primary:disabled,
+.canvas-integration-disconnect:disabled,
+.canvas-integration-import:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.canvas-integration-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.canvas-integration-filter select {
+  min-width: 200px;
+  padding: 9px;
+  background: white;
+  border: 1px solid #aaa;
+  border-radius: 5px;
+  color: #222;
+}
+
+.canvas-integration-course {
+  margin-top: 18px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.canvas-integration-course-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #eee;
+}
+
+.canvas-integration-course-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.canvas-integration-course-header span {
+  font-size: 12px;
+}
+
+.canvas-integration-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.canvas-integration-table-head,
+.canvas-integration-table-row {
+  display: grid;
+  grid-template-columns:
+    minmax(190px, 2fr)
+    130px
+    80px
+    120px
+    110px;
+  align-items: center;
+  gap: 12px;
+  min-width: 690px;
+  padding: 12px 16px;
+}
+
+.canvas-integration-table-head {
+  background: #f5f5f5;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.canvas-integration-table-row {
+  border-top: 1px solid #eee;
+  font-size: 13px;
+}
+
+.canvas-integration-title {
+  font-weight: 600;
+}
+
+.canvas-integration-assignment-status {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.canvas-integration-assignment-status.imported {
+  color: #16813a;
+}
+
+.canvas-integration-assignment-status.locked {
+  color: #a14646;
+}
+
+.canvas-integration-import {
+  padding: 7px 10px;
+  background: transparent;
+  border: 1px solid #7267d9;
+  border-radius: 5px;
+  color: #7267d9;
+  cursor: pointer;
+}
+
+.canvas-integration-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.canvas-integration-stat {
+  padding: 18px;
+  background: #f3f1ff;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.canvas-integration-stat strong {
+  display: block;
+  font-size: 26px;
+}
+
+.canvas-integration-stat span {
+  font-size: 12px;
+}
+
+.canvas-integration-empty {
+  padding: 35px 15px;
+  color: #666;
+  text-align: center;
+  font-size: 14px;
+}
+
+.canvas-integration-success,
+.canvas-integration-error {
+  padding: 12px;
+  border-radius: 6px;
+}
+
+.canvas-integration-success {
+  background: #e6f4ea;
+  color: #17632d !important;
+}
+
+.canvas-integration-error {
+  background: #fbe9e7;
+  color: #b3261e !important;
+}
+
+.canvas-integration-failures {
+  margin-top: 16px;
+  padding: 12px;
+  background: #fff0f0;
+  border-radius: 6px;
+}
+
+.canvas-integration-failures h3,
+.canvas-integration-failures p {
+  color: #9b1b1b;
+}
+
+.dashboard-page.dark-mode .canvas-integration-card {
+  background: #292930;
+  border-color: #555;
+}
+
+.dashboard-page.dark-mode .canvas-integration-header p,
+.dashboard-page.dark-mode .canvas-integration-card p {
+  color: #ccc;
+}
+
+.dashboard-page.dark-mode .canvas-integration-course {
+  border-color: #555;
+}
+
+.dashboard-page.dark-mode .canvas-integration-course-header,
+.dashboard-page.dark-mode .canvas-integration-table-head {
+  background: #35353e;
+}
+
+.dashboard-page.dark-mode .canvas-integration-table-row {
+  border-color: #555;
+}
+
+.dashboard-page.dark-mode .canvas-integration-stat {
+  background: #393451;
+}
+
+.dashboard-page.dark-mode .canvas-integration-success {
+  background: #193c29;
+  color: #b8f5c9 !important;
+}
+
+.dashboard-page.dark-mode .canvas-integration-error {
+  background: #482525;
+  color: #ffb5b5 !important;
+}
+
+.dashboard-page.dark-mode .canvas-integration-failures {
+  background: #482525;
+}
+
+.dashboard-page.dark-mode .canvas-integration-failures h3,
+.dashboard-page.dark-mode .canvas-integration-failures p {
+  color: #ffb5b5;
+}
+
+@media (max-width: 700px) {
+  .canvas-integration-page {
+    padding: 12px;
+  }
+
+  .canvas-integration-header,
+  .canvas-integration-connect-row,
+  .canvas-integration-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .canvas-integration-card {
+    padding: 15px;
+  }
+
+  .canvas-integration-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .canvas-integration-filter {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

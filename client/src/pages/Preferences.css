@@ -1,0 +1,190 @@
+
+.preferences-page {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+  color: inherit;
+}
+
+.preferences-header {
+  margin-bottom: 24px;
+}
+
+.preferences-header h1 {
+  margin: 0 0 8px;
+  font-size: 32px;
+}
+
+.preferences-header p,
+.preferences-help {
+  color: #666;
+  font-size: 14px;
+}
+
+.preferences-card {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  padding: 28px;
+}
+
+.preferences-card h2 {
+  margin: 22px 0 16px;
+  font-size: 20px;
+}
+
+.preferences-card h2:first-child {
+  margin-top: 0;
+}
+
+.preferences-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.preferences-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.preferences-field input,
+.preferences-field select {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #aaa;
+  border-radius: 6px;
+  background: #fff;
+  color: #222;
+  font-size: 14px;
+}
+
+.preferences-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+  font-size: 14px;
+}
+
+.preferences-slider input {
+  width: 100%;
+  accent-color: #7267d9;
+}
+
+.preferences-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.preferences-actions button {
+  padding: 11px 18px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.preferences-save {
+  background: #7267d9;
+  color: #fff;
+  border: none;
+}
+
+.preferences-reset {
+  background: transparent;
+  color: inherit;
+  border: 1px solid #888;
+}
+
+.preferences-notice,
+.preferences-success,
+.preferences-error {
+  padding: 12px;
+  border-radius: 6px;
+  margin: 12px 0;
+  font-size: 13px;
+}
+
+.preferences-notice {
+  background: #fff3d6;
+  color: #765000;
+}
+
+.preferences-success {
+  background: #e4f5e8;
+  color: #17632d;
+}
+
+.preferences-error,
+.preferences-invalid {
+  color: #b3261e;
+}
+
+.preferences-error {
+  background: #fbe9e7;
+}
+
+.dashboard-page.dark-mode .preferences-card {
+  background: #292930;
+  border-color: #555;
+  color: #f2f2f2;
+}
+
+.dashboard-page.dark-mode .preferences-header p,
+.dashboard-page.dark-mode .preferences-help {
+  color: #ccc;
+}
+
+.dashboard-page.dark-mode .preferences-field input,
+.dashboard-page.dark-mode .preferences-field select {
+  background: #1f1f25;
+  border-color: #666;
+  color: #f2f2f2;
+}
+
+.dashboard-page.dark-mode .preferences-reset {
+  color: #f2f2f2;
+}
+
+.dashboard-page.dark-mode .preferences-notice {
+  background: #463a24;
+  color: #ffe4a0;
+}
+
+.dashboard-page.dark-mode .preferences-success {
+  background: #193c29;
+  color: #b8f5c9;
+}
+
+.dashboard-page.dark-mode .preferences-error {
+  background: #482525;
+  color: #ffb5b5;
+}
+
+@media (max-width: 700px) {
+  .preferences-page {
+    padding: 12px;
+  }
+
+  .preferences-card {
+    padding: 18px;
+  }
+
+  .preferences-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .preferences-actions {
+    flex-direction: column;
+  }
+
+  .preferences-actions button {
+    width: 100%;
+  }
+}
