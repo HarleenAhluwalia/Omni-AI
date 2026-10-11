@@ -6,6 +6,10 @@ import PrioritizedTodo from "./PrioritizedTodo";
 import CalendarView from "./CalendarView";
 import DailySummary from "./DailySummary";
 import WeeklySummary from "./WeeklySummary";
+import Preferences from "./Preferences";
+import CanvasIntegration from "./CanvasIntegration";
+
+
 
 import { useAuth } from "../context/AuthContext";
 
@@ -270,6 +274,35 @@ const getTasksForDashboardDay = (day) => {
               Dashboard
             </button>
 
+
+            <button
+              type="button"
+              className={
+                activeView === "preferences"
+                  ? "sidebar-item active-menu"
+                  : "sidebar-item"
+              }
+              onClick={() => setActiveView("preferences")}
+            >
+              <span>⚙</span>
+              Preferences
+            </button>
+
+            <button
+              type="button"
+              className={
+                activeView === "canvas"
+                  ? "sidebar-item active-menu"
+                  : "sidebar-item"
+              }
+              onClick={() => setActiveView("canvas")}
+            >
+              <span>▤</span>
+              Canvas Integration
+            </button>
+
+
+
             <button
               className={
                 activeView === "todo"
@@ -382,6 +415,16 @@ const getTasksForDashboardDay = (day) => {
           MAIN CONTENT
       ========================= */}
       <main className="dashboard-main">
+
+        {activeView === "preferences" && (
+          <Preferences />
+        )}
+        
+        {activeView === "canvas" && (
+          <CanvasIntegration />
+        )}
+
+
 
         {/* =========================
             DASHBOARD VIEW
