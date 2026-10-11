@@ -119,13 +119,55 @@ const findAssignmentById = (assignmentId) => {
   return null;
 };
 
+
+/**
+ * Find a Canvas assignment using both its course ID
+ * and assignment ID.
+ *
+ * This matches the database uniqueness rule:
+ * (user_id, canvas_course_id, canvas_assignment_id)
+ */
+const findAssignmentByCourseAndId = (
+  courseId,
+  assignmentId
+) => {
+  const numericCourseId = Number(courseId);
+  const numericAssignmentId = Number(assignmentId);
+
+  const course = MOCK_COURSES.find(
+    (item) => item.id === numericCourseId
+  );
+
+  if (!course) {
+    return null;
+  }
+
+  const assignment = course.assignments.find(
+    (item) => item.id === numericAssignmentId
+  );
+
+  if (!assignment) {
+    return null;
+  }
+
+  const { assignments, ...courseWithoutAssignments } = course;
+
+  return {
+    course: { ...courseWithoutAssignments },
+    assignment: { ...assignment },
+  };
+};
+
 // Small, named predicate so callers don't repeat `assignment.locked === true`
 // inline - also guards against a missing/undefined `locked` field being
 // treated as locked by accident.
 const isLocked = (assignment) => assignment?.locked === true;
 
+
 module.exports = {
   listCourses,
   findAssignmentById,
+  findAssignmentByCourseAndId,
   isLocked,
 };
+
