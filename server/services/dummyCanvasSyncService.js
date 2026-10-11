@@ -2,6 +2,7 @@
 const supabase = require("../config/supabase");
 
 const {
+    convertCanvasAssignmentToTask,
     convertCanvasAssignmentToUpdates,
 } = require("./dummyCanvasImportService");
 
@@ -51,11 +52,13 @@ const updateImportedTask = async (userId, assignment) => {
         source.assignmentId
     );
 
-    // Reject assignments associated with the wrong course.
-    if (
-        canvasAssignment &&
-        canvasAssignment.courseId !== source.courseId
-    ) {
+    // Reject assignments that do not exist in Dummy Canvas.
+    if (!canvasAssignment) {
+        throw new Error("Canvas assignment not found");
+    }
+
+    // Verify the assignment belongs to the correct course.
+    if (canvasAssignment.courseId !== source.courseId) {
         throw new Error(
             "Canvas assignment does not belong to the specified course"
         );
@@ -99,8 +102,80 @@ const updateImportedTask = async (userId, assignment) => {
     return data || null;
 };
 
+const importCanvasAssignment = async (userId, assignmentId) => {
+    if (!userId || !Number.isInteger(assignmentId)) {
+        throw new Error("Valid user and assignment IDs are required");
+    }
+
+    // Retrieve the actual simulated Canvas assignment.
+    const assignment = getAssignmentById(assignmentId);
+
+    if (!assignment) {
+        throw new Error("Canvas assignment not found");
+    }
+
+    if (assignment.locked) {
+        throw new Error("This Canvas assignment is locked");
+    }
+
+    // Convert Canvas data into Omni-AI task format.
+    const { source, task } =
+        convertCanvasAssignmentToTask(assignment);
+
+    // Check whether this assignment was already imported.
+    const existingTask = await findImportedTask(
+        userId,
+        source.courseId,
+        source.assignmentId
+    );
+
+    if (existingTask) {
+        return {
+            created: false,
+            task: existingTask,
+        };
+    }
+
+    // Insert the new task into Supabase.
+    const { data, error } = await supabase
+        .from("tasks")
+        .insert([{
+            ...task,
+            user_id: userId,
+            canvas_course_id: source.courseId,
+            canvas_assignment_id: source.assignmentId,
+        }])
+        .select()
+        .single();
+
+    if (error) {
+        // Handle a concurrent import of the same assignment.
+        if (error.code === "23505") {
+            const imported = await findImportedTask(
+                userId,
+                source.courseId,
+                source.assignmentId
+            );
+
+            if (imported) {
+                return {
+                    created: false,
+                    task: imported,
+                };
+            }
+        }
+
+        throw new Error(error.message);
+    }
+
+    return {
+        created: true,
+        task: data,
+    };
+};
 
 module.exports = {
-    findImportedTask,
-    updateImportedTask,
+  findImportedTask,
+  updateImportedTask,
+  importCanvasAssignment,
 };

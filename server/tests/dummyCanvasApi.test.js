@@ -4,6 +4,17 @@ jest.mock("../config/supabase", () => {
     return createMockSupabase();
 });
 
+jest.mock("../services/dummyCanvasSyncService", () => ({
+    ...jest.requireActual("../services/dummyCanvasSyncService"),
+    importCanvasAssignment: jest.fn(),
+    updateImportedTask: jest.fn(),
+}));
+
+const {
+    importCanvasAssignment,
+    updateImportedTask,
+} = require("../services/dummyCanvasSyncService");
+
 const request = require("supertest");
 const { createApp } = require("../src/app");
 const { signToken } = require("../src/middleware/auth");
@@ -203,6 +214,277 @@ describe("Dummy Canvas API", () => {
         expect(res.status).toBe(200);
         expect(res.body.success).toBe(true);
         expect(res.body.data.source.assignmentId).toBe(101);
+    });
+
+    test.each([
+        ["unavailable", 503, "CANVAS_UNAVAILABLE"],
+        ["timeout", 504, "CANVAS_TIMEOUT"],
+        ["rate_limit", 429, "CANVAS_RATE_LIMIT"],
+    ])(
+        "simulates Canvas %s error correctly",
+        async (errorType, expectedStatus, expectedCode) => {
+            const res = await request(app)
+                .get(
+                    `/api/dummy-canvas/courses?simulateError=${errorType}`
+                )
+                .set("Authorization", authHeader());
+
+            expect(res.status).toBe(expectedStatus);
+            expect(res.body.success).toBe(false);
+            expect(res.body.code).toBe(expectedCode);
+            expect(typeof res.body.error).toBe("string");
+        }
+    );
+
+    test.each([
+        ["unavailable", 503, "CANVAS_UNAVAILABLE"],
+        ["timeout", 504, "CANVAS_TIMEOUT"],
+        ["rate_limit", 429, "CANVAS_RATE_LIMIT"],
+    ])(
+        "simulates assignment retrieval %s error",
+        async (errorType, expectedStatus, expectedCode) => {
+            const res = await request(app)
+                .get(
+                    `/api/dummy-canvas/assignments?simulateError=${errorType}`
+                )
+                .set("Authorization", authHeader());
+
+            expect(res.status).toBe(expectedStatus);
+            expect(res.body.success).toBe(false);
+            expect(res.body.code).toBe(expectedCode);
+            expect(typeof res.body.error).toBe("string");
+        }
+    );
+
+    test("disables error simulation in production", async () => {
+        const originalEnv = process.env.NODE_ENV;
+
+        try {
+            // Temporarily simulate production mode.
+            process.env.NODE_ENV = "production";
+
+            const res = await request(app)
+                .get(
+                    "/api/dummy-canvas/courses?simulateError=timeout"
+                )
+                .set("Authorization", authHeader());
+
+            expect(res.status).toBe(403);
+            expect(res.body.success).toBe(false);
+            expect(res.body.code).toBe(
+                "SIMULATION_DISABLED"
+            );
+            expect(res.body.error).toBe(
+                "Error simulation is disabled in production"
+            );
+        } finally {
+            // Restore the original environment.
+            if (originalEnv === undefined) {
+                delete process.env.NODE_ENV;
+            } else {
+                process.env.NODE_ENV = originalEnv;
+            }
+        }
+    });
+
+    describe("Dummy Canvas Import API", () => {
+
+        beforeEach(() => {
+            importCanvasAssignment.mockReset();
+        });
+
+        test("imports a new Canvas assignment", async () => {
+            const createdTask = {
+                id: "task-uuid-123",
+                user_id: "11111111-1111-4111-8111-111111111111",
+                title: "Sprint 3 Report",
+                canvas_course_id: 1,
+                canvas_assignment_id: 101,
+                point_value: 100,
+            };
+
+            importCanvasAssignment.mockResolvedValue({
+                created: true,
+                task: createdTask,
+            });
+
+            const res = await request(app)
+                .post("/api/dummy-canvas/import-assignment")
+                .set("Authorization", authHeader())
+                .send({ assignmentId: 101 });
+
+            expect(res.status).toBe(201);
+            expect(res.body.success).toBe(true);
+            expect(res.body.created).toBe(true);
+            expect(res.body.data).toEqual(createdTask);
+
+            expect(importCanvasAssignment).toHaveBeenCalledWith(
+                "11111111-1111-4111-8111-111111111111",
+                101
+            );
+        });
+
+        test("prevents duplicate assignment imports", async () => {
+            const existingTask = {
+                id: "task-uuid-123",
+                title: "Sprint 3 Report",
+                canvas_assignment_id: 101,
+            };
+
+            importCanvasAssignment.mockResolvedValue({
+                created: false,
+                task: existingTask,
+            });
+
+            const res = await request(app)
+                .post("/api/dummy-canvas/import-assignment")
+                .set("Authorization", authHeader())
+                .send({ assignmentId: 101 });
+
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
+            expect(res.body.created).toBe(false);
+            expect(res.body.data).toEqual(existingTask);
+        });
+
+        test("rejects missing assignment IDs", async () => {
+            const res = await request(app)
+                .post("/api/dummy-canvas/import-assignment")
+                .set("Authorization", authHeader())
+                .send({});
+
+            expect(res.status).toBe(400);
+            expect(res.body.success).toBe(false);
+            expect(importCanvasAssignment).not.toHaveBeenCalled();
+        });
+
+        test("rejects locked Canvas assignments", async () => {
+            importCanvasAssignment.mockRejectedValue(
+                new Error("This Canvas assignment is locked")
+            );
+
+            const res = await request(app)
+                .post("/api/dummy-canvas/import-assignment")
+                .set("Authorization", authHeader())
+                .send({ assignmentId: 301 });
+
+            expect(res.status).toBe(403);
+            expect(res.body.success).toBe(false);
+            expect(res.body.error).toBe(
+                "This Canvas assignment is locked"
+            );
+        });
+
+        test("rejects nonexistent Canvas assignments", async () => {
+            importCanvasAssignment.mockRejectedValue(
+                new Error("Canvas assignment not found")
+            );
+
+            const res = await request(app)
+                .post("/api/dummy-canvas/import-assignment")
+                .set("Authorization", authHeader())
+                .send({ assignmentId: 999 });
+
+            expect(res.status).toBe(404);
+            expect(res.body.success).toBe(false);
+            expect(res.body.error).toBe(
+                "Canvas assignment not found"
+            );
+        });
+
+        test("synchronizes an existing imported assignment", async () => {
+            const updatedTask = {
+                id: "task-uuid-123",
+                title: "Sprint 3 Report",
+                due_date: "2026-10-15T23:59:59.999Z",
+                point_value: 150,
+                priority: "medium",
+                completion_status: "not_started",
+            };
+
+            updateImportedTask.mockResolvedValue(updatedTask);
+
+            const assignment = {
+                id: 101,
+                courseId: 1,
+                title: "Sprint 3 Report",
+                dueDate: "2026-10-15",
+                points: 150,
+            };
+
+            const res = await request(app)
+                .put("/api/dummy-canvas/sync-assignment")
+                .set("Authorization", authHeader())
+                .send({ assignment });
+
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
+            expect(res.body.data).toEqual(updatedTask);
+
+            expect(updateImportedTask).toHaveBeenCalledWith(
+                "11111111-1111-4111-8111-111111111111",
+                assignment
+            );
+        });
+
+        test("rejects synchronization of locked assignments", async () => {
+            updateImportedTask.mockRejectedValue(
+                new Error("This Canvas assignment is locked")
+            );
+
+            const res = await request(app)
+                .put("/api/dummy-canvas/sync-assignment")
+                .set("Authorization", authHeader())
+                .send({
+                    assignment: {
+                        id: 301,
+                        courseId: 3,
+                        title: "Art Homework",
+                        dueDate: "2026-10-20",
+                        points: 20,
+                    },
+                });
+
+            expect(res.status).toBe(403);
+            expect(res.body.success).toBe(false);
+            expect(res.body.error).toBe(
+                "This Canvas assignment is locked"
+            );
+        });
+
+        test("returns 404 when imported assignment does not exist", async () => {
+            updateImportedTask.mockResolvedValue(null);
+
+            const res = await request(app)
+                .put("/api/dummy-canvas/sync-assignment")
+                .set("Authorization", authHeader())
+                .send({
+                    assignment: {
+                        id: 102,
+                        courseId: 1,
+                        title: "Frontend Implementation",
+                        dueDate: "2026-10-15",
+                        points: 50,
+                    },
+                });
+
+            expect(res.status).toBe(404);
+            expect(res.body.success).toBe(false);
+            expect(res.body.error).toBe(
+                "Imported assignment not found"
+            );
+        });
+
+        test("rejects synchronization without assignment data", async () => {
+            const res = await request(app)
+                .put("/api/dummy-canvas/sync-assignment")
+                .set("Authorization", authHeader())
+                .send({});
+
+            expect(res.status).toBe(400);
+            expect(res.body.success).toBe(false);
+        });
+
     });
 
 });
