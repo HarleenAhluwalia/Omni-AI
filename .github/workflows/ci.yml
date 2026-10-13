@@ -179,3 +179,31 @@ jobs:
           else
             echo "FAIL — ${{ steps.alan_build_id.outputs.build_id }}"
           fi
+
+
+  harleen-canvas-preferences-tests:
+    name: Harleen - Canvas and Preferences Tests (SCRUM-329)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: client
+        run: npm ci
+
+      - name: Run Canvas API and Preferences contract tests
+        working-directory: client
+        run: npm run test:harleen
+
+      - name: Run standalone Dummy Canvas import tests
+        working-directory: dummy-canvas
+        run: npm test

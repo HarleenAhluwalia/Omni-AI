@@ -2,17 +2,12 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import "./Preferences.css";
-
-const DEFAULTS = {
-  studySessionMinutes: 45,
-  breakMinutes: 10,
-  dailyWorkloadMinutes: 240,
-  schedulingStyle: "balanced",
-  communicationStyle: "concise",
-  deadlineWeight: 40,
-  priorityWeight: 35,
-  effortWeight: 25,
-};
+import {
+  DEFAULT_PREFERENCES,
+  validatePreferences,
+  normalizePreferences,
+  preferenceRequest,
+} from "../api/preferencesApi";
 
 const FIELDS = [
   ["studySessionMinutes", "Study session length", 1, 240],
@@ -26,57 +21,17 @@ const WEIGHTS = [
   ["effortWeight", "Estimated effort"],
 ];
 
-function validatePreferences(values) {
-  for (const [key, label, min, max] of FIELDS) {
-    const value = Number(values[key]);
-
-    if (
-      !Number.isInteger(value) ||
-      value < min ||
-      value > max
-    ) {
-      return `${label} must be between ${min} and ${max} minutes.`;
-    }
-  }
-
-  for (const [key] of WEIGHTS) {
-    const value = Number(values[key]);
-
-    if (
-      !Number.isInteger(value) ||
-      value < 0 ||
-      value > 100
-    ) {
-      return "Priority weights must be between 0 and 100.";
-    }
-  }
-
-  const total = WEIGHTS.reduce(
-    (sum, [key]) => sum + Number(values[key]),
-    0
-  );
-
-  if (total !== 100) {
-    return "Priority weights must total 100%.";
-  }
-
-  return "";
-}
-
 function Preferences() {
   const { user, token } = useAuth();
 
-  const [values, setValues] = useState(DEFAULTS);
+  const [values, setValues] = useState(DEFAULT_PREFERENCES);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  // Demo storage is isolated per authenticated user.
   const storageKey = `omni-preferences-demo-${user?.id}`;
-
-  // Optional backend endpoint configured by the team.
-  const apiUrl = import.meta.env.VITE_PREFERENCES_API_URL;
+  const apiUrl = import.meta.env.VITE_API_URL;
   const demoMode = !apiUrl;
 
   useEffect(() => {
@@ -96,28 +51,24 @@ function Preferences() {
 
         if (demoMode) {
           const raw = localStorage.getItem(storageKey);
-          saved = raw ? JSON.parse(raw) : DEFAULTS;
+          saved = raw
+            ? JSON.parse(raw)
+            : DEFAULT_PREFERENCES;
         } else {
-          const response = await fetch(apiUrl, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-
-          if (!response.ok) {
-            throw new Error("Could not retrieve preferences.");
-          }
-
-          const result = await response.json();
-          saved = result.data ?? result;
+          saved = await preferenceRequest(apiUrl, token);
         }
 
         if (active) {
-          setValues({ ...DEFAULTS, ...saved });
+          setValues({
+            ...DEFAULT_PREFERENCES,
+            ...saved,
+          });
         }
       } catch (err) {
         if (active) {
-          setError(err.message || "Could not load preferences.");
+          setError(
+            err.message || "Could not load preferences."
+          );
         }
       } finally {
         if (active) setLoading(false);
@@ -160,15 +111,7 @@ function Preferences() {
     setError("");
     setMessage("");
 
-    const payload = {
-      ...values,
-      studySessionMinutes: Number(values.studySessionMinutes),
-      breakMinutes: Number(values.breakMinutes),
-      dailyWorkloadMinutes: Number(values.dailyWorkloadMinutes),
-      deadlineWeight: Number(values.deadlineWeight),
-      priorityWeight: Number(values.priorityWeight),
-      effortWeight: Number(values.effortWeight),
-    };
+    const payload = normalizePreferences(values);
 
     try {
       if (demoMode) {
@@ -181,30 +124,31 @@ function Preferences() {
           "Preferences saved in demo storage. Backend synchronization is not connected."
         );
       } else {
-        const response = await fetch(apiUrl, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        });
+        const saved = await preferenceRequest(
+          apiUrl,
+          token,
+          "PUT",
+          payload
+        );
 
-        if (!response.ok) {
-          throw new Error("Could not save preferences.");
-        }
+        setValues({
+          ...DEFAULT_PREFERENCES,
+          ...saved,
+        });
 
         setMessage("Preferences saved successfully.");
       }
     } catch (err) {
-      setError(err.message || "Save failed. Please try again.");
+      setError(
+        err.message || "Save failed. Please try again."
+      );
     } finally {
       setSaving(false);
     }
   };
 
   const resetPreferences = () => {
-    setValues({ ...DEFAULTS });
+    setValues({ ...DEFAULT_PREFERENCES });
     setError("");
     setMessage(
       "Default values restored in the form. Select Save Preferences to keep them."
@@ -270,10 +214,14 @@ function Preferences() {
         <div className="preferences-grid">
           <label className="preferences-field">
             <span>Scheduling style</span>
+
             <select
               value={values.schedulingStyle}
               onChange={(event) =>
-                update("schedulingStyle", event.target.value)
+                update(
+                  "schedulingStyle",
+                  event.target.value
+                )
               }
             >
               <option value="balanced">Balanced</option>
@@ -284,12 +232,17 @@ function Preferences() {
 
           <label className="preferences-field">
             <span>AI communication style</span>
+
             <select
               value={values.communicationStyle}
               onChange={(event) =>
-                update("communicationStyle", event.target.value)
+                update(
+                  "communicationStyle",
+                  event.target.value
+                )
               }
             >
+              <option value="balanced">Balanced</option>
               <option value="concise">Concise</option>
               <option value="detailed">Detailed</option>
               <option value="encouraging">Encouraging</option>
@@ -298,8 +251,10 @@ function Preferences() {
         </div>
 
         <h2>Task Priority Weights</h2>
+
         <p className="preferences-help">
-          Adjust how important each factor is. Total must equal 100%.
+          Adjust how important each factor is.
+          Total must equal 100%.
         </p>
 
         {WEIGHTS.map(([key, label]) => (
@@ -321,7 +276,13 @@ function Preferences() {
           </label>
         ))}
 
-        <p className={totalWeight === 100 ? "" : "preferences-invalid"}>
+        <p
+          className={
+            totalWeight === 100
+              ? ""
+              : "preferences-invalid"
+          }
+        >
           Total: {totalWeight}%
         </p>
 
@@ -332,7 +293,10 @@ function Preferences() {
         )}
 
         {message && (
-          <p className="preferences-success" role="status">
+          <p
+            className="preferences-success"
+            role="status"
+          >
             {message}
           </p>
         )}
@@ -352,7 +316,9 @@ function Preferences() {
             className="preferences-save"
             disabled={saving}
           >
-            {saving ? "Saving..." : "Save Preferences"}
+            {saving
+              ? "Saving..."
+              : "Save Preferences"}
           </button>
         </div>
       </form>
