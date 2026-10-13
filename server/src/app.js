@@ -8,6 +8,7 @@ const scheduleRoutes = require("../routes/scheduleRoutes");
 const dummyCanvasRoutes = require("../routes/dummyCanvasRoutes");
 const canvasRoutes = require("./routes/canvasRoutes");
 const notificationSettingsRoutes = require("../routes/notificationSettingsRoutes");
+const preferencesRoutes = require("./routes/preferencesRoutes");
 
 function createApp() {
   const app = express();
@@ -38,23 +39,24 @@ function createApp() {
   // Alan - Scheduling routes
   app.use("/api/schedules", scheduleRoutes);
 
+  
   // Alan - Dummy Canvas routes
   app.use("/api/dummy-canvas", dummyCanvasRoutes);
 
-  // Canvas assignment synchronization (PR 2) - distinct from
-  // /api/dummy-canvas above, which is a separate, read-only mock-catalog
-  // browser with no Task-import/sync logic. This is the real
-  // synchronization engine built on PR 1's canvasService.js.
+  // Canvas assignment synchronization
   app.use("/api/canvas", canvasRoutes);
+
+  // Harleen - UC-9/UC-16 Study and AI Preferences
+  app.use("/api/preferences", preferencesRoutes);
 
   app.use((err, req, res, next) => {
     console.error(err);
 
     res.status(500).json({
-      error:
-        "Internal server error."
+      error: "Internal server error."
     });
   });
+
 
   return app;
 }

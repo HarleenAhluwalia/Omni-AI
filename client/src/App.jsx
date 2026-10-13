@@ -9,7 +9,7 @@ function App() {
   const [showRegister, setShowRegister] = useState(false);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/health`)
+    fetch("http://localhost:4000/health")
       .then((response) => response.json())
       .then((data) => {
         console.log("Backend response:", data);
