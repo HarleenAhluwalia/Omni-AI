@@ -1,3 +1,6 @@
+
+const { createClient } = require("@supabase/supabase-js");
+
 const { UserRepository } = require("../config/db");
 
 const {
@@ -13,10 +16,40 @@ const {
 
 const { signToken } = require("../middleware/auth");
 
-// Supabase server client.
-// This uses SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY
-// from server/.env.
 const supabase = require("../../config/supabase");
+
+// ---------------------------------------------------------
+// Supabase Password Authentication Client
+// ---------------------------------------------------------
+function createPasswordAuthClient() {
+  const supabaseUrl = process.env.SUPABASE_URL;
+
+  // Use the public key, never the service-role key,
+  // for password authentication.
+  const supabaseKey =
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_PUBLISHABLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error(
+      "Missing Supabase URL or public API key."
+    );
+  }
+
+  return createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false
+    }
+  });
+}
+
+function invalidCredentials(res) {
+  return res.status(401).json({
+    errors: ["Invalid email or password."]
+  });
+}
 
 // ---------------------------------------------------------
 // UC-5: User Registration
@@ -29,9 +62,10 @@ async function register(req, res) {
   }
 
   const { name, email, password } = req.body;
+  const normalizedEmail = email.trim().toLowerCase();
 
-  // Prevent duplicate application accounts.
-  if (UserRepository.findByEmail(email)) {
+  // Prevent duplicate local application accounts.
+  if (UserRepository.findByEmail(normalizedEmail)) {
     return res.status(409).json({
       errors: [
         "An account with this email already exists."
@@ -39,31 +73,15 @@ async function register(req, res) {
     });
   }
 
-  // -------------------------------------------------------
   // Create the user in Supabase Auth first.
-  //
-  // This is important because:
-  //
-  // auth.users.id
-  //        ↓
-  // public.profiles.id
-  //        ↓
-  // public.tasks.user_id
-  //
-  // All three need to use the SAME UUID.
-  // -------------------------------------------------------
+  // The same UUID is shared with profiles and tasks.
   const {
     data: authData,
     error: authError
   } = await supabase.auth.admin.createUser({
-    email,
+    email: normalizedEmail,
     password,
-
-    // Sprint 1:
-    // Confirm the development account immediately so
-    // authentication testing does not depend on email confirmation.
     email_confirm: true,
-
     user_metadata: {
       name
     }
@@ -73,7 +91,7 @@ async function register(req, res) {
     return res.status(500).json({
       errors: [
         authError?.message ||
-          "Could not create authentication user."
+        "Could not create authentication user."
       ]
     });
   }
@@ -81,14 +99,9 @@ async function register(req, res) {
   const supabaseUserId = authData.user.id;
 
   try {
-    // -----------------------------------------------------
-    // Keep the team's existing local/application user model.
-    // The important change is that its ID now matches
-    // the Supabase Auth UUID.
-    // -----------------------------------------------------
     const user = await buildUser({
       name,
-      email,
+      email: normalizedEmail,
       password
     });
 
@@ -96,12 +109,6 @@ async function register(req, res) {
 
     UserRepository.create(user);
 
-    // -----------------------------------------------------
-    // Ensure public.profiles contains the same UUID.
-    //
-    // upsert is used because the database may already have
-    // a signup trigger that creates this profile.
-    // -----------------------------------------------------
     const {
       error: profileError
     } = await supabase
@@ -134,13 +141,18 @@ async function register(req, res) {
       error
     );
 
-    // If application/profile setup failed after creating
-    // the Supabase Auth user, remove that Auth user so we
-    // do not leave a partially created account.
     try {
-      await supabase.auth.admin.deleteUser(
-        supabaseUserId
-      );
+      const { error: cleanupError } =
+        await supabase.auth.admin.deleteUser(
+          supabaseUserId
+        );
+
+      if (cleanupError) {
+        console.error(
+          "Supabase user cleanup failed:",
+          cleanupError
+        );
+      }
     } catch (cleanupError) {
       console.error(
         "Supabase user cleanup failed:",
@@ -151,15 +163,15 @@ async function register(req, res) {
     return res.status(500).json({
       errors: [
         error.message ||
-          "Could not complete registration."
+        "Could not complete registration."
       ]
     });
   }
 }
 
-
 // ---------------------------------------------------------
 // UC-5: User Login
+// Supports existing local users and missing local accounts.
 // ---------------------------------------------------------
 async function login(req, res) {
   const errors = validateLogin(req.body || {});
@@ -169,40 +181,132 @@ async function login(req, res) {
   }
 
   const { email, password } = req.body;
+  const normalizedEmail = email.trim().toLowerCase();
 
-  const user =
-    UserRepository.findByEmail(email);
+  let user = UserRepository.findByEmail(normalizedEmail);
 
-  if (!user) {
-    return res.status(401).json({
-      errors: [
-        "Invalid email or password."
-      ]
-    });
-  }
+  // -------------------------------------------------------
+  // Existing local users:
+  // Preserve the team's current password verification.
+  // -------------------------------------------------------
+  if (user) {
+    if (!user.passwordHash) {
+      return invalidCredentials(res);
+    }
 
-  const passwordMatches =
-    await verifyPassword(
+    const passwordMatches = await verifyPassword(
       password,
       user.passwordHash
     );
 
-  if (!passwordMatches) {
-    return res.status(401).json({
-      errors: [
-        "Invalid email or password."
-      ]
+    if (!passwordMatches) {
+      return invalidCredentials(res);
+    }
+
+    return res.status(200).json({
+      token: signToken(user),
+      user: toPublicUser(user)
     });
   }
 
-  const token = signToken(user);
+  // -------------------------------------------------------
+  // Missing local user:
+  // Verify credentials with Supabase and restore the record.
+  // -------------------------------------------------------
+  try {
+    const authClient = createPasswordAuthClient();
 
-  return res.status(200).json({
-    token,
-    user: toPublicUser(user)
-  });
+    const {
+      data,
+      error
+    } = await authClient.auth.signInWithPassword({
+      email: normalizedEmail,
+      password
+    });
+
+    if (error) {
+      // Invalid credentials remain 401.
+      // Report unrelated Supabase outages as service errors.
+      if (
+        error.status === 400 ||
+        error.status === 401 ||
+        error.code === "invalid_credentials"
+      ) {
+        return invalidCredentials(res);
+      }
+
+      console.error(
+        "Supabase password login failed:",
+        error.message
+      );
+
+      return res.status(503).json({
+        errors: [
+          "Authentication service is temporarily unavailable."
+        ]
+      });
+    }
+
+    if (!data?.user) {
+      return invalidCredentials(res);
+    }
+
+    const supabaseUser = data.user;
+
+    const name =
+      supabaseUser.user_metadata?.name ||
+      supabaseUser.user_metadata?.full_name ||
+      supabaseUser.email?.split("@")[0] ||
+      normalizedEmail.split("@")[0];
+
+    // The password has already been verified by Supabase.
+    // Build a compatible application user record.
+    const restoredUser = await buildUser({
+      name,
+      email: normalizedEmail,
+      password
+    });
+
+    // Use the existing Supabase UUID.
+    restoredUser.id = supabaseUser.id;
+
+    // Avoid creating a duplicate on repeated requests.
+    user = UserRepository.findByEmail(normalizedEmail);
+
+    if (!user) {
+      user = UserRepository.create(restoredUser);
+    }
+
+    if (user.id !== supabaseUser.id) {
+      return res.status(409).json({
+        errors: [
+          "Account ID mismatch. Please contact the team."
+        ]
+      });
+    }
+
+    return res.status(200).json({
+      token: signToken(user),
+      user: toPublicUser(user)
+    });
+
+  } catch (error) {
+    console.error(
+      "Login recovery failed:",
+      error
+    );
+
+    return res.status(500).json({
+      errors: [
+        "Could not complete login."
+      ]
+    });
+  }
 }
 
+// ---------------------------------------------------------
+// UC-5: OAuth Login
+// ---------------------------------------------------------
 async function oauthLogin(req, res) {
   const { access_token } = req.body || {};
 
@@ -212,7 +316,6 @@ async function oauthLogin(req, res) {
     });
   }
 
-  // Verify the Supabase OAuth token and get the authenticated user.
   const {
     data,
     error
@@ -222,7 +325,7 @@ async function oauthLogin(req, res) {
     return res.status(401).json({
       errors: [
         error?.message ||
-          "Invalid or expired OAuth session."
+        "Invalid or expired OAuth session."
       ]
     });
   }
@@ -231,7 +334,9 @@ async function oauthLogin(req, res) {
 
   if (!supabaseUser.email) {
     return res.status(400).json({
-      errors: ["OAuth account does not provide an email address."]
+      errors: [
+        "OAuth account does not provide an email address."
+      ]
     });
   }
 
@@ -240,17 +345,17 @@ async function oauthLogin(req, res) {
     supabaseUser.user_metadata?.full_name ||
     supabaseUser.email.split("@")[0];
 
-  let user =
-    UserRepository.findById(supabaseUser.id);
+  let user = UserRepository.findById(
+    supabaseUser.id
+  );
 
-  // If no application user exists for this Supabase UUID,
-  // check whether the same email already exists.
   if (!user) {
     const existingByEmail =
-      UserRepository.findByEmail(supabaseUser.email);
+      UserRepository.findByEmail(
+        supabaseUser.email
+      );
 
     if (existingByEmail) {
-      // Do not issue a token for the wrong UUID.
       if (existingByEmail.id !== supabaseUser.id) {
         return res.status(409).json({
           errors: [
@@ -263,7 +368,6 @@ async function oauthLogin(req, res) {
     }
   }
 
-  // First OAuth login: create the local/application-side user.
   if (!user) {
     user = {
       id: supabaseUser.id,
@@ -275,7 +379,6 @@ async function oauthLogin(req, res) {
     UserRepository.create(user);
   }
 
-  // Ensure the profile exists and uses the same UUID.
   const {
     error: profileError
   } = await supabase
@@ -299,12 +402,11 @@ async function oauthLogin(req, res) {
     return res.status(500).json({
       errors: [
         profileError.message ||
-          "Could not complete OAuth profile setup."
+        "Could not complete OAuth profile setup."
       ]
     });
   }
 
-  // Create the SAME Omni AI JWT used by native login.
   const token = signToken(user);
 
   return res.status(200).json({
@@ -315,11 +417,11 @@ async function oauthLogin(req, res) {
 
 // ---------------------------------------------------------
 // GET CURRENT USER
-// Used by frontend AuthContext when restoring a session.
 // ---------------------------------------------------------
 async function me(req, res) {
-  const user =
-    UserRepository.findById(req.user.id);
+  const user = UserRepository.findById(
+    req.user.id
+  );
 
   if (!user) {
     return res.status(404).json({
