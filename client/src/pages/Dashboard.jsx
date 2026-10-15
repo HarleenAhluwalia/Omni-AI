@@ -29,6 +29,7 @@ function Dashboard() {
   const [taskRefreshKey, setTaskRefreshKey] = useState(0);
   const [chatInput, setChatInput] = useState("");
   const [availableMinutes, setAvailableMinutes] = useState(120);
+  const [chatResponseMode, setChatResponseMode] = useState("text");
 
   const [chatMessages, setChatMessages] = useState([
     {
@@ -217,6 +218,11 @@ const getTasksForDashboardDay = (day) => {
         body: JSON.stringify({
           message: trimmedMessage,
           available_minutes: Number(availableMinutes),
+          response_mode: chatResponseMode,
+          schedule_start_time:
+            chatResponseMode === "schedule"
+              ? new Date().toISOString()
+              : undefined,
         }),
       }
     );
@@ -228,14 +234,25 @@ const getTasksForDashboardDay = (day) => {
         result.error || "Could not generate AI response."
       );
     }
+    
+
+    const assistantContent =
+      chatResponseMode === "schedule"
+        ? result.data.response.message
+        : result.data.response;
 
     setChatMessages((currentMessages) => [
       ...currentMessages,
       {
         role: "assistant",
-        content: result.data.response,
+        content: assistantContent,
       },
     ]);
+
+    if (chatResponseMode === "schedule") {
+      setTaskRefreshKey((current) => current + 1);
+    }
+
   } catch (error) {
     console.error("AI Chat failed:", error);
 
@@ -600,7 +617,7 @@ const getTasksForDashboardDay = (day) => {
                     </label>
 
                     <input
-                        id="available-minutes"
+                      id="available-minutes"
                       type="number"
                       min="0"
                       value={availableMinutes}
@@ -610,6 +627,17 @@ const getTasksForDashboardDay = (day) => {
                     />
 
                     <span>minutes</span>
+
+                    <select
+                      value={chatResponseMode}
+                      onChange={(e) =>
+                        setChatResponseMode(e.target.value)
+                      }
+                      disabled={chatLoading}
+                    >
+                      <option value="text">Chat</option>
+                      <option value="schedule">Schedule</option>
+                    </select>
                   </div>
 
                   <div className="chat-input-row">
