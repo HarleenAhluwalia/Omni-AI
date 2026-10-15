@@ -33,8 +33,8 @@ describe("POST /api/ai/chat - error handling", () => {
       success: false,
       error: "message is required",
     });
+    expect(askAI).not.toHaveBeenCalled();
   });
-
 
   it("rejects a missing user_id", async () => {
     const res = await request(app)
@@ -49,6 +49,8 @@ describe("POST /api/ai/chat - error handling", () => {
       success: false,
       error: "user_id is required",
     });
+
+    expect(askAI).not.toHaveBeenCalled();
   });
 
   it("rejects negative available_minutes", async () => {
@@ -65,10 +67,12 @@ describe("POST /api/ai/chat - error handling", () => {
       success: false,
       error: "available_minutes must be a nonnegative number",
     });
+
+    expect(askAI).not.toHaveBeenCalled();
   });
 
   it("returns 500 when the AI service fails", async () => {
-      askAI.mockRejectedValue(
+    askAI.mockRejectedValue(
       new Error("AI service unavailable")
     );
 
@@ -84,9 +88,133 @@ describe("POST /api/ai/chat - error handling", () => {
     expect(res.body).toEqual({
       success: false,
       error: "Could not generate AI response.",
-      });
     });
   });
+
+  it("rejects a whitespace-only message", async () => {
+    const res = await request(app)
+      .post(`/api/ai/chat?user_id=${USER_ID}`)
+      .send({
+        message: "   ",
+      });
+
+    expect(res.status).toBe(400);
+
+    expect(res.body).toEqual({
+      success: false,
+      error: "message is required",
+    });
+    expect(askAI).not.toHaveBeenCalled();
+  });
+
+  it("rejects a non-string message", async () => {
+    const res = await request(app)
+      .post(`/api/ai/chat?user_id=${USER_ID}`)
+      .send({
+        message: 123,
+      });
+
+    expect(res.status).toBe(400);
+
+    expect(res.body).toEqual({
+      success: false,
+      error: "message is required",
+    });
+    expect(askAI).not.toHaveBeenCalled();
+  });
+
+  it("rejects non-numeric available_minutes", async () => {
+    const res = await request(app)
+      .post(`/api/ai/chat?user_id=${USER_ID}`)
+      .send({
+        message: "What should I work on?",
+        available_minutes: "abc",
+      });
+
+    expect(res.status).toBe(400);
+
+    expect(res.body).toEqual({
+      success: false,
+      error: "available_minutes must be a nonnegative number",
+    });
+    expect(askAI).not.toHaveBeenCalled();
+  });
+
+  it("rejects an invalid response_mode", async () => {
+    const res = await request(app)
+      .post(`/api/ai/chat?user_id=${USER_ID}`)
+      .send({
+        message: "Make me a schedule",
+        response_mode: "banana",
+      });
+
+    expect(res.status).toBe(400);
+
+    expect(res.body).toEqual({
+      success: false,
+      error: "response_mode must be text or schedule",
+    });
+
+    expect(askAI).not.toHaveBeenCalled();
+  });
+
+  it("rejects schedule mode without schedule_start_time", async () => {
+    const res = await request(app)
+      .post(`/api/ai/chat?user_id=${USER_ID}`)
+      .send({
+        message: "Make me a schedule",
+        response_mode: "schedule",
+      });
+
+    expect(res.status).toBe(400);
+
+    expect(res.body).toEqual({
+      success: false,
+      error: "schedule_start_time is required for schedule mode",
+    });
+    expect(askAI).not.toHaveBeenCalled();
+  });
+
+  it("rejects an invalid schedule_start_time", async () => {
+    const res = await request(app)
+      .post(`/api/ai/chat?user_id=${USER_ID}`)
+      .send({
+        message: "Make me a schedule",
+        response_mode: "schedule",
+        schedule_start_time: "not-a-date",
+      });
+
+    expect(res.status).toBe(400);
+
+    expect(res.body).toEqual({
+      success: false,
+      error: "schedule_start_time must be a valid date",
+    });
+    expect(askAI).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/ai/chat - boundary validation", () => {
+  it("accepts zero available_minutes", async () => {
+    askAI.mockResolvedValue("No study time is available.");
+
+    const res = await request(app)
+      .post(`/api/ai/chat?user_id=${USER_ID}`)
+      .send({
+        message: "What should I work on?",
+        available_minutes: 0,
+      });
+
+    expect(res.status).toBe(200);
+
+    expect(askAI).toHaveBeenCalledWith(
+      "What should I work on?",
+      expect.any(Array),
+      0,
+      "text"
+    );
+  });
+});
 
 describe("POST /api/ai/chat - successful request", () => {
   it("returns a successful AI response for a valid chat request", async () => {
