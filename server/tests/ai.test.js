@@ -120,6 +120,7 @@ describe("POST /api/ai/chat - successful request", () => {
       data: {
         response:
           "Work on the Software Engineering Project first.",
+           schedules: [],
       },
     });
 
@@ -137,7 +138,8 @@ describe("POST /api/ai/chat - successful request", () => {
           priority_breakdown: expect.any(Object),
         }),
       ]),
-      120
+      120,
+      "text"
     );
   });
 });
