@@ -1,6 +1,11 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import {
+  canvasImportPayload,
+  canvasRequest,
+  importableAssignmentPairs,
+} from "../api/canvasApi";
 import "./CanvasIntegration.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -19,9 +24,7 @@ function CanvasIntegration() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  const allAssignments = courses.flatMap(
-    (course) => course.assignments || []
-  );
+  const importablePairs = importableAssignmentPairs(courses);
 
   const visibleCourses =
     selectedCourse === "all"
@@ -30,33 +33,12 @@ function CanvasIntegration() {
           (course) => String(course.id) === selectedCourse
         );
 
-  const request = async (path, options = {}) => {
+  const loadCourses = async () => {
     if (!token) {
       throw new Error("Please log in to use Canvas integration.");
     }
 
-    const response = await fetch(`${API_URL}${path}`, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-        ...options.headers,
-      },
-    });
-
-    const result = await response.json();
-
-    if (!response.ok || result.success === false) {
-      throw new Error(
-        result.error || "Canvas request failed."
-      );
-    }
-
-    return result.data;
-  };
-
-  const loadCourses = async () => {
-    const data = await request("/canvas/courses");
+    const data = await canvasRequest(API_URL, token, "/canvas/courses");
 
     if (!Array.isArray(data?.courses)) {
       throw new Error("Invalid Canvas course response.");
@@ -96,19 +78,24 @@ function CanvasIntegration() {
     }
   };
 
-  const handleImport = async (assignmentIds) => {
+  const handleImport = async (assignmentPairs) => {
     if (!connected || importing || loading) return;
 
-    const ids = [
-      ...new Set(
-        assignmentIds.filter(
-          (id) => Number.isInteger(id) && id > 0
-        )
-      ),
-    ];
+    const validPairs = (assignmentPairs || []).filter(
+      (pair) =>
+        Number.isInteger(pair.course_id) &&
+        pair.course_id > 0 &&
+        Number.isInteger(pair.assignment_id) &&
+        pair.assignment_id > 0
+    );
 
-    if (ids.length === 0) {
+    if (validPairs.length === 0) {
       setMessage("No eligible assignments to import.");
+      return;
+    }
+
+    if (!token) {
+      setError("Please log in to use Canvas integration.");
       return;
     }
 
@@ -117,12 +104,15 @@ function CanvasIntegration() {
     setMessage("");
 
     try {
-      const data = await request("/canvas/import", {
-        method: "POST",
-        body: JSON.stringify({
-          assignment_ids: ids,
-        }),
-      });
+      const data = await canvasRequest(
+        API_URL,
+        token,
+        "/canvas/import",
+        {
+          method: "POST",
+          body: JSON.stringify(canvasImportPayload(validPairs)),
+        }
+      );
 
       const result = {
         imported: Array.isArray(data?.imported)
@@ -166,15 +156,13 @@ function CanvasIntegration() {
   };
 
   const handleImportAll = () => {
-    const eligibleIds = allAssignments
-      .filter((assignment) => !assignment.locked)
-      .map((assignment) => assignment.id);
-
-    handleImport(eligibleIds);
+    handleImport(importablePairs);
   };
 
-  const handleSingleImport = (assignment) => {
-    handleImport([assignment.id]);
+  const handleSingleImport = (course, assignment) => {
+    handleImport([
+      { course_id: course.id, assignment_id: assignment.id },
+    ]);
   };
 
   const getResultCount = (key) =>
@@ -263,7 +251,7 @@ function CanvasIntegration() {
               !connected ||
               importing ||
               loading ||
-              allAssignments.length === 0
+              importablePairs.length === 0
             }
           >
             {importing ? "Importing..." : "Import All"}
@@ -359,7 +347,7 @@ function CanvasIntegration() {
                         type="button"
                         className="canvas-integration-import"
                         onClick={() =>
-                          handleSingleImport(assignment)
+                          handleSingleImport(course, assignment)
                         }
                         disabled={
                           importing ||
