@@ -85,6 +85,9 @@ function createMockSupabase() {
 
           // Generic simulation of the tasks_user_canvas_assignment_unique
           // constraint (see supabase/migrations/002_canvas_assignment_sync.sql).
+          // That migration's index is composite - (user_id, canvas_course_id,
+          // canvas_assignment_id) - so the same assignment_id reused across
+          // two different courses must NOT be treated as a conflict here.
           // Only engages when the inserted row actually sets
           // canvas_assignment_id, so every other insert (every existing
           // test, every non-Canvas Task) is completely unaffected.
@@ -92,6 +95,7 @@ function createMockSupabase() {
             const conflict = store[table].find(
               (row) =>
                 row.user_id === newRow.user_id &&
+                row.canvas_course_id === newRow.canvas_course_id &&
                 row.canvas_assignment_id === newRow.canvas_assignment_id
             );
 
