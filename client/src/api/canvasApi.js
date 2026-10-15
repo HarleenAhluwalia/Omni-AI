@@ -1,4 +1,21 @@
 
+export function importableAssignmentPairs(courses) {
+  const pairs = [];
+
+  for (const course of courses || []) {
+    for (const assignment of course.assignments || []) {
+      if (assignment.locked) continue;
+
+      pairs.push({
+        course_id: course.id,
+        assignment_id: assignment.id,
+      });
+    }
+  }
+
+  return pairs;
+}
+
 export function canvasImportPayload(assignments) {
   const unique = new Map();
 
