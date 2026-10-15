@@ -43,11 +43,13 @@ When the user asks for a study schedule:
 - It is acceptable to allocate all available time to one task when that is
   genuinely the best allocation.
 - Keep explanations consistent with the supplied task data.
-- Return the schedule as a concise, readable list containing task names
-  and allocated minutes.
+- Keep reasoning minimal.
+- Do not provide chain-of-thought.
+- Be concise and respond as quickly as possible.
 `;
 
-async function askAI(userMessage, tasks, availableMinutes) {
+async function askAI(userMessage, tasks, availableMinutes,
+  responseMode = "text") {
 
     console.log(
       "Available minutes in AI service:",
@@ -59,6 +61,7 @@ async function askAI(userMessage, tasks, availableMinutes) {
             .map((task, index) => {
                 return `
     Task ${index + 1}
+    Task ID: ${task.id}
     Title: ${task.title}
     Due Date: ${task.due_date || "Not provided"}
     Priority: ${task.priority || "Not provided"}
@@ -92,6 +95,37 @@ async function askAI(userMessage, tasks, availableMinutes) {
         .join("\n")
     : "The user currently has no tasks.";
 
+    const responseFormatInstruction =
+        responseMode === "schedule"
+          ? `
+      When returning a study schedule:
+      - Keep reasoning minimal.
+      - Do not provide chain-of-thought.
+      - Spend no more than about one minute reasoning before answering.
+      - Respond with valid JSON only.
+      - Do not include markdown or commentary outside the JSON.
+      - Use this exact structure:
+        {
+          "message": "short readable summary",
+          "schedule": [
+            {
+              "task_id": "the exact supplied Task ID",
+              "allocated_minutes": 60
+            }
+          ]
+        }
+      - Only use Task IDs that were supplied in the task data.
+      - allocated_minutes must be a positive number.
+      - The total allocated_minutes must not exceed the supplied available study time.
+      `
+          : `
+    Keep reasoning minimal.
+    Do not provide chain-of-thought.
+    Spend no more than about one minute reasoning before answering.
+    Be concise and respond as quickly as possible.
+    Return a concise natural-language response.
+      `;
+
   const response = await fetch(
     `${OLLAMA_URL}/api/chat`,
     {
@@ -104,8 +138,12 @@ async function askAI(userMessage, tasks, availableMinutes) {
         stream: false,
         messages: [
         {
-        role: "system",
-        content: SYSTEM_PROMPT,
+          role: "system",
+          content: `
+        ${SYSTEM_PROMPT}
+
+        ${responseFormatInstruction}
+        `,
         },
         {
           role: "system",
@@ -134,8 +172,20 @@ async function askAI(userMessage, tasks, availableMinutes) {
 
   const data = await response.json();
 
-  return data.message?.content || "";
-}
+  const content = data.message?.content || "";
+
+  console.log("Raw AI content:", content);
+
+    if (responseMode === "schedule") {
+      try {
+        return JSON.parse(content);
+      } catch {
+        throw new Error("AI returned an invalid schedule format.");
+      }
+    }
+
+    return content;
+  }
 
 module.exports = {
   askAI,
