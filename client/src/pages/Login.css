@@ -78,3 +78,42 @@
   font-size: 16px;
   cursor: pointer;
 }
+
+
+.link-button {
+  background: transparent;
+  border: none;
+  color: #6366f1;
+  cursor: pointer;
+  font-size: 14px;
+  text-decoration: underline;
+  margin-top: 14px;
+  padding: 6px;
+}
+
+.link-button:hover {
+  color: #4338ca;
+}
+
+.reset-description {
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 12px 0 20px;
+  opacity: 0.85;
+}
+
+.success-message {
+  color: #15803d;
+  background-color: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 15px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.login-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
