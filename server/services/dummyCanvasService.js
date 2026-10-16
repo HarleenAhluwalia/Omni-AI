@@ -69,15 +69,26 @@ const getCourses = () => {
 };
 
 // Return assignments, optionally filtered by course.
-const getAssignments = (courseId = null) => {
-    const courses = courseId === null
-        ? mockCourses
-        : mockCourses.filter(
+
+const getAssignmentsFromCourses = (
+    courses,
+    courseId = null
+) => {
+    const selectedCourses = courseId === null
+        ? courses
+        : courses.filter(
             (course) => course.id === Number(courseId)
         );
 
-    return courses.flatMap(
+    return selectedCourses.flatMap(
         (course) => course.assignments
+    );
+};
+
+const getAssignments = (courseId = null) => {
+    return getAssignmentsFromCourses(
+        mockCourses,
+        courseId
     );
 };
 
@@ -89,8 +100,10 @@ const getAssignmentById = (assignmentId) => {
     ) || null;
 };
 
+
 module.exports = {
     getCourses,
     getAssignments,
     getAssignmentById,
+    getAssignmentsFromCourses,
 };

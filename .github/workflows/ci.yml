@@ -136,7 +136,7 @@ jobs:
           fi
 
   alan-ai-ci:
-    name: Alan - AI Prioritization and Scheduling Tests
+    name: Alan - AI, Scheduling, Workload, and Dummy Canvas Tests
     runs-on: ubuntu-latest
 
     defaults:
@@ -170,6 +170,15 @@ jobs:
 
       - name: Run Alan adaptive scheduling and conflict tests
         run: npx jest tests/schedulingService.test.js --runInBand
+      
+      - name: Run Alan UC-14 workload analysis tests
+        run: npx jest tests/workloadService.test.js tests/workloadApi.test.js --runInBand
+
+      - name: Run Alan Dummy Canvas backend API tests
+        run: npx jest tests/dummyCanvasApi.test.js --runInBand
+
+      - name: Run Alan Dummy Canvas empty-course tests
+        run: npx jest tests/dummyCanvasEmptyCourse.test.js --runInBand
 
       - name: Report Alan CI status
         if: always()

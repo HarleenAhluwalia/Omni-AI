@@ -58,6 +58,20 @@ const fetchAssignments = (req, res) => {
     // Normal assignment retrieval.
     const { courseId } = req.query;
 
+    if (courseId !== undefined) {
+        const validCourseId =
+            typeof courseId === "string" &&
+            /^[1-9]\d*$/.test(courseId) &&
+            Number.isSafeInteger(Number(courseId));
+
+        if (!validCourseId) {
+            return res.status(400).json({
+                success: false,
+                error: "Valid courseId is required",
+            });
+        }
+    }
+
     return res.status(200).json({
         success: true,
         data: getAssignments(courseId),
