@@ -487,4 +487,110 @@ describe("Dummy Canvas API", () => {
 
     });
 
+    test("returns courses with required fields", async () => {
+        const res = await request(app)
+            .get("/api/dummy-canvas/courses")
+            .set("Authorization", authHeader());
+
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+
+        for (const course of res.body.data) {
+            expect(course).toEqual(
+                expect.objectContaining({
+                    id: expect.any(Number),
+                    name: expect.any(String),
+                })
+            );
+
+            expect(course.id).toBeGreaterThan(0);
+            expect(course.name.trim().length).toBeGreaterThan(0);
+        }
+    });
+
+    test("returns assignments with required fields", async () => {
+        const res = await request(app)
+            .get("/api/dummy-canvas/assignments")
+            .set("Authorization", authHeader());
+
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+
+        for (const assignment of res.body.data) {
+            expect(assignment).toEqual(
+                expect.objectContaining({
+                    id: expect.any(Number),
+                    courseId: expect.any(Number),
+                    title: expect.any(String),
+                    points: expect.any(Number),
+                    locked: expect.any(Boolean),
+                })
+            );
+
+            expect(assignment.title.trim().length).toBeGreaterThan(0);
+            expect(assignment.points).toBeGreaterThanOrEqual(0);
+
+            if (assignment.dueDate !== null) {
+                expect(typeof assignment.dueDate).toBe("string");
+                expect(
+                    Number.isNaN(Date.parse(assignment.dueDate))
+                ).toBe(false);
+            }
+        }
+    });
+
+    test("returns all assignments when courseId is omitted", async () => {
+        const res = await request(app)
+            .get("/api/dummy-canvas/assignments")
+            .set("Authorization", authHeader());
+
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.data).toHaveLength(5);
+    });
+
+    test("returns empty assignments for a nonexistent course", async () => {
+        const res = await request(app)
+            .get("/api/dummy-canvas/assignments?courseId=999")
+            .set("Authorization", authHeader());
+
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.data).toEqual([]);
+    });
+
+    test.each([
+        "abc",
+        "",
+        "0",
+        "-2",
+        "1.5",
+    ])(
+        "rejects malformed courseId: %p",
+        async (courseId) => {
+            const res = await request(app)
+                .get(
+                    `/api/dummy-canvas/assignments?courseId=${encodeURIComponent(courseId)}`
+                )
+                .set("Authorization", authHeader());
+
+            expect(res.status).toBe(400);
+            expect(res.body.success).toBe(false);
+            expect(res.body.error).toBe(
+                "Valid courseId is required"
+            );
+        }
+    );
+
+    test("rejects multiple courseId parameters", async () => {
+        const res = await request(app)
+            .get(
+                "/api/dummy-canvas/assignments?courseId=1&courseId=2"
+            )
+            .set("Authorization", authHeader());
+
+        expect(res.status).toBe(400);
+        expect(res.body.success).toBe(false);
+    });
+
 });

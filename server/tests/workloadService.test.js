@@ -228,4 +228,19 @@ describe("UC-14 Predictive Workload Analysis", () => {
         expect(result.isOverloaded).toBe(false);
     });
 
+    test("rejects invalid task input", () => {
+        expect(() =>
+            analyzeWorkload(null, 240, now)
+        ).toThrow("tasks must be an array");
+    });
+
+    test.each([0, -30])(
+        "rejects invalid daily workload limit: %p",
+        (limit) => {
+            expect(() =>
+                analyzeWorkload([], limit, now)
+            ).toThrow("dailyLimitMinutes must be positive");
+        }
+    );
+
 });

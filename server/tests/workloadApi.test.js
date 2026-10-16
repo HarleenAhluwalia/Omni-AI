@@ -21,14 +21,18 @@ const app = express();
 app.use(express.json());
 app.use("/api/tasks", taskRoutes);
 
-function mockDatabase(tasks, preferences) {
+function mockDatabase(
+  tasks,
+  preferences,
+  { taskError = null, preferencesError = null } = {}
+) {
   supabase.from.mockImplementation((table) => {
     if (table === "tasks") {
       return {
         select: () => ({
           eq: async () => ({
             data: tasks,
-            error: null,
+            error: taskError,
           }),
         }),
       };
@@ -40,7 +44,7 @@ function mockDatabase(tasks, preferences) {
           eq: () => ({
             maybeSingle: async () => ({
               data: preferences,
-              error: null,
+              error: preferencesError,
             }),
           }),
         }),
@@ -107,4 +111,54 @@ describe("UC-14 Workload API", () => {
     expect(response.body.data.availableMinutes).toBe(1680);
     expect(response.body.data.isOverloaded).toBe(false);
   });
+
+  test("rejects invalid timezone parameters", async () => {
+    const response = await request(app)
+      .get("/api/tasks/workload")
+      .query({
+        time_zone: "Invalid/Timezone",
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error).toBe("Invalid time_zone.");
+
+    // Invalid requests should fail before database access.
+    expect(supabase.from).not.toHaveBeenCalled();
+  });
+
+  test("returns 500 when task retrieval fails", async () => {
+    mockDatabase([], null, {
+      taskError: {
+        message: "Database connection failed",
+      },
+    });
+
+    const response = await request(app)
+      .get("/api/tasks/workload");
+
+    expect(response.status).toBe(500);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error).toBe(
+      "Could not analyze workload."
+    );
+  });
+
+  test("returns 500 when preferences retrieval fails", async () => {
+    mockDatabase([], null, {
+      preferencesError: {
+        message: "Preferences query failed",
+      },
+    });
+
+    const response = await request(app)
+      .get("/api/tasks/workload");
+
+    expect(response.status).toBe(500);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error).toBe(
+      "Could not analyze workload."
+    );
+  });
+
 });
