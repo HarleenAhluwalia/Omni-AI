@@ -3,11 +3,7 @@
  * SCRUM-379
  * Task API Authentication and Ownership Security Tests
  *
- * Uses Omni-AI's existing:
- * - Express createApp()
- * - JWT signToken()
- * - Mock Supabase client
- * - Jest and Supertest
+ * Jest + Supertest + Mocked Supabase
  */
 
 jest.mock("../config/supabase", () => {
@@ -35,7 +31,7 @@ const USER_B = {
 
 const baseTask = {
   title: "Security Test Task",
-  description: "SCRUM-379 authorization test",
+  description: "SCRUM-379 authorization testing",
   due_date: "2026-10-20T00:00:00.000Z",
   point_value: 3,
   estimated_effort_minutes: 60,
@@ -48,7 +44,7 @@ const authHeader = (user) =>
     email: user.email,
   })}`;
 
-const createTaskFor = async (user, overrides = {}) =>
+const createTaskFor = (user, overrides = {}) =>
   request(app)
     .post("/api/tasks")
     .set("Authorization", authHeader(user))
@@ -62,10 +58,19 @@ describe("SCRUM-379: Authentication Required", () => {
   const routes = [
     ["GET", "/api/tasks"],
     ["GET", "/api/tasks/prioritized"],
-    ["GET", "/api/tasks/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"],
+    [
+      "GET",
+      "/api/tasks/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    ],
     ["POST", "/api/tasks"],
-    ["PUT", "/api/tasks/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"],
-    ["DELETE", "/api/tasks/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"],
+    [
+      "PUT",
+      "/api/tasks/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    ],
+    [
+      "DELETE",
+      "/api/tasks/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    ],
   ];
 
   test.each(routes)(
@@ -83,31 +88,58 @@ describe("SCRUM-379: Invalid JWT", () => {
   test("Rejects malformed token", async () => {
     const response = await request(app)
       .get("/api/tasks")
-      .set("Authorization", "Bearer invalid.jwt.token");
+      .set(
+        "Authorization",
+        "Bearer invalid.jwt.token"
+      );
 
     expect(response.status).toBe(401);
   });
 
   test("Rejects expired token", async () => {
-    // Use the project's token-signing configuration.
+    // Create a valid token using the project's signer.
     const validToken = signToken({
       id: USER_A.id,
       email: USER_A.email,
     });
 
+    // Keep its original claims but make it expired.
     const payload = jwt.decode(validToken);
-    const expiredToken = jwt.sign(
-      {
-        sub: payload.sub,
-        email: payload.email,
-        exp: Math.floor(Date.now() / 1000) - 60,
-      },
-      process.env.JWT_SECRET || "test-only-jwt-secret"
+
+    expect(payload).toBeTruthy();
+
+    // Mock time so the existing signing helper creates
+    // a token that is already expired at verification.
+    const realNow = Date.now;
+    let expiredToken;
+
+    try {
+      Date.now = jest.fn(
+        () => realNow() - 2 * 24 * 60 * 60 * 1000
+      );
+
+      expiredToken = signToken({
+        id: USER_A.id,
+        email: USER_A.email,
+      });
+    } finally {
+      Date.now = realNow;
+    }
+
+    const expiredPayload = jwt.decode(expiredToken);
+
+    expect(expiredPayload).toBeTruthy();
+    expect(expiredPayload.exp).toBeDefined();
+    expect(expiredPayload.exp).toBeLessThan(
+      Math.floor(Date.now() / 1000)
     );
 
     const response = await request(app)
       .get("/api/tasks")
-      .set("Authorization", `Bearer ${expiredToken}`);
+      .set(
+        "Authorization",
+        `Bearer ${expiredToken}`
+      );
 
     expect(response.status).toBe(401);
   });
@@ -116,6 +148,7 @@ describe("SCRUM-379: Invalid JWT", () => {
 describe("SCRUM-379: Cross-User Authorization", () => {
   test("User A cannot read User B's task", async () => {
     const created = await createTaskFor(USER_B);
+
     expect(created.status).toBe(201);
 
     const taskId = created.body.data.id;
@@ -125,10 +158,17 @@ describe("SCRUM-379: Cross-User Authorization", () => {
       .set("Authorization", authHeader(USER_A));
 
     expect(response.status).toBe(404);
+
+    const ownerView = await request(app)
+      .get(`/api/tasks/${taskId}`)
+      .set("Authorization", authHeader(USER_B));
+
+    expect(ownerView.status).toBe(200);
   });
 
   test("User A cannot update User B's task", async () => {
     const created = await createTaskFor(USER_B);
+
     expect(created.status).toBe(201);
 
     const taskId = created.body.data.id;
@@ -136,21 +176,25 @@ describe("SCRUM-379: Cross-User Authorization", () => {
     const response = await request(app)
       .put(`/api/tasks/${taskId}`)
       .set("Authorization", authHeader(USER_A))
-      .send({ title: "Unauthorized Change" });
+      .send({
+        title: "Unauthorized Change",
+      });
 
     expect(response.status).toBe(404);
 
-    // Confirm the task was not changed.
     const ownerView = await request(app)
       .get(`/api/tasks/${taskId}`)
       .set("Authorization", authHeader(USER_B));
 
     expect(ownerView.status).toBe(200);
-    expect(ownerView.body.data.title).toBe(baseTask.title);
+    expect(ownerView.body.data.title).toBe(
+      baseTask.title
+    );
   });
 
   test("User A cannot delete User B's task", async () => {
     const created = await createTaskFor(USER_B);
+
     expect(created.status).toBe(201);
 
     const taskId = created.body.data.id;
@@ -161,7 +205,6 @@ describe("SCRUM-379: Cross-User Authorization", () => {
 
     expect(response.status).toBe(404);
 
-    // Confirm the owner's task still exists.
     const ownerView = await request(app)
       .get(`/api/tasks/${taskId}`)
       .set("Authorization", authHeader(USER_B));
@@ -171,17 +214,20 @@ describe("SCRUM-379: Cross-User Authorization", () => {
 });
 
 describe("SCRUM-379: Client-Supplied user_id", () => {
-  test("Cannot create task for another user", async () => {
+  test("Cannot create a task for another user", async () => {
     const response = await createTaskFor(USER_A, {
       user_id: USER_B.id,
     });
 
     expect(response.status).toBe(201);
-    expect(response.body.data.user_id).toBe(USER_A.id);
+    expect(response.body.data.user_id).toBe(
+      USER_A.id
+    );
   });
 
   test("Cannot change task ownership", async () => {
     const created = await createTaskFor(USER_A);
+
     expect(created.status).toBe(201);
 
     const taskId = created.body.data.id;
@@ -195,9 +241,10 @@ describe("SCRUM-379: Client-Supplied user_id", () => {
       });
 
     expect(response.status).toBe(200);
-    expect(response.body.data.user_id).toBe(USER_A.id);
+    expect(response.body.data.user_id).toBe(
+      USER_A.id
+    );
 
-    // User B must not gain access.
     const otherUserView = await request(app)
       .get(`/api/tasks/${taskId}`)
       .set("Authorization", authHeader(USER_B));
@@ -209,6 +256,7 @@ describe("SCRUM-379: Client-Supplied user_id", () => {
 describe("SCRUM-379: Authorized Access", () => {
   test("Authenticated user can retrieve their own task", async () => {
     const created = await createTaskFor(USER_A);
+
     expect(created.status).toBe(201);
 
     const taskId = created.body.data.id;
@@ -219,6 +267,8 @@ describe("SCRUM-379: Authorized Access", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.data.id).toBe(taskId);
-    expect(response.body.data.user_id).toBe(USER_A.id);
+    expect(response.body.data.user_id).toBe(
+      USER_A.id
+    );
   });
 });
