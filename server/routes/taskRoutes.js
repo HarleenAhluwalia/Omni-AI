@@ -14,6 +14,10 @@ const {
   resolveSchedule,
 } = require("../controllers/taskController");
 
+const {
+  getWorkloadAnalysis,
+} = require("../controllers/workloadController");
+
 const router = express.Router();
 
 // Sprint 2: Task routes require a verified session. Downstream handlers
@@ -46,6 +50,12 @@ router.get(
 router.get(
   "/summary/weekly",
   getWeeklySummary
+);
+
+// Alan Sprint 3: UC-14 Predictive Workload Analysis
+router.get(
+  "/workload",
+  getWorkloadAnalysis
 );
 
 // Existing Task CRUD
