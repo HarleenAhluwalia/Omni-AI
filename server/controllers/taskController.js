@@ -821,6 +821,7 @@ const getWeeklySummary = async (req, res) => {
 
   const tasksThisWeek = [];
   const overdue = [];
+  const upcoming = [];
 
   for (const task of allTasks) {
     const isCompleted = task.completion_status === "completed";
@@ -835,6 +836,14 @@ const getWeeklySummary = async (req, res) => {
       dueDateUtcMs < weekEndExclusiveMs
     ) {
       tasksThisWeek.push(task);
+
+      // Upcoming = due later this week and not yet overdue, mirroring
+      // Daily Summary's dueToday/overdue/upcoming split. A task due
+      // earlier this week but still incomplete is "overdue" (below),
+      // not "upcoming" - the two are mutually exclusive.
+      if (!isCompleted && dueDateUtcMs >= todayUtcMs) {
+        upcoming.push(task);
+      }
     }
 
     if (!isCompleted && dueDateUtcMs < todayUtcMs) {
@@ -844,6 +853,7 @@ const getWeeklySummary = async (req, res) => {
 
   tasksThisWeek.sort(byDueDateAscending);
   overdue.sort(byDueDateAscending);
+  upcoming.sort(byDueDateAscending);
 
   const completedTasks = tasksThisWeek.filter(
     (task) => task.completion_status === "completed"
@@ -873,6 +883,7 @@ const getWeeklySummary = async (req, res) => {
         completed,
         remaining,
         overdue: overdue.length,
+        upcoming: upcoming.length,
       },
       workload: {
         totalEffortMinutes: sumField(
@@ -894,6 +905,7 @@ const getWeeklySummary = async (req, res) => {
       completionPercentage,
       tasks: tasksThisWeek.map(toSummaryItem),
       overdue: overdue.map(toSummaryItem),
+      upcoming: upcoming.map(toSummaryItem),
     },
   });
 };
