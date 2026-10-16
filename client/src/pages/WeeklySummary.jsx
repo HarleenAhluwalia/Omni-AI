@@ -215,6 +215,15 @@ function WeeklySummary({ onEditTask, refreshKey = 0 }) {
             Overdue
           </span>
         </div>
+
+        <div className="daily-summary-stat">
+          <span className="daily-summary-stat-value">
+            {counts.upcoming}
+          </span>
+          <span className="daily-summary-stat-label">
+            Upcoming
+          </span>
+        </div>
       </div>
 
       <div className="daily-summary-progress">
@@ -262,6 +271,18 @@ function WeeklySummary({ onEditTask, refreshKey = 0 }) {
           </p>
         ) : (
           summary.overdue.map(renderTaskRow)
+        )}
+      </div>
+
+      <div className="daily-summary-section">
+        <h4>Upcoming</h4>
+
+        {summary.upcoming.length === 0 ? (
+          <p className="daily-summary-empty">
+            No upcoming tasks this week.
+          </p>
+        ) : (
+          summary.upcoming.map(renderTaskRow)
         )}
       </div>
     </div>
