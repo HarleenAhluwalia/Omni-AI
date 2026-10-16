@@ -2420,3 +2420,40 @@ body {
 .todo-table-row > div {
   color: #111;
 }
+
+
+.generated-schedule {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.generated-schedule h4 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+
+.schedule-block {
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.schedule-block strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.schedule-block p {
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.schedule-block small {
+  font-size: 12px;
+  opacity: 0.8;
+}

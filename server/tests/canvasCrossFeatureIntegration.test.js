@@ -66,12 +66,15 @@ describe("Canvas integration — included in AI reprioritization (SCRUM-422)", (
 
     askAI.mockResolvedValue("Work on the Sprint 3 Report first.");
 
+    
     const res = await request(app)
-      .post(`/api/ai/chat?user_id=${USER_ID}`)
+      .post("/api/ai/chat")
+      .set("Authorization", authHeader)
       .send({
         message: "What should I work on?",
         available_minutes: 120,
       });
+
 
     expect(res.status).toBe(200);
     expect(askAI).toHaveBeenCalledTimes(1);
