@@ -123,16 +123,16 @@ jobs:
       - name: Install backend dependencies
         run: npm ci
 
-      - name: Run AI/API automated tests
-        run: npx jest tests/ai.test.js --runInBand
+      - name: Run AI/API and UC-1 workflow tests
+        run: npx jest tests/ai.test.js tests/uc1Workflow.test.js --runInBand
 
       - name: Report Medrian AI/API CI status
         if: always()
         run: |
           if [ "${{ job.status }}" = "success" ]; then
-            echo "PASS — Medrian AI/API tests"
+            echo "PASS — Medrian Run AI/API and UC-1 workflow tests"
           else
-            echo "FAIL — Medrian AI/API tests"
+            echo "FAIL — Medrian Run AI/API and UC-1 workflow tests"
           fi
 
   alan-ai-ci:
