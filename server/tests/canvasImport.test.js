@@ -464,6 +464,102 @@ describe("Canvas sync — database failures", () => {
   });
 });
 
+// =========================================================
+// Simulated connection failures (SCRUM-421).
+//
+// The existing "database failures" tests above simulate Supabase's own
+// error-return convention ({ data: null, error: {...} }), which is how a
+// rejected *query* (bad filter, constraint violation, etc.) surfaces.
+// A genuine connection failure - the network drops, the Supabase project
+// is unreachable - surfaces differently: the client call itself throws or
+// rejects. These tests confirm the controller's top-level try/catch
+// handles that shape too, without corrupting existing Task data or
+// reporting a false success.
+// =========================================================
+describe("Canvas sync — simulated connection failures (SCRUM-421)", () => {
+  it("returns 500 and does not report success when GET /api/canvas/courses' database call throws", async () => {
+    const originalFrom = supabase.from;
+    supabase.from = jest.fn((table) => {
+      if (table !== "tasks") return originalFrom(table);
+      return {
+        select: () => ({
+          eq: () => {
+            throw new Error("simulated connection failure");
+          },
+        }),
+      };
+    });
+
+    try {
+      const res = await getCourses();
+
+      expect(res.status).toBe(500);
+      expect(res.body.success).toBe(false);
+    } finally {
+      supabase.from = originalFrom;
+    }
+  });
+
+  it("returns 500 and does not report success when POST /api/canvas/import's initial lookup rejects (not just returns an error object)", async () => {
+    const originalFrom = supabase.from;
+    supabase.from = jest.fn((table) => {
+      if (table !== "tasks") return originalFrom(table);
+      return {
+        select: () => ({
+          eq: () => Promise.reject(new Error("simulated connection failure")),
+        }),
+      };
+    });
+
+    try {
+      const res = await importAssignments({
+        assignment_ids: [UNLOCKED_ASSIGNMENT_ID],
+      });
+
+      expect(res.status).toBe(500);
+      expect(res.body.success).toBe(false);
+    } finally {
+      supabase.from = originalFrom;
+    }
+
+    expect(supabase.__store.tasks).toHaveLength(0);
+  });
+
+  it("does not corrupt an existing Task when a connection failure happens mid-import", async () => {
+    const existing = seedExistingCanvasTask({
+      title: "Pre-existing, unrelated to the failing import",
+      canvas_assignment_id: UNLOCKED_ASSIGNMENT_ID_2,
+      canvas_course_id: 2,
+    });
+
+    const originalFrom = supabase.from;
+    supabase.from = jest.fn((table) => {
+      if (table !== "tasks") return originalFrom(table);
+      return {
+        select: () => ({
+          eq: () => Promise.reject(new Error("simulated connection failure")),
+        }),
+      };
+    });
+
+    try {
+      const res = await importAssignments({
+        assignment_ids: [UNLOCKED_ASSIGNMENT_ID],
+      });
+
+      expect(res.status).toBe(500);
+    } finally {
+      supabase.from = originalFrom;
+    }
+
+    const untouched = supabase.__store.tasks.find(
+      (row) => row.id === existing.id
+    );
+    expect(untouched).toEqual(existing);
+    expect(supabase.__store.tasks).toHaveLength(1);
+  });
+});
+
 describe("Canvas sync — concurrent duplicate-import attempts", () => {
   it("creates exactly one Task when the same new assignment is imported concurrently", async () => {
     const [first, second] = await Promise.all([
