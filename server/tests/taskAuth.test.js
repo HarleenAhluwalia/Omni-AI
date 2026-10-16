@@ -1,29 +1,24 @@
 
 /**
  * SCRUM-379
- * Task API Authentication and Ownership Tests
+ * Task API Authentication and Ownership Security Tests
  *
- * Tests:
- * - Missing authentication
- * - Invalid and expired JWTs
- * - Cross-user task access
- * - Client-supplied user_id protection
- * - Authorized task operations
- *
- * IMPORTANT:
- * Adapt the app import, JWT secret, and test fixtures
- * to the existing Omni-AI backend before running.
+ * Uses the existing Omni-AI Express app, JWT helper,
+ * Jest, Supertest, and mocked Supabase client.
  */
+
+jest.mock("../config/supabase", () => {
+  const { createMockSupabase } = require("./helpers/supabaseMock");
+  return createMockSupabase();
+});
 
 const request = require("supertest");
 const jwt = require("jsonwebtoken");
+const { createApp } = require("../src/app");
+const supabase = require("../config/supabase");
+const { signToken } = require("../src/middleware/auth");
 
-// Adjust this import to match your Express app.
-// The app should be exported without calling listen().
-const app = require("../app");
-
-const TEST_SECRET =
-  process.env.JWT_SECRET || "test-only-jwt-secret";
+const app = createApp();
 
 const USER_A = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -35,205 +30,211 @@ const USER_B = {
   email: "userb@example.com",
 };
 
-const TASK_A_ID =
-  "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const baseTask = {
+  title: "Security Test Task",
+  description: "SCRUM-379 authorization testing",
+  due_date: "2026-10-20T00:00:00.000Z",
+  point_value: 3,
+  estimated_effort_minutes: 60,
+  priority: "high",
+};
 
-const TASK_B_ID =
-  "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const authHeader = (user) =>
+  `Bearer ${signToken({
+    id: user.id,
+    email: user.email,
+  })}`;
 
-function createToken(user, options = {}) {
-  return jwt.sign(
-    {
-      id: user.id,
-      userId: user.id,
-      sub: user.id,
-      email: user.email,
-    },
-    TEST_SECRET,
-    {
-      expiresIn: "1h",
-      ...options,
+const createTaskFor = (user, overrides = {}) =>
+  request(app)
+    .post("/api/tasks")
+    .set("Authorization", authHeader(user))
+    .send({ ...baseTask, ...overrides });
+
+beforeEach(() => {
+  supabase.__reset();
+});
+
+describe("SCRUM-379: Authentication Required", () => {
+  const routes = [
+    ["GET", "/api/tasks"],
+    ["GET", "/api/tasks/prioritized"],
+    ["GET", "/api/tasks/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"],
+    ["POST", "/api/tasks"],
+    ["PUT", "/api/tasks/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"],
+    ["DELETE", "/api/tasks/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"],
+  ];
+
+  test.each(routes)(
+    "%s %s rejects requests without authentication",
+    async (method, path) => {
+      const response = await request(app)[method.toLowerCase()](path);
+
+      expect(response.status).toBe(401);
     }
   );
-}
+});
 
-function authHeader(user) {
-  return `Bearer ${createToken(user)}`;
-}
+describe("SCRUM-379: Invalid JWT", () => {
+  test("Rejects malformed token", async () => {
+    const response = await request(app)
+      .get("/api/tasks")
+      .set("Authorization", "Bearer invalid.jwt.token");
 
-describe("SCRUM-379: Task API Security", () => {
-  describe("Authentication required", () => {
-    test("GET /api/tasks rejects missing token", async () => {
-      const res = await request(app)
-        .get("/api/tasks");
-
-      expect(res.status).toBe(401);
-    });
-
-    test("GET /api/tasks/prioritized rejects missing token", async () => {
-      const res = await request(app)
-        .get("/api/tasks/prioritized");
-
-      expect(res.status).toBe(401);
-    });
-
-    test("GET /api/tasks/:id rejects missing token", async () => {
-      const res = await request(app)
-        .get(`/api/tasks/${TASK_A_ID}`);
-
-      expect(res.status).toBe(401);
-    });
-
-    test("POST /api/tasks rejects missing token", async () => {
-      const res = await request(app)
-        .post("/api/tasks")
-        .send({
-          title: "Unauthorized Task",
-          user_id: USER_A.id,
-        });
-
-      expect(res.status).toBe(401);
-    });
-
-    test("PUT /api/tasks/:id rejects missing token", async () => {
-      const res = await request(app)
-        .put(`/api/tasks/${TASK_A_ID}`)
-        .send({
-          title: "Unauthorized Update",
-        });
-
-      expect(res.status).toBe(401);
-    });
-
-    test("DELETE /api/tasks/:id rejects missing token", async () => {
-      const res = await request(app)
-        .delete(`/api/tasks/${TASK_A_ID}`);
-
-      expect(res.status).toBe(401);
-    });
+    expect(response.status).toBe(401);
   });
 
-  describe("Invalid JWT handling", () => {
-    test("Rejects malformed JWT", async () => {
-      const res = await request(app)
-        .get("/api/tasks")
-        .set(
-          "Authorization",
-          "Bearer invalid.jwt.token"
-        );
-
-      expect(res.status).toBe(401);
+  test("Rejects expired token", async () => {
+    // Start with a valid project-issued token, then
+    // create an expired token using the same signature.
+    const validToken = signToken({
+      id: USER_A.id,
+      email: USER_A.email,
     });
 
-    test("Rejects expired JWT", async () => {
-      const expiredToken = jwt.sign(
-        {
-          id: USER_A.id,
-          userId: USER_A.id,
-          sub: USER_A.id,
-        },
-        TEST_SECRET,
-        { expiresIn: -10 }
+    const parts = validToken.split(".");
+    const payload = jwt.decode(validToken);
+
+    expect(parts).toHaveLength(3);
+    expect(payload).toBeTruthy();
+
+    // Expired tokens must be rejected. This uses a
+    // deliberately expired JWT and the project's
+    // configured test secret.
+    const secret = process.env.JWT_SECRET;
+
+    if (!secret) {
+      throw new Error(
+        "JWT_SECRET must be configured for the expired-token test"
       );
+    }
 
-      const res = await request(app)
-        .get("/api/tasks")
-        .set(
-          "Authorization",
-          `Bearer ${expiredToken}`
-        );
+    const expiredToken = jwt.sign(
+      {
+        sub: payload.sub,
+        email: payload.email,
+        exp: Math.floor(Date.now() / 1000) - 60,
+      },
+      secret
+    );
 
-      expect(res.status).toBe(401);
-    });
+    const response = await request(app)
+      .get("/api/tasks")
+      .set("Authorization", `Bearer ${expiredToken}`);
+
+    expect(response.status).toBe(401);
+  });
+});
+
+describe("SCRUM-379: Cross-User Authorization", () => {
+  test("User A cannot read User B's task", async () => {
+    const created = await createTaskFor(USER_B);
+    expect(created.status).toBe(201);
+
+    const taskId = created.body.data.id;
+
+    const response = await request(app)
+      .get(`/api/tasks/${taskId}`)
+      .set("Authorization", authHeader(USER_A));
+
+    expect(response.status).toBe(404);
+
+    const ownerView = await request(app)
+      .get(`/api/tasks/${taskId}`)
+      .set("Authorization", authHeader(USER_B));
+
+    expect(ownerView.status).toBe(200);
   });
 
-  describe("Task ownership", () => {
-    test("User A cannot retrieve User B's task", async () => {
-      const res = await request(app)
-        .get(`/api/tasks/${TASK_B_ID}`)
-        .set(
-          "Authorization",
-          authHeader(USER_A)
-        );
+  test("User A cannot update User B's task", async () => {
+    const created = await createTaskFor(USER_B);
+    expect(created.status).toBe(201);
 
-      expect([403, 404]).toContain(res.status);
-    });
+    const taskId = created.body.data.id;
 
-    test("User A cannot update User B's task", async () => {
-      const res = await request(app)
-        .put(`/api/tasks/${TASK_B_ID}`)
-        .set(
-          "Authorization",
-          authHeader(USER_A)
-        )
-        .send({
-          title: "Unauthorized Modification",
-        });
+    const response = await request(app)
+      .put(`/api/tasks/${taskId}`)
+      .set("Authorization", authHeader(USER_A))
+      .send({ title: "Unauthorized Change" });
 
-      expect([403, 404]).toContain(res.status);
-    });
+    expect(response.status).toBe(404);
 
-    test("User A cannot delete User B's task", async () => {
-      const res = await request(app)
-        .delete(`/api/tasks/${TASK_B_ID}`)
-        .set(
-          "Authorization",
-          authHeader(USER_A)
-        );
+    const ownerView = await request(app)
+      .get(`/api/tasks/${taskId}`)
+      .set("Authorization", authHeader(USER_B));
 
-      expect([403, 404]).toContain(res.status);
-    });
+    expect(ownerView.status).toBe(200);
+    expect(ownerView.body.data.title).toBe(baseTask.title);
   });
 
-  describe("Client-supplied user_id", () => {
-    test("Cannot create a task for another user", async () => {
-      const res = await request(app)
-        .post("/api/tasks")
-        .set(
-          "Authorization",
-          authHeader(USER_A)
-        )
-        .send({
-          title: "Ownership Test",
-          user_id: USER_B.id,
-        });
+  test("User A cannot delete User B's task", async () => {
+    const created = await createTaskFor(USER_B);
+    expect(created.status).toBe(201);
 
-      if (res.status === 201) {
-        expect(res.body.user_id).toBe(USER_A.id);
-      } else {
-        expect([400, 403]).toContain(res.status);
-      }
+    const taskId = created.body.data.id;
+
+    const response = await request(app)
+      .delete(`/api/tasks/${taskId}`)
+      .set("Authorization", authHeader(USER_A));
+
+    expect(response.status).toBe(404);
+
+    const ownerView = await request(app)
+      .get(`/api/tasks/${taskId}`)
+      .set("Authorization", authHeader(USER_B));
+
+    expect(ownerView.status).toBe(200);
+  });
+});
+
+describe("SCRUM-379: Client-Supplied user_id", () => {
+  test("Cannot create a task for another user", async () => {
+    const response = await createTaskFor(USER_A, {
+      user_id: USER_B.id,
     });
 
-    test("Cannot override task owner during update", async () => {
-      const res = await request(app)
-        .put(`/api/tasks/${TASK_A_ID}`)
-        .set(
-          "Authorization",
-          authHeader(USER_A)
-        )
-        .send({
-          user_id: USER_B.id,
-        });
-
-      if (res.status === 200) {
-        expect(res.body.user_id).toBe(USER_A.id);
-      } else {
-        expect([400, 403]).toContain(res.status);
-      }
-    });
+    expect(response.status).toBe(201);
+    expect(response.body.data.user_id).toBe(USER_A.id);
   });
 
-  describe("Authorized access", () => {
-    test("Authenticated user can retrieve their tasks", async () => {
-      const res = await request(app)
-        .get("/api/tasks")
-        .set(
-          "Authorization",
-          authHeader(USER_A)
-        );
+  test("Cannot change task ownership", async () => {
+    const created = await createTaskFor(USER_A);
+    expect(created.status).toBe(201);
 
-      expect(res.status).toBe(200);
-    });
+    const taskId = created.body.data.id;
+
+    const response = await request(app)
+      .put(`/api/tasks/${taskId}`)
+      .set("Authorization", authHeader(USER_A))
+      .send({
+        title: "Updated Security Task",
+        user_id: USER_B.id,
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.user_id).toBe(USER_A.id);
+
+    const otherUserView = await request(app)
+      .get(`/api/tasks/${taskId}`)
+      .set("Authorization", authHeader(USER_B));
+
+    expect(otherUserView.status).toBe(404);
+  });
+});
+
+describe("SCRUM-379: Authorized Access", () => {
+  test("Authenticated user can retrieve their own task", async () => {
+    const created = await createTaskFor(USER_A);
+    expect(created.status).toBe(201);
+
+    const taskId = created.body.data.id;
+
+    const response = await request(app)
+      .get(`/api/tasks/${taskId}`)
+      .set("Authorization", authHeader(USER_A));
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.id).toBe(taskId);
+    expect(response.body.data.user_id).toBe(USER_A.id);
   });
 });
