@@ -3,8 +3,7 @@
  * SCRUM-379
  * Task API Authentication and Ownership Security Tests
  *
- * Uses the existing Omni-AI Express app, JWT helper,
- * Jest, Supertest, and mocked Supabase client.
+ * Jest + Supertest + Mocked Supabase
  */
 
 jest.mock("../config/supabase", () => {
@@ -85,37 +84,30 @@ describe("SCRUM-379: Invalid JWT", () => {
   });
 
   test("Rejects expired token", async () => {
-    // Start with a valid project-issued token, then
-    // create an expired token using the same signature.
-    const validToken = signToken({
-      id: USER_A.id,
-      email: USER_A.email,
-    });
+    // Sign using the application's existing helper.
+    // Mock time so the token is expired when verified.
+    const realNow = Date.now;
+    let expiredToken;
 
-    const parts = validToken.split(".");
-    const payload = jwt.decode(validToken);
-
-    expect(parts).toHaveLength(3);
-    expect(payload).toBeTruthy();
-
-    // Expired tokens must be rejected. This uses a
-    // deliberately expired JWT and the project's
-    // configured test secret.
-    const secret = process.env.JWT_SECRET;
-
-    if (!secret) {
-      throw new Error(
-        "JWT_SECRET must be configured for the expired-token test"
+    try {
+      Date.now = jest.fn(
+        () => realNow() - 30 * 24 * 60 * 60 * 1000
       );
+
+      expiredToken = signToken({
+        id: USER_A.id,
+        email: USER_A.email,
+      });
+    } finally {
+      Date.now = realNow;
     }
 
-    const expiredToken = jwt.sign(
-      {
-        sub: payload.sub,
-        email: payload.email,
-        exp: Math.floor(Date.now() / 1000) - 60,
-      },
-      secret
+    const payload = jwt.decode(expiredToken);
+
+    expect(payload).toBeTruthy();
+    expect(payload.exp).toBeDefined();
+    expect(payload.exp).toBeLessThan(
+      Math.floor(Date.now() / 1000)
     );
 
     const response = await request(app)
