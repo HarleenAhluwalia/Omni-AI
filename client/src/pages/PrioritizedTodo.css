@@ -59,6 +59,8 @@
 
 .todo-table-wrapper {
   width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /*
@@ -68,6 +70,7 @@
 .todo-table-header,
 .todo-table-row {
   display: grid;
+  min-width: 1120px;
 
   grid-template-columns:
     46px
@@ -77,10 +80,8 @@
     100px
     100px
     160px;
-    
 
   align-items: center;
-
   column-gap: 20px;
 
   padding-left: 26px;
@@ -335,16 +336,126 @@
 }
 
 /* =========================
-   RESPONSIVE
+   UC-14 WORKLOAD ANALYSIS
 ========================= */
 
-@media (max-width: 900px) {
-  .todo-table-wrapper {
-    overflow-x: auto;
-  }
+.workload-panel {
+  margin: 20px 26px;
+  padding: 20px;
 
-  .todo-table-header,
-  .todo-table-row {
-    min-width: 1100px;
-  }
+  background: #f8f7ff;
+  border: 1px solid #b6afe8;
+  border-radius: 10px;
+
+  color: #222;
+}
+
+.workload-panel h2 {
+  margin: 0 0 16px;
+  font-size: 21px;
+  font-weight: 600;
+}
+
+.workload-panel h3 {
+  margin: 14px 0 8px;
+  font-size: 16px;
+}
+
+.workload-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 30px;
+}
+
+.workload-stats p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.workload-stats strong {
+  color: #6255c8;
+  font-size: 17px;
+}
+
+.workload-overload {
+  margin-top: 16px;
+  padding: 12px;
+
+  background: #fff0f0;
+  border-left: 4px solid #d32f2f;
+  border-radius: 4px;
+
+  color: #a12424;
+  font-weight: 600;
+}
+
+.workload-warnings {
+  margin-top: 14px;
+  color: #963333;
+}
+
+.workload-recommendations {
+  margin-top: 14px;
+}
+
+.workload-warnings li,
+.workload-recommendations li {
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.workload-note {
+  margin: 16px 0 0;
+  color: #666;
+  font-size: 12px;
+}
+
+
+/* =========================
+   UC-14 LIGHT / DARK MODE
+========================= */
+
+/* Light mode: ensure headings remain visible */
+.dashboard-page .workload-panel h2,
+.dashboard-page .workload-panel h3 {
+  color: #252333;
+}
+
+/* Dark mode: main workload panel */
+.dashboard-page.dark-mode .workload-panel {
+  background: #262537;
+  border-color: #575173;
+  color: #f2efff;
+}
+
+/* Dark mode: headings and text */
+.dashboard-page.dark-mode .workload-panel h2,
+.dashboard-page.dark-mode .workload-panel h3,
+.dashboard-page.dark-mode .workload-panel .workload-stats p,
+.dashboard-page.dark-mode .workload-panel .workload-recommendations,
+.dashboard-page.dark-mode .workload-panel .workload-recommendations li {
+  color: #f2efff;
+}
+
+/* Dark mode: workload statistics */
+.dashboard-page.dark-mode .workload-panel .workload-stats strong {
+  color: #afa4ff;
+}
+
+/* Dark mode: overload warning */
+.dashboard-page.dark-mode .workload-panel .workload-overload {
+  background: #462b32;
+  border-left-color: #ff7777;
+  color: #ffb3b3;
+}
+
+/* Dark mode: warning list */
+.dashboard-page.dark-mode .workload-panel .workload-warnings,
+.dashboard-page.dark-mode .workload-panel .workload-warnings li {
+  color: #ffb3b3;
+}
+
+/* Dark mode: secondary information */
+.dashboard-page.dark-mode .workload-panel .workload-note {
+  color: #bcb9ce;
 }

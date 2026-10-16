@@ -27,6 +27,15 @@ function PrioritizedTodo({
   const [message, setMessage] =
     useState("");
 
+
+  const [workload, setWorkload] = useState(null);
+
+  const [workloadLoading, setWorkloadLoading] =
+    useState(true);
+
+  const [workloadError, setWorkloadError] =
+    useState("");
+
   const [currentPage, setCurrentPage] =
     useState(1);
 
@@ -129,9 +138,55 @@ function PrioritizedTodo({
       }
     };
 
+  const loadWorkloadAnalysis = async () => {
+    if (!token || !user?.id) {
+      setWorkload(null);
+      setWorkloadError("");
+      setWorkloadLoading(false);
+      return;
+    }
+
+    try {
+      setWorkloadLoading(true);
+
+      const browserTimeZone =
+        Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/tasks/workload?time_zone=${encodeURIComponent(browserTimeZone)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.error ||
+          "Could not load workload analysis."
+        );
+      }
+
+      setWorkload(result.data);
+      setWorkloadError("");
+    } catch (error) {
+      console.error("Workload analysis failed:", error);
+
+      setWorkload(null);
+      setWorkloadError(
+        error.message || "Workload analysis unavailable."
+      );
+    } finally {
+      setWorkloadLoading(false);
+    }
+  };
 
   useEffect(() => {
     loadPrioritizedTasks();
+    loadWorkloadAnalysis();
   }, [token, user?.id, refreshKey]);
 
   useEffect(() => {
@@ -306,6 +361,7 @@ function PrioritizedTodo({
         // Reload because completion can
         // change prioritization order.
         await loadPrioritizedTasks();
+        await loadWorkloadAnalysis();
       } catch (error) {
         console.error(
           "Complete Task failed:",
@@ -425,6 +481,7 @@ function PrioritizedTodo({
                 deletingTask.id
             )
         );
+        loadWorkloadAnalysis();
 
         closeDeleteConfirm();
       } catch (error) {
@@ -483,6 +540,75 @@ function PrioritizedTodo({
             {message}
           </div>
         )}
+
+        <section
+          className="workload-panel"
+          aria-label="Predictive workload analysis"
+        >
+          <h2>Predictive Workload Analysis</h2>
+
+          {workloadLoading ? (
+            <p>Analyzing your workload...</p>
+          ) : workloadError ? (
+            <p role="alert">{workloadError}</p>
+          ) : workload ? (
+            <>
+              <div className="workload-stats">
+                <p>
+                  <strong>{workload.requiredMinutes} min</strong>
+                  {" "}estimated workload
+                </p>
+
+                <p>
+                  <strong>{workload.availableMinutes} min</strong>
+                  {" "}configured 7-day capacity
+                </p>
+
+                <p>
+                  <strong>{workload.dueSoonCount}</strong>
+                  {" "}tasks due soon
+                </p>
+              </div>
+
+              {workload.warnings?.length > 0 && (
+                <div className="workload-warnings">
+                  <h3>Workload Warnings</h3>
+                  <ul>
+                    {workload.warnings.map((warning) => (
+                      <li key={warning.type}>
+                        {warning.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {workload.recommendedTasks?.length > 0 && (
+                <div className="workload-recommendations">
+                  <h3>Recommended Tasks</h3>
+                  <ol>
+                    {workload.recommendedTasks.map((task) => (
+                      <li key={task.id}>
+                        <strong>{task.title}</strong>
+                        {" — Priority Score: "}
+                        {task.calculated_priority_score}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              {workload.activeTaskCount === 0 && (
+                <p>No active tasks to analyze.</p>
+              )}
+
+              <p className="workload-note">
+                Capacity is estimated from your daily study limit,
+                not actual free calendar time.
+              </p>
+            </>
+          ) : null}
+        </section>
 
         <div className="todo-table-wrapper">
           <div className="todo-table-header">
