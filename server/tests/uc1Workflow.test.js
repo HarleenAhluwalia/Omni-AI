@@ -21,11 +21,22 @@ const request = require("supertest");
 const { createApp } = require("../src/app");
 const supabase = require("../config/supabase");
 const { askAI } = require("../services/aiService");
+const { signToken } = require("../src/middleware/auth");
 
 const app = createApp();
 
 const USER_A = "11111111-1111-4111-8111-111111111111";
 const USER_B = "22222222-2222-4222-8222-222222222222";
+
+const TOKEN_A = signToken({
+  id: USER_A,
+  email: "usera@example.com",
+});
+
+const TOKEN_B = signToken({
+  id: USER_B,
+  email: "userb@example.com",
+});
 
 const TASK_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const TASK_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -58,11 +69,12 @@ describe("SCRUM-375 - UC-1 AI Workflow", () => {
     askAI.mockResolvedValue("Work on your project first.");
 
     const response = await request(app)
-      .post(`/api/ai/chat?user_id=${USER_A}`)
-      .send({
+    .post("/api/ai/chat")
+    .set("Authorization", `Bearer ${TOKEN_A}`)
+    .send({
         message: "What should I work on first?",
         available_minutes: 120,
-      });
+    });
 
     expect(response.status).toBe(200);
     expect(askAI).toHaveBeenCalledTimes(1);
@@ -91,8 +103,9 @@ describe("SCRUM-375 - UC-1 AI Workflow", () => {
     askAI.mockResolvedValue("Study for Exam first.");
 
     const response = await request(app)
-      .post(`/api/ai/chat?user_id=${USER_A}`)
-      .send({
+        .post("/api/ai/chat")
+        .set("Authorization", `Bearer ${TOKEN_A}`)
+        .send({
         message: "What should I work on first?",
         available_minutes: 60,
       });
@@ -142,8 +155,9 @@ describe("SCRUM-375 - UC-1 AI Workflow", () => {
     });
 
     const response = await request(app)
-      .post(`/api/ai/chat?user_id=${USER_A}`)
-      .send({
+        .post("/api/ai/chat")
+        .set("Authorization", `Bearer ${TOKEN_A}`)
+        .send({
         message: "Generate a study schedule",
         available_minutes: 120,
         response_mode: "schedule",
@@ -191,8 +205,9 @@ describe("SCRUM-375 - UC-1 AI Workflow", () => {
     });
 
     const response = await request(app)
-      .post(`/api/ai/chat?user_id=${USER_A}`)
-      .send({
+        .post("/api/ai/chat")
+        .set("Authorization", `Bearer ${TOKEN_A}`)
+        .send({
         message: "Generate a study schedule",
         available_minutes: 60,
         response_mode: "schedule",
@@ -212,8 +227,9 @@ describe("SCRUM-375 - UC-1 AI Workflow", () => {
     );
 
     const response = await request(app)
-      .post(`/api/ai/chat?user_id=${USER_A}`)
-      .send({
+        .post("/api/ai/chat")
+        .set("Authorization", `Bearer ${TOKEN_A}`)
+        .send({
         message: "What should I work on first?",
         available_minutes: 60,
       });
@@ -234,11 +250,12 @@ describe("SCRUM-375 - UC-1 AI Workflow", () => {
     askAI.mockResolvedValue("Here is your recommendation.");
 
     const response = await request(app)
-      .post(`/api/ai/chat?user_id=${USER_A}`)
-      .send({
+    .post(`/api/ai/chat?user_id=${USER_B}`)
+    .set("Authorization", `Bearer ${TOKEN_A}`)
+    .send({
         message: "What should I work on first?",
         available_minutes: 60,
-      });
+    });
 
     expect(response.status).toBe(200);
 
