@@ -58,6 +58,14 @@ const EARLIER_THIS_WEEK_BUT_PAST = isBeforeTodayWithinThisWeek
   ? new Date(WEEK_START_MS + 12 * 60 * 60 * 1000).toISOString()
   : null;
 
+// Symmetric to the above, for a task that's due later this week and not
+// yet overdue ("upcoming"). Guarded the same way - skipped only on the one
+// day (Sunday) where "later this week" doesn't exist.
+const isAfterTodayWithinThisWeek = TODAY_UTC_MS < WEEK_START_MS + 6 * DAY_MS;
+const LATER_THIS_WEEK_BUT_FUTURE = isAfterTodayWithinThisWeek
+  ? new Date(WEEK_START_MS + 6 * DAY_MS + 12 * 60 * 60 * 1000).toISOString()
+  : null;
+
 const createAsUser = (userId, overrides = {}) =>
   request(app)
     .post("/api/tasks")
@@ -96,6 +104,7 @@ describe("Weekly Summary — empty state", () => {
       completed: 0,
       remaining: 0,
       overdue: 0,
+      upcoming: 0,
     });
     expect(res.body.data.workload).toEqual({
       totalEffortMinutes: 0,
@@ -108,6 +117,7 @@ describe("Weekly Summary — empty state", () => {
     expect(res.body.data.completionPercentage).toBe(0);
     expect(res.body.data.tasks).toEqual([]);
     expect(res.body.data.overdue).toEqual([]);
+    expect(res.body.data.upcoming).toEqual([]);
     expect(res.body.data.week.start).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(res.body.data.week.end).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
@@ -229,6 +239,84 @@ describe("Weekly Summary — completion and overdue", () => {
       );
     }
   );
+});
+
+describe("Weekly Summary — upcoming tasks", () => {
+  (isAfterTodayWithinThisWeek ? it : it.skip)(
+    "classifies an incomplete task due later this week as upcoming, not overdue",
+    async () => {
+      const created = await createAsUser(USER_ID, {
+        title: "Later this week, still open",
+        due_date: LATER_THIS_WEEK_BUT_FUTURE,
+      });
+
+      const res = await getSummary();
+
+      expect(res.body.data.counts.upcoming).toBe(1);
+      expect(res.body.data.upcoming.map((t) => t.id)).toEqual([
+        created.body.data.id,
+      ]);
+      expect(res.body.data.overdue.map((t) => t.id)).not.toContain(
+        created.body.data.id
+      );
+    }
+  );
+
+  (isAfterTodayWithinThisWeek ? it : it.skip)(
+    "does not count a completed task due later this week as upcoming",
+    async () => {
+      await createAsUser(USER_ID, {
+        title: "Already done, due later this week",
+        due_date: LATER_THIS_WEEK_BUT_FUTURE,
+        completion_status: "completed",
+      });
+
+      const res = await getSummary();
+
+      expect(res.body.data.counts.upcoming).toBe(0);
+      expect(res.body.data.upcoming).toEqual([]);
+    }
+  );
+
+  (isBeforeTodayWithinThisWeek ? it : it.skip)(
+    "does not count an overdue task (due earlier this week) as upcoming",
+    async () => {
+      const created = await createAsUser(USER_ID, {
+        title: "Earlier this week, still open",
+        due_date: EARLIER_THIS_WEEK_BUT_PAST,
+      });
+
+      const res = await getSummary();
+
+      expect(res.body.data.upcoming.map((t) => t.id)).not.toContain(
+        created.body.data.id
+      );
+    }
+  );
+});
+
+describe("Weekly Summary — no completed work", () => {
+  it("reports 0% completion when the week has tasks but none are completed", async () => {
+    await createAsUser(USER_ID, {
+      title: "Not done 1",
+      due_date: MONDAY_THIS_WEEK,
+      completion_status: "not_started",
+    });
+    await createAsUser(USER_ID, {
+      title: "Not done 2",
+      due_date: WEDNESDAY_THIS_WEEK,
+      completion_status: "in_progress",
+    });
+
+    const res = await getSummary();
+
+    expect(res.body.data.counts.total).toBe(2);
+    expect(res.body.data.counts.completed).toBe(0);
+    expect(res.body.data.counts.remaining).toBe(2);
+    expect(res.body.data.completionPercentage).toBe(0);
+    expect(res.body.data.workload.completedEffortMinutes).toBe(0);
+    expect(res.body.data.workload.completedPoints).toBe(0);
+  });
 });
 
 describe("Weekly Summary — workload totals", () => {

@@ -85,6 +85,9 @@ function createMockSupabase() {
 
           // Generic simulation of the tasks_user_canvas_assignment_unique
           // constraint (see supabase/migrations/002_canvas_assignment_sync.sql).
+          // That migration's index is composite - (user_id, canvas_course_id,
+          // canvas_assignment_id) - so the same assignment_id reused across
+          // two different courses must NOT be treated as a conflict here.
           // Only engages when the inserted row actually sets
           // canvas_assignment_id, so every other insert (every existing
           // test, every non-Canvas Task) is completely unaffected.
@@ -92,6 +95,7 @@ function createMockSupabase() {
             const conflict = store[table].find(
               (row) =>
                 row.user_id === newRow.user_id &&
+                row.canvas_course_id === newRow.canvas_course_id &&
                 row.canvas_assignment_id === newRow.canvas_assignment_id
             );
 
@@ -189,6 +193,22 @@ function createMockSupabase() {
     return builder;
   }
  
+  // store[table] is otherwise only created lazily inside makeQueryBuilder(),
+  // on a table's first .from() call. A test that seeds __store directly
+  // (e.g. pushing a fixture row before ever calling .from() on that table
+  // in that test run - which happens whenever such a test runs first or in
+  // isolation) would hit that table before anything lazily creates it -
+  // this proxy auto-vivifies the same way .from() does, so direct __store
+  // access is safe regardless of what has or hasn't run yet.
+  const storeAccessor = new Proxy(store, {
+    get(target, key) {
+      if (typeof key === "string" && !(key in target)) {
+        target[key] = [];
+      }
+      return target[key];
+    },
+  });
+
   const client = {
     auth: {
       admin: {
@@ -202,7 +222,7 @@ function createMockSupabase() {
     from(table) {
       return makeQueryBuilder(table);
     },
-    __store: store,
+    __store: storeAccessor,
     __reset() {
       Object.keys(store).forEach((key) => {
         store[key] = [];
