@@ -183,19 +183,32 @@ const getTasksForDashboardDay = (day) => {
     setTaskRefreshKey((current) => current + 1);
   };
 
-  const handleSendChatMessage = async (e) => {
-  e.preventDefault();
+  
+const handleSendChatMessage = async (event) => {
+  event.preventDefault();
 
   const trimmedMessage = chatInput.trim();
+  const requestedMode = chatResponseMode;
+  const requestedMinutes = Number(availableMinutes);
 
   if (!trimmedMessage || !user?.id || chatLoading) {
     return;
   }
 
+  if (
+    !Number.isSafeInteger(requestedMinutes) ||
+    requestedMinutes < 0
+  ) {
+    setChatError(
+      "Available study time must be a nonnegative whole number."
+    );
+    return;
+  }
+
   setChatError("");
 
-  setChatMessages((currentMessages) => [
-    ...currentMessages,
+  setChatMessages((messages) => [
+    ...messages,
     {
       role: "user",
       content: trimmedMessage,
@@ -206,21 +219,28 @@ const getTasksForDashboardDay = (day) => {
   setChatLoading(true);
 
   try {
+    const token = localStorage.getItem("omni_ai_token");
+
+    if (!token) {
+      throw new Error(
+        "Please log in before requesting a study schedule."
+      );
+    }
+
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/ai/chat?user_id=${encodeURIComponent(
-        user.id
-      )}`,
+      `${import.meta.env.VITE_API_URL}/ai/chat`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           message: trimmedMessage,
-          available_minutes: Number(availableMinutes),
-          response_mode: chatResponseMode,
+          available_minutes: requestedMinutes,
+          response_mode: requestedMode,
           schedule_start_time:
-            chatResponseMode === "schedule"
+            requestedMode === "schedule"
               ? new Date().toISOString()
               : undefined,
         }),
@@ -229,30 +249,47 @@ const getTasksForDashboardDay = (day) => {
 
     const result = await response.json();
 
-    if (!response.ok) {
+    if (!response.ok || !result.success) {
       throw new Error(
         result.error || "Could not generate AI response."
       );
     }
-    
 
-    const assistantContent =
-      chatResponseMode === "schedule"
-        ? result.data.response.message
-        : result.data.response;
+    if (requestedMode === "schedule") {
+      const aiResponse = result.data?.response;
+      const savedSchedules = result.data?.schedules;
 
-    setChatMessages((currentMessages) => [
-      ...currentMessages,
-      {
-        role: "assistant",
-        content: assistantContent,
-      },
-    ]);
+      if (
+        !aiResponse ||
+        !Array.isArray(aiResponse.schedule) ||
+        !Array.isArray(savedSchedules)
+      ) {
+        throw new Error(
+          "The server returned an invalid schedule."
+        );
+      }
 
-    if (chatResponseMode === "schedule") {
+      setChatMessages((messages) => [
+        ...messages,
+        {
+          role: "assistant",
+          content:
+            aiResponse.message ||
+            "Here is your study schedule.",
+          schedules: savedSchedules,
+        },
+      ]);
+
       setTaskRefreshKey((current) => current + 1);
+    } else {
+      setChatMessages((messages) => [
+        ...messages,
+        {
+          role: "assistant",
+          content: String(result.data?.response ?? ""),
+        },
+      ]);
     }
-
   } catch (error) {
     console.error("AI Chat failed:", error);
 
@@ -262,7 +299,8 @@ const getTasksForDashboardDay = (day) => {
   } finally {
     setChatLoading(false);
   }
-  };
+};
+
 
   return (
     <div className={`dashboard-page ${theme === "dark" ? "dark-mode" : ""}`}>
@@ -574,9 +612,51 @@ const getTasksForDashboardDay = (day) => {
                         </div>
                       )}
 
+                                            
                       <div className="chat-bubble">
                         <p>{message.content}</p>
+
+                        {Array.isArray(message.schedules) &&
+                          message.schedules.length > 0 && (
+                            <div className="generated-schedule">
+                              <h4>Your Study Schedule</h4>
+
+                              {message.schedules.map((block, index) => (
+                                <div
+                                  className="schedule-block"
+                                  key={
+                                    block.id ||
+                                    `${block.task_id}-${index}`
+                                  }
+                                >
+                                  <strong>
+                                    {block.task_title || "Study Task"}
+                                  </strong>
+
+                                  <p>
+                                    {new Date(
+                                      block.start_time
+                                    ).toLocaleString([], {
+                                      dateStyle: "medium",
+                                      timeStyle: "short",
+                                    })}
+                                    {" – "}
+                                    {new Date(
+                                      block.end_time
+                                    ).toLocaleTimeString([], {
+                                      timeStyle: "short",
+                                    })}
+                                  </p>
+
+                                  <small>
+                                    {block.allocated_minutes} minutes
+                                  </small>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                       </div>
+
 
                       {message.role === "user" && (
                         <div className="user-chat-avatar">
