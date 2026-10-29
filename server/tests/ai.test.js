@@ -337,20 +337,45 @@ describe("POST /api/ai/chat - boundary validation", () => {
   });
 });
 
+
 describe("POST /api/ai/chat - successful request", () => {
+
+  afterEach(() => {
+  jest.restoreAllMocks();
+  });
+
   it("returns a successful AI response for a valid chat request", async () => {
     supabase.__store.tasks = [
       {
         id: "task-1",
         user_id: USER_ID,
         title: "Software Engineering Project",
-        due_date: null,
+        due_date: "2026-11-05T23:59:00.000Z",
         priority: "high",
         point_value: 50,
         estimated_effort_minutes: 60,
         completion_status: "not_started",
       },
     ];
+
+    // Capture the selected Supabase task columns.
+    const originalFrom = supabase.from.bind(supabase);
+    let selectedTaskColumns;
+
+    jest.spyOn(supabase, "from").mockImplementation((table) => {
+      const query = originalFrom(table);
+
+      if (table === "tasks") {
+        const originalSelect = query.select.bind(query);
+
+        query.select = (columns) => {
+          selectedTaskColumns = columns;
+          return originalSelect(columns);
+        };
+      }
+
+      return query;
+    });
 
     askAI.mockResolvedValue(
       "Work on the Software Engineering Project first."
@@ -374,13 +399,17 @@ describe("POST /api/ai/chat - successful request", () => {
 
     expect(askAI).toHaveBeenCalledTimes(1);
 
+
     expect(askAI).toHaveBeenCalledWith(
       "What should I work on?",
       expect.arrayContaining([
         expect.objectContaining({
+          id: "task-1",
           title: "Software Engineering Project",
+          due_date: "2026-11-05T23:59:00.000Z",
           priority: "high",
           point_value: 50,
+          estimated_effort_minutes: 60,
           completion_status: "not_started",
           calculated_priority_score: expect.any(Number),
           priority_breakdown: expect.any(Object),
@@ -389,7 +418,28 @@ describe("POST /api/ai/chat - successful request", () => {
       120,
       "text"
     );
-  });
+
+    // NEW: Verify the Supabase query selects required fields.
+    expect(selectedTaskColumns).toEqual(expect.any(String));
+
+    const selectedFields = selectedTaskColumns
+      .split(",")
+      .map((column) => column.trim());
+
+    expect(selectedFields).toEqual(
+      expect.arrayContaining([
+        "id",
+        "title",
+        "due_date",
+        "priority",
+        "point_value",
+        "estimated_effort_minutes",
+        "completion_status",
+      ])
+    );
+
+    }); 
+
 
   it("excludes completed tasks from AI schedule input", async () => {
     supabase.__store.tasks = [
