@@ -228,6 +228,12 @@ function PrioritizedTodo({
   };
 
 
+  // due_date is a date-only value, always written end-of-day UTC by the
+  // backend (see taskController.js's Daily/Weekly Summary, and
+  // CalendarView.jsx's isToday/getTasksForDay) - the UTC day *is* the
+  // intended due date, regardless of the viewer's own timezone. Without
+  // timeZone: "UTC" here, a viewer ahead of UTC sees the due date one
+  // day late (TODO-DEFECT-001).
   const formatDueDate = (
     dueDate
   ) => {
@@ -240,6 +246,7 @@ function PrioritizedTodo({
     ).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
+      timeZone: "UTC",
     });
   };
 
@@ -253,6 +260,13 @@ function PrioritizedTodo({
   };
 
 
+  // Unlike due_date above, start_time/end_time are genuine timestamps -
+  // a real moment the user picked (see aiController.js's schedule-row
+  // creation). Displaying them in the viewer's own local time, as this
+  // already does, is correct and intentional - do not add
+  // timeZone: "UTC" here to "match" formatDueDate; that would be a
+  // regression, not a fix (same distinction as CalendarView.jsx's
+  // getSchedulesForDay vs. getTasksForDay).
   const formatScheduledTime = (
     schedule
   ) => {
