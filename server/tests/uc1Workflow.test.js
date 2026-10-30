@@ -186,6 +186,12 @@ describe("SCRUM-375 - UC-1 AI Workflow", () => {
         status: "scheduled",
       }),
     ]);
+    // Verify the generated schedule was saved.
+    expect(supabase.__store.schedules).toHaveLength(1);
+
+    // Verify the API response contains the saved schedule fields.
+    expect(response.body.data.schedules)
+      .toMatchObject(supabase.__store.schedules);
   });
 
   // TEST 4: Reject a schedule containing another user's task
