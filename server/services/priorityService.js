@@ -7,6 +7,11 @@ const getDeadlineScore = (dueDate) => {
     const now = new Date();
     const deadline = new Date(dueDate);
 
+    // Sprint 4: Handle invalid deadline values
+    if (Number.isNaN(deadline.getTime())) {
+        return 0;
+    }
+
     const differenceMs = deadline.getTime() - now.getTime();
 
     const daysRemaining = Math.ceil(

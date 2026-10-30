@@ -118,8 +118,21 @@ function findNextAvailableSlot(
     const originalStart = new Date(task.start_time);
     const originalEnd = new Date(task.end_time);
 
+    // Sprint 4: Reject invalid scheduling dates
+    if (
+        Number.isNaN(originalStart.getTime()) ||
+        Number.isNaN(originalEnd.getTime())
+    ) {
+        return null;
+    }
+
     const durationMs =
         originalEnd.getTime() - originalStart.getTime();
+
+    // Sprint 4: Reject zero or negative task durations
+    if (durationMs <= 0) {
+        return null;
+    }
 
     let candidateStart = searchStartTime
         ? new Date(searchStartTime)
