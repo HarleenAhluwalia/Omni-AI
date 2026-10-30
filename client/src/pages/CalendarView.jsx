@@ -10,7 +10,7 @@ function CalendarView({
   const today = new Date();
 
   const [currentDate, setCurrentDate] = useState(
-    new Date(today.getFullYear(), today.getMonth(), 1)
+    new Date(today.getUTCFullYear(), today.getUTCMonth(), 1)
   );
 
   const [tasks, setTasks] = useState([]);
@@ -155,22 +155,30 @@ function CalendarView({
   const goToToday = () => {
     setCurrentDate(
       new Date(
-        today.getFullYear(),
-        today.getMonth(),
+        today.getUTCFullYear(),
+        today.getUTCMonth(),
         1
       )
     );
   };
 
+  // due_date is a date-only value, always written end-of-day UTC by the
+  // backend (see taskController.js's Daily/Weekly Summary) - the UTC day
+  // *is* the intended calendar day, regardless of the viewer's own
+  // timezone. "Today" has to use the same UTC-day convention, since it
+  // exists to answer "which UTC-anchored due dates count as due today" -
+  // matching Daily/Weekly Summary's own UTC-today. Reading either with
+  // local getters would disagree with the rest of the app by up to a day
+  // for anyone not in UTC.
   const isToday = (day) => {
     if (!day) {
       return false;
     }
 
     return (
-      day === today.getDate() &&
-      month === today.getMonth() &&
-      year === today.getFullYear()
+      day === today.getUTCDate() &&
+      month === today.getUTCMonth() &&
+      year === today.getUTCFullYear()
     );
   };
 
@@ -187,13 +195,23 @@ function CalendarView({
       const taskDate = new Date(task.due_date);
 
       return (
-        taskDate.getFullYear() === year &&
-        taskDate.getMonth() === month &&
-        taskDate.getDate() === day
+        taskDate.getUTCFullYear() === year &&
+        taskDate.getUTCMonth() === month &&
+        taskDate.getUTCDate() === day
       );
     });
   };
 
+  // Unlike due_date, a schedule's start_time/end_time are genuine
+  // timestamps - a real moment the user picked (see aiController.js's
+  // schedule-row creation and taskController.js's resolveSchedule, both
+  // of which treat them as opaque instants, not day-anchored values).
+  // formatScheduleTime() below already displays them with
+  // toLocaleTimeString() (local time), so which day a block belongs on
+  // has to be read in local time too, or a late-night block would show
+  // up a day off from the day the user actually scheduled it for. Do
+  // not "fix" this to UTC getters to match getTasksForDay above - that
+  // would reintroduce a bug, not remove one.
   const getSchedulesForDay = (day) => {
     if (!day) {
       return [];

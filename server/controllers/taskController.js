@@ -148,28 +148,37 @@ const validateFields = (fields) => {
 const getTasks = async (req, res) => {
   const user_id = req.user.id;
 
-  const {
-    data,
-    error
-  } = await supabase
-    .from("tasks")
-    .select("*")
-    .eq("user_id", user_id)
-    .order("created_at", {
-      ascending: true
-    });
+  try {
+    const {
+      data,
+      error
+    } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("user_id", user_id)
+      .order("created_at", {
+        ascending: true
+      });
 
-  if (error) {
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    console.error("Task list retrieval failed:", error);
+
     return res.status(500).json({
       success: false,
-      error: error.message
+      error: "Could not load tasks."
     });
   }
-
-  return res.status(200).json({
-    success: true,
-    data
-  });
 };
 
 
@@ -188,34 +197,43 @@ const getTaskById = async (req, res) => {
 
   const user_id = req.user.id;
 
-  const {
-    data,
-    error
-  } = await supabase
-    .from("tasks")
-    .select("*")
-    .eq("id", id)
-    .eq("user_id", user_id)
-    .maybeSingle();
+  try {
+    const {
+      data,
+      error
+    } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("id", id)
+      .eq("user_id", user_id)
+      .maybeSingle();
 
-  if (error) {
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        error: "Task not found"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    console.error("Task retrieval failed:", error);
+
     return res.status(500).json({
       success: false,
-      error: error.message
+      error: "Could not load task."
     });
   }
-
-  if (!data) {
-    return res.status(404).json({
-      success: false,
-      error: "Task not found"
-    });
-  }
-
-  return res.status(200).json({
-    success: true,
-    data
-  });
 };
 
 
@@ -251,32 +269,41 @@ const createTask = async (req, res) => {
     });
   }
 
-  const {
-    data,
-    error
-  } = await supabase
-    .from("tasks")
-    .insert([
-      {
-        ...fields,
-        title: title.trim(),
-        user_id
-      }
-    ])
-    .select()
-    .single();
+  try {
+    const {
+      data,
+      error
+    } = await supabase
+      .from("tasks")
+      .insert([
+        {
+          ...fields,
+          title: title.trim(),
+          user_id
+        }
+      ])
+      .select()
+      .single();
 
-  if (error) {
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    console.error("Task creation failed:", error);
+
     return res.status(500).json({
       success: false,
-      error: error.message
+      error: "Could not create task."
     });
   }
-
-  return res.status(201).json({
-    success: true,
-    data
-  });
 };
 
 
@@ -331,35 +358,44 @@ const updateTask = async (req, res) => {
     });
   }
 
-  const {
-    data,
-    error
-  } = await supabase
-    .from("tasks")
-    .update(updates)
-    .eq("id", id)
-    .eq("user_id", user_id)
-    .select()
-    .maybeSingle();
+  try {
+    const {
+      data,
+      error
+    } = await supabase
+      .from("tasks")
+      .update(updates)
+      .eq("id", id)
+      .eq("user_id", user_id)
+      .select()
+      .maybeSingle();
 
-  if (error) {
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        error: "Task not found"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    console.error("Task update failed:", error);
+
     return res.status(500).json({
       success: false,
-      error: error.message
+      error: "Could not update task."
     });
   }
-
-  if (!data) {
-    return res.status(404).json({
-      success: false,
-      error: "Task not found"
-    });
-  }
-
-  return res.status(200).json({
-    success: true,
-    data
-  });
 };
 
 
@@ -378,35 +414,44 @@ const deleteTask = async (req, res) => {
 
   const user_id = req.user.id;
 
-  const {
-    data,
-    error
-  } = await supabase
-    .from("tasks")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", user_id)
-    .select()
-    .maybeSingle();
+  try {
+    const {
+      data,
+      error
+    } = await supabase
+      .from("tasks")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user_id)
+      .select()
+      .maybeSingle();
 
-  if (error) {
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        error: "Task not found"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    console.error("Task deletion failed:", error);
+
     return res.status(500).json({
       success: false,
-      error: error.message
+      error: "Could not delete task."
     });
   }
-
-  if (!data) {
-    return res.status(404).json({
-      success: false,
-      error: "Task not found"
-    });
-  }
-
-  return res.status(200).json({
-    success: true,
-    data
-  });
 };
 
 const getPrioritizedTasks = async (req, res) => {
