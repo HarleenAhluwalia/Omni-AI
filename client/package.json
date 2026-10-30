@@ -10,7 +10,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test:prioritized": "node --test tests/prioritizedTodo.test.mjs",
-    "test:harleen": "node --test tests/preferences.test.mjs tests/canvasApi.test.mjs"
+    "test:harleen": "node --test tests/preferences.test.mjs tests/canvasApi.test.mjs",
+    "test:calendar": "node --test tests/calendarLogic.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.1",
