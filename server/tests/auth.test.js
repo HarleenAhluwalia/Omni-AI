@@ -588,3 +588,139 @@ describe("JWT Authentication Middleware", () => {
     });
   });
 });
+
+/**
+ * HARLEEN — SPRINT 4
+ * Authentication Functional and Regression Tests
+ */
+
+describe("Harleen Sprint 4 - authentication input validation", () => {
+  test.each([
+    [
+      "array email",
+      {
+        email: ["student@example.com"],
+        password: "Password123",
+      },
+    ],
+    [
+      "object email",
+      {
+        email: { value: "student@example.com" },
+        password: "Password123",
+      },
+    ],
+    [
+      "numeric email",
+      {
+        email: 123,
+        password: "Password123",
+      },
+    ],
+    [
+      "array password",
+      {
+        email: "student@example.com",
+        password: ["Password123"],
+      },
+    ],
+    [
+      "object password",
+      {
+        email: "student@example.com",
+        password: { value: "Password123" },
+      },
+    ],
+  ])("rejects malformed login payload: %s", async (_, body) => {
+    const response = await request(app)
+      .post("/api/auth/login")
+      .send(body);
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual(expect.any(Array));
+    expect(createClient).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    [
+      "array email",
+      {
+        name: "Student",
+        email: ["student@example.com"],
+        password: "Password123",
+      },
+    ],
+    [
+      "object email",
+      {
+        name: "Student",
+        email: { value: "student@example.com" },
+        password: "Password123",
+      },
+    ],
+    [
+      "numeric email",
+      {
+        name: "Student",
+        email: 123,
+        password: "Password123",
+      },
+    ],
+    [
+      "array password",
+      {
+        name: "Student",
+        email: "student@example.com",
+        password: ["Password123"],
+      },
+    ],
+    [
+      "object password",
+      {
+        name: "Student",
+        email: "student@example.com",
+        password: { value: "Password123" },
+      },
+    ],
+  ])("rejects malformed registration payload: %s", async (_, body) => {
+    const response = await request(app)
+      .post("/api/auth/register")
+      .send(body);
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual(expect.any(Array));
+    expect(supabase.auth.admin.createUser).not.toHaveBeenCalled();
+  });
+
+  it("normalizes spaces and letter casing for a valid login email", async () => {
+    const reg = await request(app)
+      .post("/api/auth/register")
+      .send(validUser);
+
+    expect(reg.status).toBe(201);
+
+    const response = await request(app)
+      .post("/api/auth/login")
+      .send({
+        email: "  JANE@EXAMPLE.COM  ",
+        password: validUser.password,
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.user.email).toBe("jane@example.com");
+  });
+
+  it("rejects invalid authorization after a successful login", async () => {
+    const reg = await request(app)
+      .post("/api/auth/register")
+      .send(validUser);
+
+    expect(reg.status).toBe(201);
+
+    const response = await request(app)
+      .get("/api/auth/me")
+      .set("Authorization", "Bearer invalid-token");
+
+    expect(response.status).toBe(401);
+  });
+});
