@@ -1,0 +1,54 @@
+
+name: "SCRUM-330 - Authentication and Task Management Regression Tests"
+
+on:
+  push:
+    branches:
+      - main
+      - harleen-sprint4-auth-testing
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  authentication-task-regression:
+    name: "Harleen - Sprint 4 Regression Tests"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: server
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Run authentication security tests
+        run: npm test -- --runInBand tests/harleenCC61Sprint4.test.js
+
+      - name: Run authentication API regression tests
+        run: npm test -- --runInBand tests/auth.test.js
+
+      - name: Run Task Management regression tests
+        run: npm test -- --runInBand tests/tasks.test.js tests/taskWorkflow.test.js tests/taskAuth.test.js
+
+      - name: Run complete backend regression suite
+        run: npm test -- --runInBand
+
+      - name: Report CI completion
+        run: echo "SCRUM-330 - All required regression checks passed."
