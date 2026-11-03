@@ -5,6 +5,46 @@ const {
 const {
   resolveAndReschedule,
 } = require("../services/schedulingService");
+const {
+  EVENTS,
+  logSecurityEvent,
+  logDatabaseFailure,
+  logBackendError,
+} = require("../src/utils/securityLogger");
+
+// ---------------------------------------------------------
+// CC7.2 monitoring helper.
+//
+// Task queries are scoped with .eq("user_id", ...), so a task owned by
+// someone else and a task that does not exist both come back as "no row".
+// The API response stays a plain 404 for both (so it never reveals whether
+// another user's task exists), but monitoring must still be able to tell
+// them apart. After a 404 this checks, by id only and selecting just the id,
+// whether the row exists; if it does, the attempt is an authorization
+// violation and AUTH_ACCESS_DENIED is logged.
+//
+// Never throws and never alters the response already decided by the caller.
+// ---------------------------------------------------------
+const logIfTaskOwnedByAnotherUser = async (req, taskId) => {
+  try {
+    const { data } = await supabase
+      .from("tasks")
+      .select("id")
+      .eq("id", taskId)
+      .maybeSingle();
+
+    if (data) {
+      logSecurityEvent({
+        event: EVENTS.AUTH_ACCESS_DENIED,
+        reason: "task_not_owned",
+        req,
+        status: 404,
+      });
+    }
+  } catch {
+    // Monitoring must not change the outcome of the request.
+  }
+};
 
 
 // ---------------------------------------------------------
@@ -161,6 +201,9 @@ const getTasks = async (req, res) => {
       });
 
     if (error) {
+
+      logDatabaseFailure(req, "task_list_failed", error);
+
       return res.status(500).json({
         success: false,
         error: error.message
@@ -172,7 +215,7 @@ const getTasks = async (req, res) => {
       data
     });
   } catch (error) {
-    console.error("Task list retrieval failed:", error);
+    logDatabaseFailure(req, "task_list_failed", error);
 
     return res.status(500).json({
       success: false,
@@ -209,6 +252,9 @@ const getTaskById = async (req, res) => {
       .maybeSingle();
 
     if (error) {
+
+      logDatabaseFailure(req, "task_read_failed", error);
+
       return res.status(500).json({
         success: false,
         error: error.message
@@ -216,6 +262,8 @@ const getTaskById = async (req, res) => {
     }
 
     if (!data) {
+      await logIfTaskOwnedByAnotherUser(req, id);
+
       return res.status(404).json({
         success: false,
         error: "Task not found"
@@ -227,7 +275,7 @@ const getTaskById = async (req, res) => {
       data
     });
   } catch (error) {
-    console.error("Task retrieval failed:", error);
+    logDatabaseFailure(req, "task_read_failed", error);
 
     return res.status(500).json({
       success: false,
@@ -286,6 +334,9 @@ const createTask = async (req, res) => {
       .single();
 
     if (error) {
+
+      logDatabaseFailure(req, "task_create_failed", error);
+
       return res.status(500).json({
         success: false,
         error: error.message
@@ -297,7 +348,7 @@ const createTask = async (req, res) => {
       data
     });
   } catch (error) {
-    console.error("Task creation failed:", error);
+    logDatabaseFailure(req, "task_create_failed", error);
 
     return res.status(500).json({
       success: false,
@@ -371,6 +422,9 @@ const updateTask = async (req, res) => {
       .maybeSingle();
 
     if (error) {
+
+      logDatabaseFailure(req, "task_update_failed", error);
+
       return res.status(500).json({
         success: false,
         error: error.message
@@ -378,6 +432,8 @@ const updateTask = async (req, res) => {
     }
 
     if (!data) {
+      await logIfTaskOwnedByAnotherUser(req, id);
+
       return res.status(404).json({
         success: false,
         error: "Task not found"
@@ -389,7 +445,7 @@ const updateTask = async (req, res) => {
       data
     });
   } catch (error) {
-    console.error("Task update failed:", error);
+    logDatabaseFailure(req, "task_update_failed", error);
 
     return res.status(500).json({
       success: false,
@@ -427,6 +483,9 @@ const deleteTask = async (req, res) => {
       .maybeSingle();
 
     if (error) {
+
+      logDatabaseFailure(req, "task_delete_failed", error);
+
       return res.status(500).json({
         success: false,
         error: error.message
@@ -434,6 +493,8 @@ const deleteTask = async (req, res) => {
     }
 
     if (!data) {
+      await logIfTaskOwnedByAnotherUser(req, id);
+
       return res.status(404).json({
         success: false,
         error: "Task not found"
@@ -445,7 +506,7 @@ const deleteTask = async (req, res) => {
       data
     });
   } catch (error) {
-    console.error("Task deletion failed:", error);
+    logDatabaseFailure(req, "task_delete_failed", error);
 
     return res.status(500).json({
       success: false,
@@ -477,6 +538,9 @@ const getPrioritizedTasks = async (req, res) => {
       .eq("user_id", user_id);
 
     if (error) {
+
+      logDatabaseFailure(req, "task_prioritized_failed", error);
+
       return res.status(500).json({
         success: false,
         error: error.message,
@@ -544,10 +608,7 @@ const getPrioritizedTasks = async (req, res) => {
       data: sortedTasks,
     });
   } catch (error) {
-    console.error(
-      "Prioritized task retrieval failed:",
-      error
-    );
+    logDatabaseFailure(req, "task_prioritized_failed", error);
 
     return res.status(500).json({
       success: false,
@@ -635,10 +696,7 @@ const resolveSchedule = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.error(
-      "Schedule resolution failed:",
-      error
-    );
+    logBackendError(req, "schedule_resolve_failed", error);
 
     return res.status(500).json({
       success: false,
@@ -713,6 +771,9 @@ const getDailySummary = async (req, res) => {
     .eq("user_id", user_id);
 
   if (error) {
+
+    logDatabaseFailure(req, "task_daily_summary_failed", error);
+
     return res.status(500).json({
       success: false,
       error: error.message
@@ -837,6 +898,9 @@ const getWeeklySummary = async (req, res) => {
     .eq("user_id", user_id);
 
   if (error) {
+
+    logDatabaseFailure(req, "task_weekly_summary_failed", error);
+
     return res.status(500).json({
       success: false,
       error: error.message
