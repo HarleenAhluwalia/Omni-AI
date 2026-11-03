@@ -6,7 +6,7 @@
 
 .prioritized-card {
   width: 100%;
-  min-height: 720px;
+  min-height: 0;
 
   background: #d9d9d9;
 
@@ -73,13 +73,7 @@
   min-width: 1120px;
 
   grid-template-columns:
-    46px
-    minmax(220px, 1fr)
-    100px
-    210px
-    100px
-    100px
-    160px;
+    46px minmax(220px, 1fr) 100px 210px 100px 100px 160px;
 
   align-items: center;
   column-gap: 20px;
@@ -119,7 +113,7 @@
   background: rgba(255, 255, 255, 0.45);
 }
 
-.todo-table-row > div {
+.todo-table-row>div {
   color: #111;
 }
 
@@ -340,12 +334,13 @@
 ========================= */
 
 .workload-panel {
-  margin: 20px 26px;
-  padding: 20px;
+  /* Align the separate analysis box with the To-Do card. */
+  margin: 24px 0 0;
+  padding: 24px;
 
   background: #f8f7ff;
   border: 1px solid #b6afe8;
-  border-radius: 10px;
+  border-radius: 14px;
 
   color: #222;
 }
