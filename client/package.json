@@ -1,4 +1,3 @@
-
 {
   "name": "client",
   "private": true,
@@ -12,7 +11,9 @@
     "test:prioritized": "node --test tests/prioritizedTodo.test.mjs",
     "test:harleen": "node --test tests/preferences.test.mjs tests/canvasApi.test.mjs",
     "test:calendar": "node --test tests/calendarLogic.test.mjs",
-    "test:todo": "node --test tests/prioritizedTodoLogic.test.mjs"
+    "test:todo": "node --test tests/prioritizedTodoLogic.test.mjs",
+    "test:sprint4-ui-contract": "node --test tests/sprint4TaskFormContract.test.mjs tests/sprint4AuthUiContract.test.mjs",
+    "test:sprint4-crud": "vitest run tests/sprint4TaskCrud.interactive.test.jsx"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.1",
@@ -20,10 +21,13 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.1.0",
+    "jsdom": "^26.1.0",
     "oxlint": "^1.79.0",
-    "vite": "^8.2.2"
+    "vite": "^8.2.2",
+    "vitest": "^5.1.0"
   }
 }
