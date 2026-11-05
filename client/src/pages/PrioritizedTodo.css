@@ -70,12 +70,12 @@
 .todo-table-header,
 .todo-table-row {
   display: grid;
-  min-width: 1120px;
+  min-width: 1240px;
 
   grid-template-columns:
     46px
     minmax(220px, 1fr)
-    100px
+    200px
     210px
     100px
     100px
@@ -458,4 +458,22 @@
 /* Dark mode: secondary information */
 .dashboard-page.dark-mode .workload-panel .workload-note {
   color: #bcb9ce;
+}
+
+/* =========================
+   TASK START AND DUE TIMES
+========================= */
+
+.todo-due-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  line-height: 1.4;
+}
+
+.todo-start-info {
+  display: block;
+  font-size: 12px;
+  color: #555;
 }

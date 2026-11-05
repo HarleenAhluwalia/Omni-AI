@@ -250,6 +250,43 @@ function PrioritizedTodo({
     });
   };
 
+  const formatTaskDateTime = (value) => {
+    if (!value) {
+      return "";
+    }
+
+    return new Date(value).toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  };
+
+  const formatTaskDue = (task) => {
+    if (!task.due_date) {
+      return "No due date";
+    }
+
+    if (task.has_due_time) {
+      return formatTaskDateTime(task.due_date);
+    }
+
+    return formatDueDate(task.due_date);
+  };
+
+  const formatTaskStart = (task) => {
+    if (!task.start_time) {
+      return null;
+    }
+
+    if (task.has_due_time) {
+      return formatTaskDateTime(task.start_time);
+    }
+
+    return formatDueDate(task.start_time);
+  };
+
   const getScheduleForTask = (
     taskId
   ) => {
@@ -662,8 +699,16 @@ function PrioritizedTodo({
                   {task.title}
                 </div>
 
-                <div>
-                  {formatDueDate(task.due_date)}
+                <div className="todo-due-cell">
+                  <div>
+                    {formatTaskDue(task)}
+                  </div>
+
+                  {task.start_time && (
+                    <span className="todo-start-info">
+                      Starts: {formatTaskStart(task)}
+                    </span>
+                  )}
                 </div>
 
                 <div className="todo-schedule-cell">

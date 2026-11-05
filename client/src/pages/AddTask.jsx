@@ -34,6 +34,22 @@ function AddTask({ task = null, onTaskSaved }) {
   const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
   const [dueDate, setDueDate] = useState(toDateInputValue(task?.due_date));
+  const [allDay, setAllDay] = useState(
+    !task?.has_due_time
+  );
+  const [startDate, setStartDate] = useState(
+    toDateInputValue(task?.start_time)
+  );
+  const [startTime, setStartTime] = useState(
+    task?.has_due_time && task?.start_time
+      ? new Date(task.start_time).toTimeString().slice(0, 5)
+      : ""
+  );
+  const [dueTime, setDueTime] = useState(
+    task?.has_due_time && task?.due_date
+      ? new Date(task.due_date).toTimeString().slice(0, 5)
+      : ""
+  );
   const [priority, setPriority] = useState(task?.priority ?? "medium");
   const [pointValue, setPointValue] = useState(
     task?.point_value != null ? String(task.point_value) : ""
@@ -65,6 +81,10 @@ function AddTask({ task = null, onTaskSaved }) {
     setTitle("");
     setDescription("");
     setDueDate("");
+    setStartDate("");
+    setStartTime("");
+    setDueTime("");
+    setAllDay(true);
     setPriority("medium");
     setPointValue("");
     setEstimatedEffort("");
@@ -105,12 +125,98 @@ function AddTask({ task = null, onTaskSaved }) {
       });
       return;
     }
+    // Validate the optional start date and time.
+    if (startDate && !dueDate) {
+      setFeedback({
+        type: "error",
+        text: "A due date is required when a start date is entered.",
+      });
+      return;
+    }
+
+    if (!allDay) {
+      if (dueDate && !dueTime) {
+        setFeedback({
+          type: "error",
+          text: "Please select a due time.",
+        });
+        return;
+      }
+
+      if (dueTime && !dueDate) {
+        setFeedback({
+          type: "error",
+          text: "Please select a due date.",
+        });
+        return;
+      }
+
+      if (startDate && !startTime) {
+        setFeedback({
+          type: "error",
+          text: "Please select a start time.",
+        });
+        return;
+      }
+
+      if (startTime && !startDate) {
+        setFeedback({
+          type: "error",
+          text: "Please select a start date.",
+        });
+        return;
+      }
+    }
+
+    // Convert the selected local dates and times into timestamps.
+    const dueTimestamp = dueDate
+      ? new Date(
+        `${dueDate}T${allDay ? "23:59:59" : `${dueTime}:00`}`
+      )
+      : null;
+
+    const startTimestamp = startDate
+      ? new Date(
+        `${startDate}T${allDay ? "00:00:00" : `${startTime}:00`}`
+      )
+      : null;
+
+    // Validate that dates and times are valid.
+    if (
+      (dueTimestamp && Number.isNaN(dueTimestamp.getTime())) ||
+      (startTimestamp && Number.isNaN(startTimestamp.getTime()))
+    ) {
+      setFeedback({
+        type: "error",
+        text: "Please enter valid dates and times.",
+      });
+      return;
+    }
+
+    // Start must occur before the deadline.
+    if (
+      startTimestamp &&
+      dueTimestamp &&
+      startTimestamp >= dueTimestamp
+    ) {
+      setFeedback({
+        type: "error",
+        text: "Start date and time must be before the due date and time.",
+      });
+      return;
+    }
 
     const sharedFields = {
       title: title.trim(),
       description: description.trim() || null,
-      due_date: dueDate
-        ? new Date(`${dueDate}T23:59:59`).toISOString()
+      due_date: dueTimestamp
+        ? dueTimestamp.toISOString()
+        : null,
+
+      has_due_time: !allDay && Boolean(dueDate),
+
+      start_time: startTimestamp
+        ? startTimestamp.toISOString()
         : null,
       priority,
       point_value: pointValue === "" ? null : Number(pointValue),
@@ -146,7 +252,7 @@ function AddTask({ task = null, onTaskSaved }) {
       if (!response.ok) {
         throw new Error(
           result.error ||
-            (isEditMode ? "Could not update task." : "Could not create task.")
+          (isEditMode ? "Could not update task." : "Could not create task.")
         );
       }
 
@@ -222,18 +328,93 @@ function AddTask({ task = null, onTaskSaved }) {
           />
         </div>
 
-        <div className="add-task-field add-task-field--due-date">
-          <label htmlFor="add-task-due-date" className="add-task-label">
-            Due Date
-          </label>
-          <input
-            id="add-task-due-date"
-            type="date"
-            className="add-task-input"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            disabled={isSubmitting}
-          />
+        {/* APPLE CALENDAR STYLE DATE AND TIME */}
+        <div className="add-task-datetime-section">
+
+          {/* ALL-DAY TOGGLE */}
+          <div className="add-task-toggle-row">
+            <label
+              htmlFor="add-task-all-day"
+              className="add-task-label"
+            >
+              All-day
+            </label>
+
+            <input
+              id="add-task-all-day"
+              type="checkbox"
+              role="switch"
+              className="add-task-all-day-switch"
+              checked={allDay}
+              onChange={(e) => setAllDay(e.target.checked)}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          {/* START DATE AND TIME - OPTIONAL */}
+          <div className="add-task-datetime-row">
+            <label
+              htmlFor="add-task-start-date"
+              className="add-task-label"
+            >
+              Starts (Optional)
+            </label>
+
+            <div className="add-task-datetime-inputs">
+              <input
+                id="add-task-start-date"
+                type="date"
+                className="add-task-input"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                disabled={isSubmitting}
+              />
+
+              {!allDay && (
+                <input
+                  type="time"
+                  aria-label="Start time (optional)"
+                  className="add-task-input"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  disabled={isSubmitting}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* END / DUE DATE AND TIME */}
+          <div className="add-task-datetime-row">
+            <label
+              htmlFor="add-task-due-date"
+              className="add-task-label"
+            >
+              Ends (Due)
+            </label>
+
+            <div className="add-task-datetime-inputs">
+              <input
+                id="add-task-due-date"
+                type="date"
+                className="add-task-input"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                disabled={isSubmitting}
+              />
+
+              {!allDay && (
+                <input
+                  type="time"
+                  aria-label="Due time"
+                  className="add-task-input"
+                  value={dueTime}
+                  onChange={(e) => setDueTime(e.target.value)}
+                  disabled={isSubmitting}
+                />
+              )}
+            </div>
+          </div>
+
         </div>
 
         <fieldset className="add-task-group-row">
