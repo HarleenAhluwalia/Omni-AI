@@ -1,4 +1,3 @@
-
 const { createClient } = require("@supabase/supabase-js");
 
 const { UserRepository } = require("../config/db");
@@ -17,6 +16,12 @@ const {
 const { signToken } = require("../middleware/auth");
 
 const supabase = require("../../config/supabase");
+
+// CC7.2 security-event logging
+const {
+  logLoginFailed,
+  logBackendError
+} = require("../utils/securityLogger");
 
 // ---------------------------------------------------------
 // Supabase Password Authentication Client
@@ -45,7 +50,11 @@ function createPasswordAuthClient() {
   });
 }
 
-function invalidCredentials(res) {
+function invalidCredentials(req, res, reason, email) {
+  // CC7.2: record the failure (and feed repeated-failure detection) without
+  // changing the response sent to the client.
+  logLoginFailed(req, reason, email);
+
   return res.status(401).json({
     errors: ["Invalid email or password."]
   });
@@ -88,6 +97,8 @@ async function register(req, res) {
   });
 
   if (authError || !authData?.user) {
+    logBackendError(req, "auth_user_create_failed", authError);
+
     return res.status(500).json({
       errors: [
         authError?.message ||
@@ -136,10 +147,7 @@ async function register(req, res) {
     });
 
   } catch (error) {
-    console.error(
-      "Registration setup failed:",
-      error
-    );
+    logBackendError(req, "registration_setup_failed", error);
 
     try {
       const { error: cleanupError } =
@@ -148,16 +156,10 @@ async function register(req, res) {
         );
 
       if (cleanupError) {
-        console.error(
-          "Supabase user cleanup failed:",
-          cleanupError
-        );
+        logBackendError(req, "auth_user_cleanup_failed", cleanupError);
       }
     } catch (cleanupError) {
-      console.error(
-        "Supabase user cleanup failed:",
-        cleanupError
-      );
+      logBackendError(req, "auth_user_cleanup_failed", cleanupError);
     }
 
     return res.status(500).json({
@@ -191,7 +193,12 @@ async function login(req, res) {
   // -------------------------------------------------------
   if (user) {
     if (!user.passwordHash) {
-      return invalidCredentials(res);
+      return invalidCredentials(
+        req,
+        res,
+        "no_local_password_hash",
+        normalizedEmail
+      );
     }
 
     const passwordMatches = await verifyPassword(
@@ -200,7 +207,12 @@ async function login(req, res) {
     );
 
     if (!passwordMatches) {
-      return invalidCredentials(res);
+      return invalidCredentials(
+        req,
+        res,
+        "password_mismatch",
+        normalizedEmail
+      );
     }
 
     return res.status(200).json({
@@ -232,13 +244,15 @@ async function login(req, res) {
         error.status === 401 ||
         error.code === "invalid_credentials"
       ) {
-        return invalidCredentials(res);
+        return invalidCredentials(
+          req,
+          res,
+          "supabase_invalid_credentials",
+          normalizedEmail
+        );
       }
 
-      console.error(
-        "Supabase password login failed:",
-        error.message
-      );
+      logBackendError(req, "auth_service_unavailable", error, 503);
 
       return res.status(503).json({
         errors: [
@@ -248,7 +262,12 @@ async function login(req, res) {
     }
 
     if (!data?.user) {
-      return invalidCredentials(res);
+      return invalidCredentials(
+        req,
+        res,
+        "no_user_returned",
+        normalizedEmail
+      );
     }
 
     const supabaseUser = data.user;
@@ -278,6 +297,8 @@ async function login(req, res) {
     }
 
     if (user.id !== supabaseUser.id) {
+      logLoginFailed(req, "account_id_mismatch", normalizedEmail, 409);
+
       return res.status(409).json({
         errors: [
           "Account ID mismatch. Please contact the team."
@@ -291,10 +312,7 @@ async function login(req, res) {
     });
 
   } catch (error) {
-    console.error(
-      "Login recovery failed:",
-      error
-    );
+    logBackendError(req, "login_recovery_failed", error);
 
     return res.status(500).json({
       errors: [
@@ -322,6 +340,8 @@ async function oauthLogin(req, res) {
   } = await supabase.auth.getUser(access_token);
 
   if (error || !data?.user) {
+    logLoginFailed(req, "oauth_invalid_session");
+
     return res.status(401).json({
       errors: [
         error?.message ||
@@ -394,10 +414,7 @@ async function oauthLogin(req, res) {
     );
 
   if (profileError) {
-    console.error(
-      "OAuth profile setup failed:",
-      profileError
-    );
+    logBackendError(req, "oauth_profile_setup_failed", profileError);
 
     return res.status(500).json({
       errors: [

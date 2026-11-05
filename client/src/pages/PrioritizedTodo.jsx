@@ -592,75 +592,6 @@ function PrioritizedTodo({
           </div>
         )}
 
-        <section
-          className="workload-panel"
-          aria-label="Predictive workload analysis"
-        >
-          <h2>Predictive Workload Analysis</h2>
-
-          {workloadLoading ? (
-            <p>Analyzing your workload...</p>
-          ) : workloadError ? (
-            <p role="alert">{workloadError}</p>
-          ) : workload ? (
-            <>
-              <div className="workload-stats">
-                <p>
-                  <strong>{workload.requiredMinutes} min</strong>
-                  {" "}estimated workload
-                </p>
-
-                <p>
-                  <strong>{workload.availableMinutes} min</strong>
-                  {" "}configured 7-day capacity
-                </p>
-
-                <p>
-                  <strong>{workload.dueSoonCount}</strong>
-                  {" "}tasks due soon
-                </p>
-              </div>
-
-              {workload.warnings?.length > 0 && (
-                <div className="workload-warnings">
-                  <h3>Workload Warnings</h3>
-                  <ul>
-                    {workload.warnings.map((warning) => (
-                      <li key={warning.type}>
-                        {warning.message}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {workload.recommendedTasks?.length > 0 && (
-                <div className="workload-recommendations">
-                  <h3>Recommended Tasks</h3>
-                  <ol>
-                    {workload.recommendedTasks.map((task) => (
-                      <li key={task.id}>
-                        <strong>{task.title}</strong>
-                        {" — Priority Score: "}
-                        {task.calculated_priority_score}
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              )}
-
-              {workload.activeTaskCount === 0 && (
-                <p>No active tasks to analyze.</p>
-              )}
-
-              <p className="workload-note">
-                Capacity is estimated from your daily study limit,
-                not actual free calendar time.
-              </p>
-            </>
-          ) : null}
-        </section>
-
         <div className="todo-table-wrapper">
           <div className="todo-table-header">
             <div aria-hidden="true"></div>
@@ -783,6 +714,75 @@ function PrioritizedTodo({
           </div>
         )}
       </div>
+
+      <section
+        className="workload-panel"
+        aria-label="Predictive workload analysis"
+      >
+        <h2>Predictive Workload Analysis</h2>
+
+        {workloadLoading ? (
+          <p>Analyzing your workload...</p>
+        ) : workloadError ? (
+          <p role="alert">{workloadError}</p>
+        ) : workload ? (
+          <>
+            <div className="workload-stats">
+              <p>
+                <strong>{workload.requiredMinutes} min</strong>
+                {" "}estimated workload
+              </p>
+
+              <p>
+                <strong>{workload.availableMinutes} min</strong>
+                {" "}configured 7-day capacity
+              </p>
+
+              <p>
+                <strong>{workload.dueSoonCount}</strong>
+                {" "}tasks due soon
+              </p>
+            </div>
+
+            {workload.warnings?.length > 0 && (
+              <div className="workload-warnings">
+                <h3>Workload Warnings</h3>
+                <ul>
+                  {workload.warnings.map((warning) => (
+                    <li key={warning.type}>
+                      {warning.message}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {workload.recommendedTasks?.length > 0 && (
+              <div className="workload-recommendations">
+                <h3>Recommended Tasks</h3>
+                <ol>
+                  {workload.recommendedTasks.map((task) => (
+                    <li key={task.id}>
+                      <strong>{task.title}</strong>
+                      {" — Priority Score: "}
+                      {task.calculated_priority_score}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            {workload.activeTaskCount === 0 && (
+              <p>No active tasks to analyze.</p>
+            )}
+
+            <p className="workload-note">
+              Capacity is estimated from your daily study limit,
+              not actual free calendar time.
+            </p>
+          </>
+        ) : null}
+      </section>
 
       {/* =========================
           DELETE CONFIRMATION MODAL

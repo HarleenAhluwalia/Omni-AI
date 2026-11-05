@@ -9,9 +9,14 @@ const dummyCanvasRoutes = require("../routes/dummyCanvasRoutes");
 const canvasRoutes = require("./routes/canvasRoutes");
 const notificationSettingsRoutes = require("../routes/notificationSettingsRoutes");
 const preferencesRoutes = require("./routes/preferencesRoutes");
+const { requestId } = require("./middleware/requestId");
+const { logBackendError } = require("./utils/securityLogger");
 
 function createApp() {
   const app = express();
+
+  // CC7.2: give every request a correlation id before anything can log.
+  app.use(requestId);
 
   app.use(
     cors({
@@ -50,7 +55,9 @@ function createApp() {
   app.use("/api/preferences", preferencesRoutes);
 
   app.use((err, req, res, next) => {
-    console.error(err);
+    // CC7.2: structured, sanitized record (error name/code only — the raw
+    // error object and message are not written to the log).
+    logBackendError(req, "unhandled_exception", err, 500);
 
     res.status(500).json({
       error: "Internal server error."
