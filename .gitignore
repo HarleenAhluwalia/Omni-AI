@@ -1,6 +1,8 @@
 node_modules/
 .env
 .env.local
+.env.*
+!.env.example
 dist/
 
 # Flat-file dev store for the auth feature (server/src/config/db.js) -
