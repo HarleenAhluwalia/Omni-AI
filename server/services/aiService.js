@@ -1,3 +1,7 @@
+const Anthropic = require("@anthropic-ai/sdk");
+
+const CLAUDE_MODEL =
+  process.env.CLAUDE_MODEL || "claude-haiku-5-5";
 
 const OLLAMA_URL =
   process.env.OLLAMA_URL || "http://127.0.0.1:11434";
@@ -128,57 +132,48 @@ Return a concise, helpful natural-language response.
 Do not include chain-of-thought.
 `;
 
-  const requestBody = {
-    model: OLLAMA_MODEL,
-    stream: false,
-    messages: [
-      {
-        role: "system",
-        content: `${SYSTEM_PROMPT}\n${formatInstruction}`,
-      },
-      {
-        role: "system",
-        content: `
+
+  const client = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+    maxRetries: 0,
+    timeout: 30000,
+  });
+
+  const response = await client.messages.create({
+    model: CLAUDE_MODEL,
+    max_tokens: responseMode === "schedule" ? 2048 : 1024,
+
+    system: `
+${SYSTEM_PROMPT}
+
+${formatInstruction}
+
 Current Omni AI Task Information
 
 Available Study Time: ${availableMinutes} minutes
 
 ${taskContext}
 `,
-      },
+
+    messages: [
       {
         role: "user",
         content: userMessage,
       },
     ],
-  };
+  });
 
-  if (responseMode === "schedule") {
-    requestBody.format = "json";
-  }
+  console.log("Claude API token usage:", response.usage);
+  
+  const content = response.content
+    .filter((block) => block.type === "text")
+    .map((block) => block.text)
+    .join("\n")
+    .trim();
 
-  const response = await fetch(
-    `${OLLAMA_URL}/api/chat`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `Ollama request failed: ${response.status}`
-    );
-  }
-
-  const data = await response.json();
-  const content = data.message?.content;
 
   if (typeof content !== "string" || !content.trim()) {
-    throw new Error("Ollama returned an empty response.");
+    throw new Error("Claude returned an empty response.");
   }
 
   if (responseMode === "schedule") {

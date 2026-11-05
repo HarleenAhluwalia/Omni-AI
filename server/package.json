@@ -12,6 +12,7 @@
     "test:security": "jest --runInBand --ci --testPathPattern \"tests/(securityLogger|securityLogging|failedAuthDetector)\""
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.5.0",
     "@supabase/supabase-js": "^2.116.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",

@@ -5,7 +5,7 @@
  * Tests the AI workflow using mocked Supabase data
  * and mocked AI responses.
  *
- * No live Supabase or Ollama connection is required.
+* No live Supabase or external AI API connection is required.
  */
 
 jest.mock("../config/supabase", () => {
