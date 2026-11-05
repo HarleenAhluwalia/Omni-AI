@@ -56,6 +56,8 @@ const WRITABLE_FIELDS = [
   "title",
   "description",
   "due_date",
+  "has_due_time",
+  "start_time",
   "point_value",
   "estimated_effort_minutes",
   "priority",
@@ -167,7 +169,58 @@ const validateFields = (fields) => {
       return "due_date must be a valid date";
     }
   }
+  // Validate whether the task has a specific due time.
+  if (
+    fields.has_due_time !== undefined &&
+    typeof fields.has_due_time !== "boolean"
+  ) {
+    return "has_due_time must be a boolean";
+  }
 
+  // Validate the optional start timestamp.
+  if (
+    fields.start_time !== undefined &&
+    fields.start_time !== null
+  ) {
+    if (
+      typeof fields.start_time !== "string" ||
+      fields.start_time.trim() === "" ||
+      Number.isNaN(new Date(fields.start_time).getTime())
+    ) {
+      return "start_time must be a valid timestamp";
+    }
+  }
+
+  // A timed task must have a deadline.
+  if (
+    fields.has_due_time === true &&
+    fields.due_date === null
+  ) {
+    return "A due date is required when a due time is specified";
+  }
+
+  // A start time requires a deadline.
+  if (
+    fields.start_time != null &&
+    fields.due_date === null
+  ) {
+    return "A due date is required when a start time is specified";
+  }
+
+  // Validate the start/end order when both are provided.
+  if (
+    fields.start_time != null &&
+    fields.due_date != null &&
+    fields.due_date !== undefined
+  ) {
+    const start = new Date(fields.start_time);
+    const due = new Date(fields.due_date);
+
+    if (start >= due) {
+      return "Start date and time must be before the due date and time";
+    }
+  }
+  
   if (
     fields.description !== undefined &&
     fields.description !== null &&
