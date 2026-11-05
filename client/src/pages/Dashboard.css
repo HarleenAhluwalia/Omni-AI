@@ -199,8 +199,7 @@ body {
   display: grid;
 
   grid-template-columns:
-    minmax(0, 2fr)
-    minmax(320px, 1fr);
+    minmax(0, 2fr) minmax(320px, 1fr);
 
   gap: 12px;
 
@@ -995,8 +994,7 @@ body {
   display: grid;
 
   grid-template-columns:
-    minmax(0, 2fr)
-    minmax(320px, 1fr);
+    minmax(0, 2fr) minmax(320px, 1fr);
 
   gap: 12px;
 
@@ -1352,7 +1350,7 @@ body {
   padding: 0;
 }
 
-.todo-page > h2 {
+.todo-page>h2 {
   display: none;
 }
 
@@ -1360,8 +1358,7 @@ body {
   display: grid;
 
   grid-template-columns:
-    35px
-    minmax(150px, 1fr);
+    35px minmax(150px, 1fr);
 
   gap: 6px;
 
@@ -1857,6 +1854,7 @@ body {
 ========================================= */
 
 @media (max-width: 1100px) {
+
   .dashboard-top-row,
   .dashboard-bottom-row {
     grid-template-columns: 1fr;
@@ -2246,7 +2244,7 @@ body {
   color: #f2f2f2;
 }
 
-.dashboard-page.dark-mode .todo-table-row > div,
+.dashboard-page.dark-mode .todo-table-row>div,
 .dashboard-page.dark-mode .todo-task-name,
 .dashboard-page.dark-mode .todo-status-cell {
   color: #f2f2f2;
@@ -2320,7 +2318,7 @@ body {
 .dashboard-page.dark-mode .prioritized-count,
 .dashboard-page.dark-mode .todo-table-header,
 .dashboard-page.dark-mode .todo-table-row,
-.dashboard-page.dark-mode .todo-table-row > div,
+.dashboard-page.dark-mode .todo-table-row>div,
 .dashboard-page.dark-mode .todo-task-name,
 .dashboard-page.dark-mode .todo-status-cell {
   color: #f2f2f2;
@@ -2417,7 +2415,7 @@ body {
   color: #111;
 }
 
-.todo-table-row > div {
+.todo-table-row>div {
   color: #111;
 }
 
@@ -2456,4 +2454,139 @@ body {
 .schedule-block small {
   font-size: 12px;
   opacity: 0.8;
+}
+
+/* =========================
+   TASK DATE AND TIME SECTION
+========================= */
+
+.add-task-datetime-section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  margin: 12px 0;
+  padding: 20px;
+
+  border: 1px solid rgba(128, 128, 128, 0.4);
+  border-radius: 12px;
+
+  background: rgba(128, 128, 128, 0.06);
+}
+
+/* All-day toggle row */
+
+.add-task-toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Apple-style sliding switch */
+
+.add-task-all-day-switch {
+  appearance: none;
+  -webkit-appearance: none;
+
+  position: relative;
+
+  width: 46px;
+  height: 26px;
+
+  margin: 0;
+  flex-shrink: 0;
+
+  border: none;
+  border-radius: 20px;
+
+  background: #8e8e93;
+
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.add-task-all-day-switch::before {
+  content: "";
+
+  position: absolute;
+  top: 3px;
+  left: 3px;
+
+  width: 20px;
+  height: 20px;
+
+  background: white;
+  border-radius: 50%;
+
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+
+  transition: transform 0.2s ease;
+}
+
+/* Purple background when All-day is ON */
+input.add-task-all-day-switch:checked {
+  background-color: #7267d9 !important;
+  border-color: #7267d9;
+}
+
+/* Gray background when All-day is OFF */
+input.add-task-all-day-switch:not(:checked) {
+  background-color: #8e8e93;
+}
+
+.add-task-all-day-switch:checked::before {
+  transform: translateX(20px);
+}
+
+.add-task-all-day-switch:focus-visible {
+  outline: 3px solid #9f95ff;
+  outline-offset: 3px;
+}
+
+.add-task-all-day-switch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Starts and Ends rows */
+
+.add-task-datetime-row {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+
+  align-items: center;
+  gap: 16px;
+}
+
+.add-task-datetime-row .add-task-label {
+  margin: 0;
+  font-weight: 600;
+}
+
+.add-task-datetime-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+
+  min-width: 0;
+}
+
+.add-task-datetime-inputs .add-task-input {
+  flex: 1 1 150px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Smaller screens */
+
+@media (max-width: 600px) {
+  .add-task-datetime-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .add-task-datetime-section {
+    padding: 14px;
+  }
 }
