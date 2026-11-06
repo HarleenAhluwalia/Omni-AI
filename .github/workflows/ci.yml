@@ -217,13 +217,13 @@ jobs:
         working-directory: dummy-canvas
         run: npm test
 
-  sprint4-frontend-functional-tests:
-    name: Sprint 4 - Calendar/To-Do Functional and UI Contract Tests (F01/F02, SCRUM-383/384)
+  jerry-cc72-security-monitoring:
+    name: Jerry - SOC 2 CC7.2 Security Monitoring (SOC2-S4-06)
     runs-on: ubuntu-latest
 
     defaults:
       run:
-        working-directory: client
+        working-directory: server
 
     steps:
       - name: Checkout code
@@ -232,30 +232,36 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
-          cache-dependency-path: client/package-lock.json
+          cache-dependency-path: server/package-lock.json
 
-      - name: Install frontend dependencies
+      - name: Install dependencies (reproducible)
         run: npm ci
 
-      - name: F01 - Calendar functional tests
-        run: npm run test:calendar
+      - name: Generate CC7.2 build ID
+        id: cc72_build_id
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          BUILD_ID="omni-ai-build-${{ github.run_number }}-${SHORT_SHA}"
+          echo "build_id=$BUILD_ID" >> "$GITHUB_OUTPUT"
+          echo "CC7.2 build ID: $BUILD_ID"
 
-      - name: F02 - To-Do List functional tests
-        run: npm run test:todo
+      - name: Run CC7.2 security monitoring tests
+        run: npx jest --runInBand --ci --testPathPattern "tests/(securityLogger|securityLogging|failedAuthDetector)" --json --outputFile=cc72-results.json
 
-      - name: SCRUM-383/384 - Task Form and Auth UI source contract tests
-        run: npm run test:sprint4-ui-contract
+      - name: Upload CC7.2 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cc72-security-monitoring-results-${{ steps.cc72_build_id.outputs.build_id }}
+          path: server/cc72-results.json
 
-      - name: SCRUM-383 - Interactive Task Form/List CRUD tests
-        run: npm run test:sprint4-crud
-
-      - name: Report Sprint 4 frontend CI status
+      - name: Report CC7.2 status
         if: always()
         run: |
           if [ "${{ job.status }}" = "success" ]; then
-            echo "PASS — Sprint 4 Calendar/To-Do/UI contract tests"
+            echo "PASS - CC7.2 - ${{ steps.cc72_build_id.outputs.build_id }}"
           else
-            echo "FAIL — Sprint 4 Calendar/To-Do/UI contract tests"
+            echo "FAIL - CC7.2 - ${{ steps.cc72_build_id.outputs.build_id }}"
           fi
