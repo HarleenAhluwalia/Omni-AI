@@ -10,7 +10,13 @@
 const fs = require("fs");
 const path = require("path");
 
-const DB_FILE = path.join(__dirname, "..", "..", "data", "users.json");
+// AUTH_DB_FILE lets the test suite point each Jest worker at its own file
+// (see tests/helpers/isolateAuthDbFile.js) instead of every worker process
+// racing non-atomic reads/writes against the same path. Unset in
+// production, so production behavior is unchanged.
+const DB_FILE =
+  process.env.AUTH_DB_FILE ||
+  path.join(__dirname, "..", "..", "data", "users.json");
 
 function ensureStore() {
   const dir = path.dirname(DB_FILE);
