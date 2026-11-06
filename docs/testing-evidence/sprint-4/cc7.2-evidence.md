@@ -34,9 +34,9 @@
 | AC-03 | Unauthorized Task access monitoring | **PASS** (local) | GET, PUT and DELETE of another user's Task each return 404 and emit one `AUTH_ACCESS_DENIED` (3/3). Task unchanged afterwards. A nonexistent id emits none, and the foreign-task and missing-task responses are byte-identical. | `securityLogging.taskAccess.test.js` |
 | AC-04 | Log schema consistency | **PASS** (local) | `validateEvent()` is applied to every event captured in every CC7.2 test (zero problems), and negative tests prove it rejects bad timestamps, levels, events, reasons, statuses, missing and extra fields. | `securityLogger.test.js` + all others |
 | AC-05 | Credential protection | **PASS** (local) | 11 dummy secrets (passwords, cookie, API key, service-role key, DB password, query/path/body secrets, OAuth token, JWT claim) plus every segment of 3 JWTs were pushed through 12 request scenarios producing ≥ 9 events. Zero exact matches. No email address, `Bearer`, `Cookie` or `postgres://` text either. | `securityLogging.redaction.test.js` |
-| AC-06 | Backend error monitoring | **PASS** for logging; see SOC2-DEF-01 for the response-side finding | 8 Task operations × (error result and thrown error where guarded) each emit `DATABASE_OPERATION_FAILED` with the right reason; auth-service outage, login-recovery failure, registration failures, schedule-resolution failure and an unhandled exception emit `BACKEND_SECURITY_ERROR`. No injected message, password or key appears in any log line. | `securityLogging.errors.test.js` |
+| AC-06 | Backend error monitoring | **PASS** (logging and response side; SOC2-DEF-01 fixed) | 8 Task operations × (error result and thrown error where guarded) each emit `DATABASE_OPERATION_FAILED` with the right reason; auth-service outage, login-recovery failure, registration failures, schedule-resolution failure and an unhandled exception emit `BACKEND_SECURITY_ERROR`. No injected message, password or key appears in any log line. Task endpoints and `register` now return fixed messages, so no database error text reaches the response either. | `securityLogging.errors.test.js` |
 | AC-07 | Suspicious activity detection | **PASS** (local) | Unit: 4 failures → no alert, 5th → alert; failures older than 5 minutes (including exactly 5:00) do not count; accounts counted independently; memory bounded. Integration: 5 failed logins to `/api/auth/login` for one account raise exactly one `AUTH_FAILURE_THRESHOLD_EXCEEDED`; 8 failures across 8 accounts raise none. Proposed enhancement, now implemented. | `failedAuthDetector.test.js` |
-| AC-08 | Automated CI verification | **NOT TESTED** | Job `jerry-cc72-security-monitoring` is added to `ci.yml` and the identical command passes locally, but no GitHub Actions run exists yet. Becomes PASS once a run on the pushed commit is green. | `.github/workflows/ci.yml` |
+| AC-08 | Automated CI verification | **NOT TESTED** | Job `jerry-cc72-security-monitoring` runs the same command as the local run and uploads the JSON results as an artifact. Becomes PASS once a GitHub Actions run on the pushed commit is green; add the run URL and build ID above. | `.github/workflows/ci.yml` |
 
 ## Test cases
 
@@ -45,7 +45,7 @@
 | TC-01 Failed login event logging | CC7.2 | PASS (local) | `securityLogging.auth.test.js` › TC-01 (8 tests); sample event below |
 | TC-02 Missing / invalid / expired JWTs | CC7.2 | PASS (local) | `securityLogging.auth.test.js` › TC-02 (14 tests) |
 | TC-03 Cross-user Task authorization monitoring | CC7.2 | PASS (local) | `securityLogging.taskAccess.test.js` (14 tests) |
-| TC-04 Backend and database error logging | CC7.2 | PASS for logging · **FAIL** for response disclosure → SOC2-DEF-01 | `securityLogging.errors.test.js` (22 tests incl. 1 `test.failing` documenting the defect) |
+| TC-04 Backend and database error logging | CC7.2 | PASS (SOC2-DEF-01 found, then fixed) | `securityLogging.errors.test.js` (22 tests; the former `test.failing` guard is now a normal passing test) |
 | TC-05 Sensitive information redaction | CC7.2 | PASS (local) | `securityLogging.redaction.test.js` (5 tests) + allowlist tests in `securityLogger.test.js` |
 | TC-06 Repeated failed login detection | CC7.2 | PASS (local) | `failedAuthDetector.test.js` (15 tests) |
 
@@ -53,7 +53,7 @@
 
 | Ref | Description | Severity | Status |
 |---|---|---|---|
-| SOC2-DEF-01 | Database/Supabase error text is returned in API response bodies (8 Task endpoints, plus `register`). Details and suggested fix in `cc7.2-logging-review.md`. | Medium | **Open** — Jira ticket *to be created* |
+| SOC2-DEF-01 | Database/Supabase error text was returned in API response bodies (8 Task endpoints, plus `register`). Fixed: fixed messages returned, detail logged only through the sanitized logger; 5 earlier tests updated. Details in `cc7.2-logging-review.md`. | Medium | **Fixed** — Jira ticket *add link* |
 
 ## Sanitized log samples
 
