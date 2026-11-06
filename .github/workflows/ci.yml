@@ -216,3 +216,46 @@ jobs:
       - name: Run standalone Dummy Canvas import tests
         working-directory: dummy-canvas
         run: npm test
+
+  sprint4-frontend-functional-tests:
+    name: Sprint 4 - Calendar/To-Do Functional and UI Contract Tests (F01/F02, SCRUM-383/384)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: client
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: F01 - Calendar functional tests
+        run: npm run test:calendar
+
+      - name: F02 - To-Do List functional tests
+        run: npm run test:todo
+
+      - name: SCRUM-383/384 - Task Form and Auth UI source contract tests
+        run: npm run test:sprint4-ui-contract
+
+      - name: SCRUM-383 - Interactive Task Form/List CRUD tests
+        run: npm run test:sprint4-crud
+
+      - name: Report Sprint 4 frontend CI status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "PASS — Sprint 4 Calendar/To-Do/UI contract tests"
+          else
+            echo "FAIL — Sprint 4 Calendar/To-Do/UI contract tests"
+          fi

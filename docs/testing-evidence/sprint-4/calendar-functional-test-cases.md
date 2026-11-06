@@ -172,6 +172,14 @@ there is nothing to distinguish there.
 - **Actual Result:** Matches expected.
 - **Status:** **PASS**
 
+### CAL-AUTO-011: `getTasksForDay` vs. a Task's own `has_due_time` (CAL-DEFECT-002) — FIXED in PR Batch 3
+- **Prerequisites:** test runner's local timezone offset ≠ UTC+0 (auto-skipped otherwise)
+- **Steps:** Build a Task with `has_due_time: true` at the same boundary-straddling moment used above (a genuine due time, not a date-only deadline). Query both its local day and its UTC day.
+- **Expected Result:** Found on its local day (length 1) — the same reasoning as CAL-AUTO-010's schedules; NOT found on its UTC day (length 0).
+- **Actual Result (before fix):** Found on its UTC day instead — `getTasksForDay` ignored `has_due_time` entirely and always used UTC getters.
+- **Actual Result (after fix):** Matches expected.
+- **Status:** **PASS** (previously FAIL — see `docs/testing-evidence/sprint-4/functional-defect-investigation.md` for the full writeup)
+
 ---
 
 ## Manual test cases
@@ -275,3 +283,4 @@ be exercised by this repo's current automated tooling.
 | (bonus) "Today" / UTC correctness | CAL-AUTO-008/009 (fixed), CAL-MAN-010 |
 | (bonus) Schedule block day placement stays local | CAL-AUTO-010 |
 | (bonus) Month navigation | CAL-MAN-011 |
+| (bonus) `has_due_time` Task day placement stays local (CAL-DEFECT-002, fixed PR Batch 3) | CAL-AUTO-011 |
