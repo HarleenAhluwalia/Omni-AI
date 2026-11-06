@@ -1,7 +1,8 @@
 # CC6.3 — Supabase RLS and Privileged Access Audit
 
-**Jira task:** S03 — Audit Supabase RLS Policies and Privileged Database Access
-**PR batch:** PR Batch 4 — SOC 2 CC6.3 Access Management Security Foundation
+**Jira task:** S03 — Audit Supabase RLS Policies and Privileged Database Access; updated to cover S08 — Validate Supabase Authorization Against a Test Database
+**Originally created in:** PR Batch 4 — SOC 2 CC6.3 Access Management Security Foundation
+**Updated in:** PR Batch 5 — CC6.3 Security Remediation and Authorization Verification
 **Date:** 2026-11-05
 
 **This audit is repository-based only.** This session has no live
@@ -141,6 +142,35 @@ project with the real schema and whatever real RLS policies exist:**
 
 - A live (non-production) Supabase project, queried with an anon/per-user key rather than the service-role key, attempting the exact cross-user scenarios `taskAuth.test.js` already covers against the mock — to confirm whether RLS independently enforces the same isolation, as a defense-in-depth check.
 - `DB-LIVE-001` through `006` from the Sprint 4 database-integrity test documentation (`database-integrity-test-cases.md`) — already identified, not yet executed, directly relevant here too.
+
+## S08 update (PR Batch 5): live Supabase authorization — still BLOCKED
+
+This session checked whether a **dedicated, non-production Supabase
+test environment** is available before attempting any live
+verification. `server/.env` and `client/.env`/`client/.env.local`
+exist locally, but nothing in this repository distinguishes them as a
+separate, disposable test project rather than the same shared project
+referenced throughout prior sprints' migration provenance notes
+(`001_initial_schema.sql`'s own comments: "Do not reapply blindly to
+the shared database"). Per rule 6 ("do not access production user data
+or use production database credentials") and the explicit instruction
+to mark S08 BLOCKED when no dedicated test environment is available,
+**this session did not read the contents of any `.env` file or attempt
+any live connection.**
+
+**Status: BLOCKED.** No claim of live verification is made. The
+Schedules API fix in this batch (see `cc63-authorization-review.md`)
+is verified entirely against the mocked Supabase client, the same as
+every other test in this repository.
+
+**Required to unblock S08:**
+- A Supabase project explicitly designated and provisioned as a
+  disposable test environment (not the shared project), with its own
+  URL and an anon (non-service-role) key.
+- Explicit authorization to run write operations against it, scoped to
+  isolated test fixtures only.
+- Someone with access to confirm, before any test runs, that the
+  project is not the one real students' data lives in.
 
 ## Required access/environment dependencies
 

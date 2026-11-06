@@ -12,25 +12,14 @@ const isValidUuid = (value) => {
 
 
 // =========================================================
-// READ ALL SCHEDULES FOR A USER
-// GET /api/schedules?user_id=<uuid>
+// READ ALL SCHEDULES FOR THE AUTHENTICATED USER
+// GET /api/schedules
 // =========================================================
 const getSchedules = async (req, res) => {
-  const { user_id } = req.query;
-
-  if (!user_id) {
-    return res.status(400).json({
-      success: false,
-      error: "user_id is required",
-    });
-  }
-
-  if (!isValidUuid(user_id)) {
-    return res.status(400).json({
-      success: false,
-      error: "user_id must be a valid UUID",
-    });
-  }
+  // CC6.3 remediation: user_id now comes exclusively from the verified
+  // token (requireAuth), never from a client-supplied query parameter -
+  // see docs/security/sprint-4/cc63-authorization-review.md.
+  const user_id = req.user.id;
 
   try {
     const { data, error } = await supabase
@@ -83,28 +72,18 @@ const getSchedules = async (req, res) => {
 // POST /api/schedules
 // =========================================================
 const createSchedule = async (req, res) => {
+  // CC6.3 remediation: user_id comes from the verified token, never
+  // from the request body - a client can no longer attribute a
+  // schedule to any user they choose.
+  const user_id = req.user.id;
+
   const {
-    user_id,
     task_id = null,
     start_time,
     end_time,
     schedule_type = "study_block",
     status = "scheduled",
   } = req.body;
-
-  if (!user_id) {
-    return res.status(400).json({
-      success: false,
-      error: "user_id is required",
-    });
-  }
-
-  if (!isValidUuid(user_id)) {
-    return res.status(400).json({
-      success: false,
-      error: "user_id must be a valid UUID",
-    });
-  }
 
   if (
     task_id !== null &&
@@ -146,6 +125,37 @@ const createSchedule = async (req, res) => {
   }
 
   try {
+    // CC6.3: a schedule's task_id is embedded (joined) back into Task
+    // fields on every GET /api/schedules response - linking to a task_id
+    // the caller doesn't own would let them read another user's Task
+    // title/description/due_date/priority/effort/completion_status
+    // through their own schedule list. Confirmed the same ownership
+    // check this codebase already uses elsewhere (.eq("user_id", ...)).
+    if (task_id !== null) {
+      const { data: ownedTask, error: taskLookupError } = await supabase
+        .from("tasks")
+        .select("id")
+        .eq("id", task_id)
+        .eq("user_id", user_id)
+        .maybeSingle();
+
+      if (taskLookupError) {
+        return res.status(500).json({
+          success: false,
+          error: taskLookupError.message,
+        });
+      }
+
+      if (!ownedTask) {
+        // Never distinguishes "doesn't exist" from "belongs to someone
+        // else" - same reasoning as taskController.js's 404s.
+        return res.status(400).json({
+          success: false,
+          error: "task_id must reference a task you own",
+        });
+      }
+    }
+
     const { data, error } = await supabase
       .from("schedules")
       .insert([
@@ -188,30 +198,22 @@ const createSchedule = async (req, res) => {
 
 // =========================================================
 // UPDATE SCHEDULE
-// PUT /api/schedules/:id?user_id=<uuid>
+// PUT /api/schedules/:id
 // =========================================================
 const updateSchedule = async (req, res) => {
   const { id } = req.params;
-  const { user_id } = req.query;
+  // CC6.3 remediation: user_id comes from the verified token, never
+  // from a client-supplied query parameter. The .eq("user_id", user_id)
+  // filter below means a schedule id belonging to another user now
+  // resolves to 404 ("not found"), the same ownership-scoping pattern
+  // taskController.js already uses - never a 403 that would confirm
+  // the record exists under someone else's account.
+  const user_id = req.user.id;
 
   if (!isValidUuid(id)) {
     return res.status(400).json({
       success: false,
       error: "schedule id must be a valid UUID",
-    });
-  }
-
-  if (!user_id) {
-    return res.status(400).json({
-      success: false,
-      error: "user_id is required",
-    });
-  }
-
-  if (!isValidUuid(user_id)) {
-    return res.status(400).json({
-      success: false,
-      error: "user_id must be a valid UUID",
     });
   }
 
@@ -276,6 +278,32 @@ const updateSchedule = async (req, res) => {
   }
 
   try {
+    // CC6.3: same task_id ownership check as createSchedule - a client
+    // could otherwise re-point an existing schedule at a task they
+    // don't own and read its fields back through the embedded join.
+    if (updates.task_id !== undefined && updates.task_id !== null) {
+      const { data: ownedTask, error: taskLookupError } = await supabase
+        .from("tasks")
+        .select("id")
+        .eq("id", updates.task_id)
+        .eq("user_id", user_id)
+        .maybeSingle();
+
+      if (taskLookupError) {
+        return res.status(500).json({
+          success: false,
+          error: taskLookupError.message,
+        });
+      }
+
+      if (!ownedTask) {
+        return res.status(400).json({
+          success: false,
+          error: "task_id must reference a task you own",
+        });
+      }
+    }
+
     const { data, error } = await supabase
       .from("schedules")
       .update(updates)
@@ -320,8 +348,15 @@ const updateSchedule = async (req, res) => {
 // POST /api/schedules/resolve-conflict
 // =========================================================
 const resolveScheduleConflict = async (req, res) => {
+  // CC6.3 remediation: user_id comes from the verified token, never
+  // from the request body. Every schedule loaded below is already
+  // scoped to this user (.eq("user_id", user_id)), so schedule_a_id/
+  // schedule_b_id can only ever resolve to this user's own records -
+  // a client can no longer act on another user's schedules by simply
+  // supplying their id.
+  const user_id = req.user.id;
+
   const {
-    user_id,
     schedule_a_id,
     schedule_b_id,
     available_minutes = 60,
@@ -329,19 +364,17 @@ const resolveScheduleConflict = async (req, res) => {
   } = req.body;
 
   if (
-    !user_id ||
     !schedule_a_id ||
     !schedule_b_id
   ) {
     return res.status(400).json({
       success: false,
       error:
-        "user_id, schedule_a_id, and schedule_b_id are required",
+        "schedule_a_id and schedule_b_id are required",
     });
   }
 
   if (
-    !isValidUuid(user_id) ||
     !isValidUuid(schedule_a_id) ||
     !isValidUuid(schedule_b_id)
   ) {
