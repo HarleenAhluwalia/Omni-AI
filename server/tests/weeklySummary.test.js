@@ -399,7 +399,8 @@ describe("Weekly Summary — failure handling", () => {
 
       expect(res.status).toBe(500);
       expect(res.body.success).toBe(false);
-      expect(res.body.error).toMatch(
+      expect(res.body.error).toBe("Could not load weekly summary.");
+      expect(res.body.error).not.toMatch(
         /simulated weekly summary query failure/i
       );
       expect(res.body.data).toBeUndefined();
