@@ -169,7 +169,9 @@ function CalendarView({
   // exists to answer "which UTC-anchored due dates count as due today" -
   // matching Daily/Weekly Summary's own UTC-today. Reading either with
   // local getters would disagree with the rest of the app by up to a day
-  // for anyone not in UTC.
+  // for anyone not in UTC. (This UTC-day convention only applies when a
+  // Task has no specific due time - see getTasksForDay's has_due_time
+  // branch below for the genuine-timestamp case, CAL-DEFECT-002.)
   const isToday = (day) => {
     if (!day) {
       return false;
@@ -193,6 +195,22 @@ function CalendarView({
       }
 
       const taskDate = new Date(task.due_date);
+
+      // has_due_time=true means due_date is a genuine timestamp the
+      // user picked (the same semantics as a schedule's start_time
+      // below), not a date-only UTC-anchored deadline - it belongs on
+      // its LOCAL day. Without this branch, a task with a specific due
+      // time could land on the wrong Calendar day for any viewer whose
+      // timezone offset straddles a day boundary relative to that time
+      // (CAL-DEFECT-002 - the same defect class as CAL-DEFECT-001,
+      // reintroduced by the has_due_time feature).
+      if (task.has_due_time) {
+        return (
+          taskDate.getFullYear() === year &&
+          taskDate.getMonth() === month &&
+          taskDate.getDate() === day
+        );
+      }
 
       return (
         taskDate.getUTCFullYear() === year &&

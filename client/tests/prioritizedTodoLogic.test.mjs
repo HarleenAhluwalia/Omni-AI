@@ -57,6 +57,38 @@ function formatDueDate(dueDate) {
   });
 }
 
+// --- Mirrors PrioritizedTodo.jsx's formatTaskDateTime ---
+// Unlike formatDueDate, this displays a genuine timestamp (a real
+// moment the user picked) in the viewer's own LOCAL time - correct
+// and intentional, the same distinction as CalendarView.jsx's
+// getSchedulesForDay vs. getTasksForDay.
+function formatTaskDateTime(value) {
+  if (!value) {
+    return "";
+  }
+  return new Date(value).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+// --- Mirrors PrioritizedTodo.jsx's formatTaskDue ---
+// Branches on has_due_time: a date-only deadline (the common case,
+// also the default for Tasks created before this field existed) uses
+// the UTC-pinned formatDueDate; a genuine due TIME uses local-time
+// formatTaskDateTime instead. See TODO-AUTO-014 below.
+function formatTaskDue(task) {
+  if (!task.due_date) {
+    return "No due date";
+  }
+  if (task.has_due_time) {
+    return formatTaskDateTime(task.due_date);
+  }
+  return formatDueDate(task.due_date);
+}
+
 // --- Mirrors PrioritizedTodo.jsx:246-253 (getScheduleForTask) ---
 function getScheduleForTask(schedules, taskId) {
   return schedules.find((schedule) => schedule.task_id === taskId);
@@ -293,6 +325,43 @@ test("TODO-AUTO-012 (TODO-DEFECT-001): formatDueDate is UTC-pinned and immune to
     unpinnedAsSeenInTokyo,
     "Oct 13",
     "sanity check: confirms TODO-DEFECT-001 was a real, reproducible bug"
+  );
+});
+
+// =========================================================
+// TODO-AUTO-014: has_due_time branches between UTC-day and local-time
+// formatting
+// =========================================================
+//
+// formatTaskDue must use the UTC-pinned formatDueDate for a date-only
+// deadline (has_due_time false/absent, including Tasks created before
+// this field existed), and the LOCAL-time formatTaskDateTime for a
+// genuine due time (has_due_time true) - the same distinction
+// CAL-DEFECT-002 fixed in CalendarView.jsx's getTasksForDay. This
+// locks in PrioritizedTodo.jsx's existing (already correct) behavior
+// as regression coverage, since no prior test exercised has_due_time.
+test("TODO-AUTO-014: formatTaskDue uses UTC-day formatting for date-only deadlines and local-time formatting for has_due_time Tasks", () => {
+  const dateOnly = task({
+    due_date: "2026-10-12T23:59:59.000Z",
+    has_due_time: false,
+  });
+  assert.equal(formatTaskDue(dateOnly), "Oct 12");
+
+  const legacyNoField = task({ due_date: "2026-10-12T23:59:59.000Z" });
+  assert.equal(
+    formatTaskDue(legacyNoField),
+    "Oct 12",
+    "a Task predating has_due_time must still format as a UTC-anchored date-only deadline"
+  );
+
+  const timed = task({
+    due_date: "2026-10-12T14:30:00.000Z",
+    has_due_time: true,
+  });
+  assert.equal(
+    formatTaskDue(timed),
+    formatTaskDateTime(timed.due_date),
+    "a has_due_time Task must format with local-time formatTaskDateTime, not the UTC-day formatter"
   );
 });
 
