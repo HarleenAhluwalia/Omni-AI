@@ -308,161 +308,154 @@ const handleSendChatMessage = async (event) => {
       {/* =========================
           SIDEBAR
       ========================= */}
-      <aside className="dashboard-sidebar">
+      
+<aside className="dashboard-sidebar">
+  <h2 className="sidebar-logo">
+    Omni <span>AI</span>
+  </h2>
 
-        <div>
-          <h2 className="sidebar-logo">
-            Omni <span>AI</span>
-          </h2>
+  {/* Sidebar Navigation */}
+  <nav className="sidebar-nav" aria-label="Main navigation">
 
-          <nav className="sidebar-nav">
-
-            <button
-              className={
-                activeView === "dashboard"
-                  ? "sidebar-item active-menu"
-                  : "sidebar-item"
-              }
-              onClick={() => setActiveView("dashboard")}
-            >
-              <span>⌂</span>
-              Dashboard
-            </button>
-
-
-            <button
-              type="button"
-              className={
-                activeView === "preferences"
-                  ? "sidebar-item active-menu"
-                  : "sidebar-item"
-              }
-              onClick={() => setActiveView("preferences")}
-            >
-              <span>⚙</span>
-              Preferences
-            </button>
-
-            <button
-              type="button"
-              className={
-                activeView === "canvas"
-                  ? "sidebar-item active-menu"
-                  : "sidebar-item"
-              }
-              onClick={() => setActiveView("canvas")}
-            >
-              <span>▤</span>
-              Canvas Integration
-            </button>
-
-
-
-            <button
-              className={
-                activeView === "todo"
-                  ? "sidebar-item active-menu"
-                  : "sidebar-item"
-              }
-              onClick={() => setActiveView("todo")}
-            >
-              <span>☷</span>
-              To-Do List
-            </button>
-
-            <button
-              className={
-                activeView === "calendar"
-                  ? "sidebar-item active-menu"
-                  : "sidebar-item"
-              }
-              onClick={() => setActiveView("calendar")}
-            >
-              <span>▣</span>
-              Calendar
-            </button>
-
-            <button
-              className="sidebar-item"
-              disabled
-              title="Analytics functionality is assigned separately."
-            >
-              <span>◷</span>
-              Analytics
-            </button>
-
-            <button
-              className="sidebar-item"
-              disabled
-              title="AI Chat functionality is assigned separately."
-            >
-              <span>✎</span>
-              AI Chat
-            </button>
-
-          </nav>
-        </div>
-        <div>
-  <div className="theme-toggle-section">
-    <span className="theme-toggle-label">
-      {theme === "dark" ? "Dark Mode" : "Light Mode"}
-    </span>
-
+    {/* Dashboard */}
     <button
       type="button"
-      className={`theme-toggle ${
-        theme === "dark" ? "theme-toggle--dark" : ""
-      }`}
-      onClick={toggleTheme}
-      aria-label="Toggle dark and light mode"
+      className={
+        activeView === "dashboard"
+          ? "sidebar-item active-menu"
+          : "sidebar-item"
+      }
+      onClick={() => setActiveView("dashboard")}
     >
-      <span className="theme-toggle-knob">
-        {theme === "dark" ? "☾" : "☀"}
-      </span>
+      <span>⌂</span>
+      Dashboard
     </button>
-  </div>
 
-  <div className="user-section">
-    {/* existing user info */}
-  </div>
-</div>
+    {/* To-Do List */}
+    <button
+      type="button"
+      className={
+        activeView === "todo"
+          ? "sidebar-item active-menu"
+          : "sidebar-item"
+      }
+      onClick={() => setActiveView("todo")}
+    >
+      <span>☷</span>
+      To-Do List
+    </button>
 
-        {/* =========================
-            USER SECTION
-        ========================= */}
-        <div className="user-section">
+    {/* Calendar */}
+    <button
+      type="button"
+      className={
+        activeView === "calendar"
+          ? "sidebar-item active-menu"
+          : "sidebar-item"
+      }
+      onClick={() => setActiveView("calendar")}
+    >
+      <span>▣</span>
+      Calendar
+    </button>
 
-          <div className="user-profile-row">
+    {/* AI Chat */}
+    <button
+      type="button"
+      className="sidebar-item"
+      disabled
+      title="AI Chat functionality is assigned separately."
+    >
+      <span>✎</span>
+      AI Chat
+    </button>
 
-            <div className="user-avatar">
-              {(user?.name || user?.email || "H")
-                .charAt(0)
-                .toUpperCase()}
-            </div>
+    {/* Preferences */}
+    <button
+      type="button"
+      className={
+        activeView === "preferences"
+          ? "sidebar-item active-menu"
+          : "sidebar-item"
+      }
+      onClick={() => setActiveView("preferences")}
+    >
+      <span>⚙</span>
+      Preferences
+    </button>
 
-            <div>
-              <strong>
-                {user?.name ||
-                  user?.display_name ||
-                  user?.email ||
-                  "Omni AI User"}
-              </strong>
+    {/* Canvas Integration */}
+    <button
+      type="button"
+      className={
+        activeView === "canvas"
+          ? "sidebar-item active-menu"
+          : "sidebar-item"
+      }
+      onClick={() => setActiveView("canvas")}
+    >
+      <span>▤</span>
+      Canvas Integration
+    </button>
+  </nav>
 
-              <small>Omni AI User</small>
-            </div>
+  {/* Theme and Account Controls */}
+  <div className="sidebar-account-controls">
 
-          </div>
+    {/* Light/Dark Mode */}
+    <div className="theme-toggle-section">
+      <span className="theme-toggle-label">
+        {theme === "dark" ? "Dark Mode" : "Light Mode"}
+      </span>
 
-          <button
-            className="logout-button"
-            onClick={logout}
-          >
-            Log Out
-          </button>
+      <button
+        type="button"
+        className={`theme-toggle ${
+          theme === "dark" ? "theme-toggle--dark" : ""
+        }`}
+        onClick={toggleTheme}
+        aria-label="Toggle dark and light mode"
+      >
+        <span className="theme-toggle-knob">
+          {theme === "dark" ? "☾" : "☀"}
+        </span>
+      </button>
+    </div>
 
+    {/* User Profile */}
+    <div className="user-section">
+      <div className="user-profile-row">
+        <div className="user-avatar">
+          {(user?.name || user?.email || "H")
+            .charAt(0)
+            .toUpperCase()}
         </div>
 
-      </aside>
+        <div>
+          <strong>
+            {user?.name ||
+              user?.display_name ||
+              user?.email ||
+              "Omni AI User"}
+          </strong>
+
+          <small>Omni AI User</small>
+        </div>
+      </div>
+
+      {/* Logout */}
+      <button
+        type="button"
+        className="logout-button"
+        onClick={logout}
+      >
+        Log Out
+      </button>
+    </div>
+
+  </div>
+</aside>
+
       
 
 
