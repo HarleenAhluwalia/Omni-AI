@@ -1,11 +1,11 @@
 # CC6.3 Access Management — Formal Security Test Plan
 
 **Jira task:** S01 — Develop Formal CC6.3 Access Management Security Test Cases
-**PR batch:** PR Batch 4 — SOC 2 CC6.3 Access Management Security Foundation
-**Branch:** `sprint4/cc63-security-foundation`
+**Originally created in:** PR Batch 4 — SOC 2 CC6.3 Access Management Security Foundation
+**Updated in:** PR Batch 5 — CC6.3 Security Remediation and Authorization Verification (`sprint4/cc63-security-remediation`), after the Schedules API fix
 **Control:** SOC 2 Trust Services Criterion CC6.3 — Access Management
 **Objective:** Authenticated students can access and modify only their own Task records and related academic information.
-**Date:** 2026-11-05
+**Date:** 2026-11-05 (PR Batch 4); updated same date (PR Batch 5)
 
 ## Scope and approach
 
@@ -88,32 +88,56 @@ throughout, per rule 11.
 - **Status:** **PASS** (configuration reviewed) — **NOT RUN** (no live CI execution observed)
 - **AC mapping:** AC-07
 
-### CC63-T08: `GET /api/schedules?user_id=<uuid>` has no authentication — CONFIRMED GAP
+### CC63-T08: `GET /api/schedules` requires authentication — FIXED (PR Batch 5)
 - **Objective:** Confirm whether the Calendar's schedule-fetching endpoint enforces any identity check.
-- **Procedure:** Seed a schedule for a "victim" user id. Send `GET /api/schedules?user_id=<victim>` with **no `Authorization` header at all**.
-- **Expected Result (per AC-01/AC-05):** `401 Unauthorized`.
-- **Actual Result:** `200`, with the victim's full schedule data (including joined Task title/description/due_date/priority/effort/completion_status) returned to the unauthenticated caller.
-- **Status:** **FAIL** (confirmed security gap — see `cc63-authorization-review.md`)
-- **AC mapping:** AC-01, AC-05 (both violated for this endpoint)
-- **Evidence:** `server/tests/cc63ScheduleAuthorizationGap.test.js`
+- **Original finding (PR Batch 4):** `GET /api/schedules?user_id=<victim>` with no `Authorization` header returned `200` with the victim's full schedule data (including joined Task title/description/due_date/priority/effort/completion_status).
+- **Root cause:** `routes/scheduleRoutes.js` applied no authentication middleware; `scheduleController.js` read `user_id` from `req.query` instead of the verified token.
+- **Fix:** `router.use(requireAuth)` added to `scheduleRoutes.js`; `getSchedules` now derives `user_id` from `req.user.id`, ignoring any query parameter entirely.
+- **Retest procedure:** Same request, no `Authorization` header.
+- **Actual Result (after fix):** `401`, response body does not contain the victim's user id or any schedule data.
+- **Status:** **PASS** (regression-tested — see `server/tests/cc63ScheduleAuthorizationGap.test.js`)
+- **AC mapping:** AC-01, AC-05
 
-### CC63-T09: `POST /api/schedules` accepts an arbitrary client-supplied `user_id` with no authentication — CONFIRMED GAP
-- **Objective:** Confirm whether a caller can write a schedule row attributed to any user.
-- **Procedure:** `POST /api/schedules` with a `user_id` field and no `Authorization` header.
-- **Expected Result (per AC-02/AC-03):** `401 Unauthorized`.
-- **Actual Result:** `201 Created`, with a new schedule row persisted under the attacker-supplied `user_id`.
-- **Status:** **FAIL** (confirmed security gap)
+### CC63-T09: `POST /api/schedules` cannot be attributed to another user via client-supplied `user_id` — FIXED (PR Batch 5)
+- **Original finding:** `POST /api/schedules` with a `user_id` field and no `Authorization` header returned `201`, persisting a row under the attacker-supplied `user_id`.
+- **Root cause:** Same pattern — `createSchedule` read `user_id` from `req.body`.
+- **Fix:** `user_id` now comes exclusively from `req.user.id`; a `user_id` in the request body is accepted but silently ignored (never used).
+- **Retest procedure:** Unauthenticated request → expect `401`. Authenticated request with a `user_id` field set to a different user → expect the row to be attributed to the authenticated caller, not the supplied value.
+- **Actual Result (after fix):** Both confirmed — `401` unauthenticated; the authenticated request's stored row's `user_id` always matches the caller, never the supplied override.
+- **Status:** **PASS**
 - **AC mapping:** AC-02, AC-03
-- **Evidence:** `server/tests/cc63ScheduleAuthorizationGap.test.js`
 
-### CC63-T10: `PUT /api/schedules/:id?user_id=<uuid>` modifies another user's schedule with no authentication — CONFIRMED GAP
-- **Objective:** Confirm whether a caller can modify an existing schedule belonging to any user.
-- **Procedure:** Seed a victim's schedule. `PUT /api/schedules/:id?user_id=<victim>` with no `Authorization` header.
-- **Expected Result (per AC-02):** `401 Unauthorized`.
-- **Actual Result:** `200`, the victim's schedule modified.
-- **Status:** **FAIL** (confirmed security gap)
+### CC63-T10: `PUT /api/schedules/:id` cannot modify another user's schedule — FIXED (PR Batch 5)
+- **Original finding:** `PUT /api/schedules/:id?user_id=<victim>` with no `Authorization` header returned `200`, modifying the victim's schedule.
+- **Root cause:** Same pattern — `updateSchedule` read `user_id` from `req.query`.
+- **Fix:** `user_id` now comes from `req.user.id`; the existing `.eq("id", id).eq("user_id", user_id)` filter means a schedule id belonging to another user now resolves to `404` ("Schedule not found") — never a `403` that would confirm the record exists under someone else's account, and the response never contains the owner's data.
+- **Retest procedure:** Unauthenticated request → expect `401`. Authenticated as a *different* user than the schedule's owner → expect `404`, record unchanged.
+- **Actual Result (after fix):** Both confirmed; the record's `user_id` and fields are verified unchanged in the store after the rejected attempt.
+- **Status:** **PASS**
 - **AC mapping:** AC-02
-- **Evidence:** `server/tests/cc63ScheduleAuthorizationGap.test.js`
+
+### CC63-T11–T15 (new, PR Batch 5): legitimate authenticated schedule management still works
+- **Objective:** Confirm the fix didn't break legitimate workflows.
+- **Procedure:** As the authenticated owner: list (T11), create (T12), update (T13), and resolve a conflict between two of their own schedules (T14). As a non-owner: attempt `resolve-conflict` referencing another user's schedule id (T15, expect `404`).
+- **Actual Result:** All pass.
+- **Status:** **PASS**
+- **AC mapping:** AC-01, AC-02, AC-03
+
+### CC63-T16 (new, PR Batch 5, S07): cross-user schedule list isolation
+- **Objective:** Confirm two authenticated users' schedule lists never mix — the isolation Calendar/To-Do actually depend on.
+- **Procedure:** Seed one schedule per user. Each requests `GET /api/schedules` with their own token.
+- **Actual Result:** Each user's list contains only their own row.
+- **Status:** **PASS**
+- **AC mapping:** AC-05
+
+### CC63-T17–T19 (new, this update): schedule `task_id` must be owned by the authenticated user
+- **Objective:** Confirm a schedule can no longer be linked to a Task the caller doesn't own (found during the task_id ownership investigation requested as a final review step on this batch).
+- **Procedure:** T17 — `POST /api/schedules` with `task_id` set to another user's Task. T18 — `PUT /api/schedules/:id` re-pointing `task_id` at another user's Task. T19 — the same operations with a `task_id` the caller actually owns.
+- **Expected Result:** T17/T18 → `400 "task_id must reference a task you own"`, nothing written/changed. T19 → succeeds normally.
+- **Actual Result:** Matches expected.
+- **Status:** **PASS**
+- **AC mapping:** AC-01, AC-02, AC-03, AC-05
+- **Limitation:** the mocked Supabase client doesn't implement PostgREST's embedded-resource join, so the *downstream* leak (another user's Task fields appearing in a schedule response) could not be reproduced end-to-end — only the data-model gap that enabled it. See `cc63-authorization-review.md` for the full reasoning and the recommended live follow-up.
 
 ### Access revocation (AC-08) — no test case assigned
 - **Finding:** A repository-wide search (`revoke`, `deactivate`, `disable.*account`, `suspend`) found **no access-revocation, deactivation, or suspension feature anywhere in the codebase**. There is nothing to test.
@@ -125,16 +149,23 @@ throughout, per rule 11.
 
 ## Summary by acceptance criterion
 
-| AC | Status | Test IDs |
+| AC | Status (as of PR Batch 5) | Test IDs |
 |---|---|---|
-| AC-01 | PASS for Task endpoints; **FAIL** for `/api/schedules` | CC63-T01, CC63-T08 |
-| AC-02 | PASS for Task endpoints; **FAIL** for `/api/schedules` | CC63-T02, CC63-T09, CC63-T10 |
-| AC-03 | PASS for Task endpoints; **FAIL** for `/api/schedules` | CC63-T03, CC63-T09 |
+| AC-01 | **PASS** (fixed) | CC63-T01, CC63-T08, CC63-T11 |
+| AC-02 | **PASS** (fixed) | CC63-T02, CC63-T09, CC63-T10, CC63-T13, CC63-T15 |
+| AC-03 | **PASS** (fixed) | CC63-T03, CC63-T09, CC63-T12 |
 | AC-04 | PASS | CC63-T04 |
-| AC-05 | PASS for Calendar/To-Do/Summary data itself; **FAIL** for the schedule blocks Calendar also displays | CC63-T05, CC63-T08 |
-| AC-06 | PASS (service-role/RLS relationship confirmed); BLOCKED (live policy content) | CC63-T06 |
-| AC-07 | PASS (configuration); NOT RUN (live CI) | CC63-T07 |
+| AC-05 | **PASS** (fixed) | CC63-T05, CC63-T08, CC63-T16 |
+| AC-06 | PASS (service-role/RLS relationship confirmed); BLOCKED (live policy content — still blocked, no dedicated test environment found this session) | CC63-T06 |
+| AC-07 | PASS (configuration — the fix's own tests run via the existing `npm test` CI step, no new job needed); NOT RUN (live CI — this branch has not been pushed) | CC63-T07 |
 | AC-08 | NOT APPLICABLE (feature doesn't exist) | — |
+
+**All three originally-failing criteria (AC-01, AC-02, AC-03) plus AC-05
+are now PASS**, confirmed by converting the original
+vulnerability-demonstration tests into regression tests (CC63-T08–T10)
+and adding positive-path and cross-user isolation coverage
+(CC63-T11–T16). AC-06 and AC-08 are unchanged from PR Batch 4 — neither
+depended on the Schedules fix.
 
 See `cc63-evidence-matrix.md` for the full traceability table and
 `cc63-interim-summary.md` for the provisional control classification.

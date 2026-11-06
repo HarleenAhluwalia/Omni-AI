@@ -120,6 +120,28 @@ function createMockSupabase() {
           store[table].push(row);
           return Promise.resolve({ data: row, error: null });
         }
+        if (mode === "update") {
+          const idx = store[table].findIndex((row) =>
+            matchFilters(row, filters)
+          );
+          if (idx === -1) {
+            // Real Supabase's .single() errors (PGRST116) when the
+            // query matches zero rows - unlike .maybeSingle(), which
+            // returns null data gracefully. scheduleController.js's
+            // resolveScheduleConflict relies on this to surface a
+            // clean error rather than silently succeeding with no data.
+            return Promise.resolve({
+              data: null,
+              error: { message: "JSON object requested, multiple (or no) rows returned" },
+            });
+          }
+          store[table][idx] = {
+            ...store[table][idx],
+            ...updateFields,
+            updated_at: new Date().toISOString(),
+          };
+          return Promise.resolve({ data: store[table][idx], error: null });
+        }
         return Promise.resolve({
           data: null,
           error: { message: "mock supabase: unsupported single() call" },
