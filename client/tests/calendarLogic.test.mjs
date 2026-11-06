@@ -38,7 +38,8 @@ function isToday(day, month, year, today) {
   );
 }
 
-// --- Mirrors CalendarView.jsx's getTasksForDay (fixed: CAL-DEFECT-001) ---
+// --- Mirrors CalendarView.jsx's getTasksForDay (fixed: CAL-DEFECT-001,
+// CAL-DEFECT-002) ---
 function getTasksForDay(tasks, day, month, year) {
   if (!day) {
     return [];
@@ -48,6 +49,16 @@ function getTasksForDay(tasks, day, month, year) {
       return false;
     }
     const taskDate = new Date(task.due_date);
+    // has_due_time=true means due_date is a genuine timestamp (like a
+    // schedule's start_time), not a date-only UTC-anchored deadline -
+    // it belongs on its LOCAL day. See CAL-AUTO-011 (CAL-DEFECT-002).
+    if (task.has_due_time) {
+      return (
+        taskDate.getFullYear() === year &&
+        taskDate.getMonth() === month &&
+        taskDate.getDate() === day
+      );
+    }
     return (
       taskDate.getUTCFullYear() === year &&
       taskDate.getUTCMonth() === month &&
@@ -366,6 +377,81 @@ const offsetIsNonZero = localOffsetMinutes !== 0;
 // fix. Uses the same boundary-straddling construction as CAL-AUTO-008/
 // 009, and is skipped for the same reason (nothing to distinguish at
 // UTC+0).
+// =========================================================
+// CAL-DEFECT-002: getTasksForDay ignores has_due_time - FIXED
+// =========================================================
+//
+// due_date is date-only (end-of-day UTC) ONLY when has_due_time is
+// false/absent. When has_due_time is true, due_date is a genuine
+// timestamp the user picked for a specific time - the same semantics
+// as a schedule's start_time (see getSchedulesForDay above) - and must
+// be placed on its LOCAL day, not extracted as a UTC day. Before this
+// fix, getTasksForDay used UTC getters unconditionally, so a
+// has_due_time Task could land on the wrong Calendar day for any
+// viewer whose timezone offset straddled a day boundary relative to
+// that specific due time - the same defect class as CAL-DEFECT-001,
+// reintroduced by the has_due_time feature for exactly the one case
+// CAL-DEFECT-001's own fix didn't anticipate.
+(offsetIsNonZero ? test : test.skip)(
+  "CAL-AUTO-011 (CAL-DEFECT-002): getTasksForDay places a has_due_time=true task on its LOCAL day, not its UTC day",
+  () => {
+    const nowReal = new Date();
+    const utcMidnightToday = Date.UTC(
+      nowReal.getUTCFullYear(),
+      nowReal.getUTCMonth(),
+      nowReal.getUTCDate()
+    );
+    const probeMs =
+      localOffsetMinutes > 0
+        ? utcMidnightToday + 30 * 60 * 1000
+        : utcMidnightToday + 23.5 * 60 * 60 * 1000;
+    const probe = new Date(probeMs);
+
+    assert.notEqual(
+      probe.getDate(),
+      probe.getUTCDate(),
+      "test construction error: probe does not straddle a day boundary for this runner's offset"
+    );
+
+    const t = task({
+      due_date: probe.toISOString(),
+      has_due_time: true,
+    });
+
+    // A genuine due TIME belongs on its LOCAL day, like a schedule -
+    // not the UTC day a date-only deadline would use.
+    const foundOnLocalDay = getTasksForDay(
+      [t],
+      probe.getDate(),
+      probe.getMonth(),
+      probe.getFullYear()
+    );
+
+    assert.equal(
+      foundOnLocalDay.length,
+      1,
+      "REGRESSION (CAL-DEFECT-002): a has_due_time=true task must be placed " +
+        "on its LOCAL day, matching how a schedule's start_time is placed - " +
+        "not the UTC day a date-only due_date would use."
+    );
+
+    // And it must NOT also appear on the UTC day a date-only task would
+    // use for this same instant - it should only ever occupy one cell.
+    const foundOnUtcDay = getTasksForDay(
+      [t],
+      probe.getUTCDate(),
+      probe.getUTCMonth(),
+      probe.getUTCFullYear()
+    );
+    assert.equal(
+      foundOnUtcDay.length,
+      0,
+      "REGRESSION (CAL-DEFECT-002): a has_due_time=true task must not also " +
+        "appear on the UTC day - it should occupy exactly one cell, its LOCAL day."
+    );
+  }
+);
+
 (offsetIsNonZero ? test : test.skip)(
   "CAL-AUTO-010: getSchedulesForDay places a schedule on its LOCAL day, not its UTC day",
   () => {

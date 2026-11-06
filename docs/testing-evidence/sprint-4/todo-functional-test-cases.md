@@ -119,6 +119,7 @@ function) confirming the original bug was real.
 | TODO-AUTO-011 | F. Edge cases | Missing optional fields format safely, never throw |
 | TODO-AUTO-012 | F. Edge cases | **TODO-DEFECT-001, fixed**: due-date display now UTC-pinned |
 | TODO-AUTO-013 | F. Edge cases | Duplicate task IDs don't crash lookup logic |
+| TODO-AUTO-014 | F. Edge cases | `has_due_time` branches between UTC-day and local-time formatting (added PR Batch 3) |
 
 ### TODO-AUTO-001: Task fields format correctly for display
 - **Prerequisites:** none
@@ -170,6 +171,13 @@ function) confirming the original bug was real.
 - **Actual Result (before fix):** `formatDueDate` returned "Oct 13" for a Tokyo-timezone render — disagreed with the intended UTC day.
 - **Actual Result (after fix):** `formatDueDate` returns "Oct 12" unconditionally; sanity check confirms the pre-fix bug was real.
 - **Status:** **PASS** (previously demonstrated the defect; now a regression guard confirming the fix)
+
+### TODO-AUTO-014: `formatTaskDue` branches correctly on `has_due_time` (added PR Batch 3)
+- **Prerequisites:** none
+- **Steps:** Call `formatTaskDue` on a date-only Task (`has_due_time: false`), a Task predating the field entirely (field absent), and a Task with a genuine due time (`has_due_time: true`).
+- **Expected Result:** Date-only and legacy Tasks format via the UTC-pinned `formatDueDate`; a `has_due_time` Task formats via the local-time `formatTaskDateTime` instead — the same distinction CAL-DEFECT-002 established for `CalendarView.jsx`.
+- **Actual Result:** Matches expected — this is existing, already-correct `PrioritizedTodo.jsx` behavior; no fix was needed here. This test adds regression coverage that didn't exist before (no prior test exercised `has_due_time` in this file), found missing during the CAL-DEFECT-002 investigation.
+- **Status:** **PASS**
 
 ### TODO-AUTO-013: Duplicate task IDs
 - **Prerequisites:** none
@@ -286,4 +294,5 @@ be exercised by this repo's current automated tooling.
 | F. Failed API requests / error states | TODO-MAN-008, TODO-MAN-009 |
 | F. Stale data / refresh | TODO-MAN-010 |
 | F. Duplicate Task display | TODO-AUTO-013, TODO-MAN-011 |
+| (bonus) `has_due_time` date/time formatting | TODO-AUTO-014 |
 | (bonus) Due-date timezone correctness | TODO-AUTO-012 (TODO-DEFECT-001, fixed), TODO-MAN-012 |
