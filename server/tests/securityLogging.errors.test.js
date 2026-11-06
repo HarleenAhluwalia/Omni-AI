@@ -9,11 +9,10 @@
  *   - nothing from the injected error (message text, connection string,
  *     password, key) appears in the log.
  *
- * KNOWN DEFECT SOC2-DEF-01 (see docs/testing-evidence/sprint-4/): several
- * Task endpoints still copy the database error message into the HTTP
- * response body. That is a response-side disclosure, not a logging gap, and
- * existing Sprint 2/3 tests assert the current behaviour, so it is recorded
- * with test.failing below rather than changed here.
+ * SOC2-DEF-01 (fixed): Task endpoints used to copy the database error message
+ * into the HTTP response body. They now return a fixed message and the detail
+ * goes only to the sanitized security log; the regression test is at the end
+ * of this file.
  */
 
 process.env.JWT_SECRET = "cc72-test-only-signing-key";
@@ -377,10 +376,8 @@ describe("TC-04 / AC-06: authentication service and unhandled errors", () => {
 // Known defect (response-side disclosure)
 // ---------------------------------------------------------------------------
 
-describe("KNOWN DEFECT SOC2-DEF-01: database error text is returned to API clients", () => {
-  // test.failing passes while the assertion fails (today's behaviour) and
-  // starts FAILING once the leak is fixed — the cue to change it to test().
-  test.failing(
+describe("SOC2-DEF-01: database error text is not returned to API clients", () => {
+  test(
     "a failed Task query should not echo the database error message in the HTTP response",
     async () => {
       failDatabase(() => failingBuilder({ message: DB_ERROR_MESSAGE }));
@@ -388,6 +385,7 @@ describe("KNOWN DEFECT SOC2-DEF-01: database error text is returned to API clien
       const res = await authed(request(app).get("/api/tasks"));
 
       expect(res.status).toBe(500);
+      expect(res.body.error).toBe("Could not load tasks.");
       expect(JSON.stringify(res.body)).not.toContain(DB_PASSWORD);
       expect(JSON.stringify(res.body)).not.toContain("postgres://");
     }

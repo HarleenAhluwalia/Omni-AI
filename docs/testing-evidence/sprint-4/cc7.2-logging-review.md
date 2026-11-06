@@ -31,7 +31,7 @@ Supabase audit logs are not required.
 
 ## 3. Defect found while testing
 
-### SOC2-DEF-01 — database error text is returned to API clients (OPEN)
+### SOC2-DEF-01 — database error text is returned to API clients (FIXED)
 
 Task endpoints return Supabase's error message in the response body on a failed
 query (`taskController.js`: list, read, create, update, delete, prioritized,
@@ -39,7 +39,8 @@ daily summary and weekly summary), and `register` returns
 `authError.message`. A real database error can contain connection details,
 constraint names or driver text.
 
-- **Why it is not fixed in this change:** the Sprint 2/3 tests `createTask`,
+- **Resolution:** after the review, the 8 Task endpoints and `register` were changed to return fixed messages (the same wording the `catch` blocks already used), with the detail going only to `logDatabaseFailure`. The five affected tests (`createTask`, `editTask`, `deleteTask`, `dailySummary`, `weeklySummary`) now assert the fixed message and that the simulated error text is absent, and the `test.failing` guard became a normal test.
+- **Why it was not fixed in the first change:** the Sprint 2/3 tests `createTask`,
   `editTask`, `deleteTask` and `dailySummary` assert the leaked text
   (`expect(res.body.error).toMatch(/simulated … failure/i)`). Fixing it means
   changing the response contract and those teammates' tests, which should be a

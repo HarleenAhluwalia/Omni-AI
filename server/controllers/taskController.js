@@ -259,7 +259,7 @@ const getTasks = async (req, res) => {
 
       return res.status(500).json({
         success: false,
-        error: error.message
+        error: "Could not load tasks."
       });
     }
 
@@ -310,7 +310,7 @@ const getTaskById = async (req, res) => {
 
       return res.status(500).json({
         success: false,
-        error: error.message
+        error: "Could not load task."
       });
     }
 
@@ -392,7 +392,7 @@ const createTask = async (req, res) => {
 
       return res.status(500).json({
         success: false,
-        error: error.message
+        error: "Could not create task."
       });
     }
 
@@ -480,7 +480,7 @@ const updateTask = async (req, res) => {
 
       return res.status(500).json({
         success: false,
-        error: error.message
+        error: "Could not update task."
       });
     }
 
@@ -541,7 +541,7 @@ const deleteTask = async (req, res) => {
 
       return res.status(500).json({
         success: false,
-        error: error.message
+        error: "Could not delete task."
       });
     }
 
@@ -596,7 +596,7 @@ const getPrioritizedTasks = async (req, res) => {
 
       return res.status(500).json({
         success: false,
-        error: error.message,
+        error: "Could not load prioritized tasks.",
       });
     }
 
@@ -829,7 +829,7 @@ const getDailySummary = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      error: error.message
+      error: "Could not load daily summary."
     });
   }
 
@@ -956,7 +956,7 @@ const getWeeklySummary = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      error: error.message
+      error: "Could not load weekly summary."
     });
   }
 
