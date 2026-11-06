@@ -251,7 +251,8 @@ describe("Edit Task — failure handling", () => {
 
       expect(res.status).toBe(500);
       expect(res.body.success).toBe(false);
-      expect(res.body.error).toMatch(/simulated update failure/i);
+      expect(res.body.error).toBe("Could not update task.");
+      expect(res.body.error).not.toMatch(/simulated update failure/i);
       expect(res.body.data).toBeUndefined();
     } finally {
       supabase.from = originalFrom;
