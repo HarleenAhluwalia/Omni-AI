@@ -2590,3 +2590,68 @@ input.add-task-all-day-switch:not(:checked) {
     padding: 14px;
   }
 }
+
+
+/* Sprint 4 — Fix sidebar vertical positioning */
+
+/* Sidebar starts at the top */
+.dashboard-sidebar {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  align-items: stretch !important;
+  height: 100vh;
+  min-height: 100vh;
+  overflow-y: auto;
+}
+
+/* Logo at the top */
+.sidebar-logo {
+  margin-top: 0 !important;
+  margin-bottom: 16px !important;
+}
+
+/* Navigation directly below Omni AI */
+.sidebar-nav {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  flex: 0 0 auto !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  position: static !important;
+  transform: none !important;
+}
+
+/* Navigation buttons */
+.sidebar-item {
+  flex-shrink: 0;
+}
+
+/* Account controls directly after Canvas Integration */
+.sidebar-account-controls {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 0 0 auto !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  position: static !important;
+}
+
+/* Light Mode */
+.sidebar-account-controls .theme-toggle-section {
+  margin-top: 0 !important;
+  padding: 12px !important;
+}
+
+/* User information */
+.sidebar-account-controls .user-section {
+  margin-top: 0 !important;
+  padding: 12px !important;
+}
+
+/* Logout button */
+.sidebar-account-controls .logout-button {
+  margin-top: 10px !important;
+}
