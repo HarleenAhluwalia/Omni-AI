@@ -100,10 +100,7 @@ async function register(req, res) {
     logBackendError(req, "auth_user_create_failed", authError);
 
     return res.status(500).json({
-      errors: [
-        authError?.message ||
-        "Could not create authentication user."
-      ]
+      errors: ["Could not create authentication user."]
     });
   }
 
