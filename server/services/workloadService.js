@@ -56,6 +56,8 @@ function analyzeWorkload(
     let requiredMinutes = 0;
     let overdueCount = 0;
     let dueSoonCount = 0;
+    let dueWithin6HoursCount = 0;
+    let dueWithin24HoursCount = 0;
     let missingEstimateCount = 0;
     let undatedCount = 0;
 
@@ -85,10 +87,30 @@ function analyzeWorkload(
 
         const daysUntilDue = (dueDay - today) / DAY_MS;
 
-        if (daysUntilDue < 0) {
+        const hasSpecificDueTime = task.has_due_time === true;
+        const millisecondsUntilDue = deadline.getTime() - now.getTime();
+
+        const isOverdue =
+            daysUntilDue < 0 ||
+            (hasSpecificDueTime && millisecondsUntilDue < 0);
+
+        if (isOverdue) {
             overdueCount++;
         } else if (daysUntilDue < 7) {
             dueSoonCount++;
+
+            if (hasSpecificDueTime && millisecondsUntilDue >= 0) {
+                const hoursUntilDue =
+                    millisecondsUntilDue / (60 * 60 * 1000);
+
+                if (hoursUntilDue <= 24) {
+                    dueWithin24HoursCount++;
+                }
+
+                if (hoursUntilDue <= 6) {
+                    dueWithin6HoursCount++;
+                }
+            }
         }
 
         // Include overdue and next-7-day tasks.
@@ -108,6 +130,8 @@ function analyzeWorkload(
         activeTaskCount: activeTasks.length,
         overdueCount,
         dueSoonCount,
+        dueWithin6HoursCount,
+        dueWithin24HoursCount,
         missingEstimateCount,
         undatedCount,
         requiredMinutes,
@@ -192,6 +216,119 @@ function findDeadlineCapacityRisk(
     return null;
 }
 
+function getNextLocalDayStart(date, timeZone) {
+    const currentDay = getDayInTimeZone(date, timeZone);
+
+    let low = date.getTime();
+    let high = low + 36 * 60 * 60 * 1000;
+
+    // Find the next midnight in the user's timezone.
+    // This also accommodates daylight saving changes.
+    while (high - low > 1) {
+        const mid = Math.floor((low + high) / 2);
+
+        if (
+            getDayInTimeZone(new Date(mid), timeZone) === currentDay
+        ) {
+            low = mid;
+        } else {
+            high = mid;
+        }
+    }
+
+    return high;
+}
+
+function findTimeAwareCapacityRisk(
+    tasks,
+    dailyLimitMinutes,
+    now,
+    timeZone = "UTC"
+) {
+    const today = getDayInTimeZone(now, timeZone);
+
+    const timedTasks = tasks
+        .filter((task) => {
+            if (
+                !task ||
+                task.completion_status === "completed" ||
+                task.canvas_locked === true ||
+                task.has_due_time !== true ||
+                !task.due_date
+            ) {
+                return false;
+            }
+
+            const deadline = new Date(task.due_date);
+            const effort = Number(task.estimated_effort_minutes);
+
+            return (
+                !Number.isNaN(deadline.getTime()) &&
+                deadline.getTime() >= now.getTime() &&
+                (getDayInTimeZone(deadline, timeZone) - today) /
+                DAY_MS < 7 &&
+                task.estimated_effort_minutes !== null &&
+                task.estimated_effort_minutes !== undefined &&
+                task.estimated_effort_minutes !== "" &&
+                Number.isFinite(effort) &&
+                effort >= 0
+            );
+        })
+        .sort(
+            (a, b) =>
+                new Date(a.due_date) - new Date(b.due_date)
+        );
+
+    let requiredMinutes = 0;
+
+    for (const task of timedTasks) {
+        requiredMinutes += Number(
+            task.estimated_effort_minutes
+        );
+
+        const deadline = new Date(task.due_date);
+        let cursor = now.getTime();
+        let availableMinutes = 0;
+
+        // Count available clock time separately for each
+        // local calendar day, capped by the daily study limit.
+        while (cursor < deadline.getTime()) {
+            const nextDayStart = getNextLocalDayStart(
+                new Date(cursor),
+                timeZone
+            );
+
+            const end = Math.min(
+                nextDayStart,
+                deadline.getTime()
+            );
+
+            const minutesRemaining = (end - cursor) / 60000;
+
+            availableMinutes += Math.min(
+                dailyLimitMinutes,
+                minutesRemaining
+            );
+
+            cursor = end;
+        }
+
+        availableMinutes = Math.floor(availableMinutes);
+
+        if (requiredMinutes > availableMinutes) {
+            return {
+                deadlineAt: deadline.toISOString(),
+                requiredMinutes,
+                availableMinutes,
+                shortfallMinutes:
+                    requiredMinutes - availableMinutes,
+            };
+        }
+    }
+
+    return null;
+}
+
 function generateWorkloadRecommendations(
     tasks,
     dailyLimitMinutes = 240,
@@ -226,6 +363,34 @@ function generateWorkloadRecommendations(
         });
     }
 
+
+    // Sprint 4: Warn about approaching exact deadlines.
+    if (analysis.dueWithin6HoursCount > 0) {
+        warnings.push({
+            type: "deadline_6_hours",
+            message:
+                `${analysis.dueWithin6HoursCount} task(s) ` +
+                `are due within the next 6 hours. ` +
+                `Consider prioritizing these tasks.`,
+        });
+    }
+
+    // Exclude tasks already covered by the 6-hour warning.
+    const dueBetween6And24Hours =
+        analysis.dueWithin24HoursCount -
+        analysis.dueWithin6HoursCount;
+
+    if (dueBetween6And24Hours > 0) {
+        warnings.push({
+            type: "deadline_24_hours",
+            message:
+                `${dueBetween6And24Hours} task(s) ` +
+                `are due in the next 6 to 24 hours. ` +
+                `Review your available study time.`,
+        });
+    }
+
+
     if (analysis.missingEstimateCount > 0) {
         warnings.push({
             type: "missing_estimates",
@@ -253,6 +418,31 @@ function generateWorkloadRecommendations(
                 `${deadlineCapacityRisk.availableMinutes} minutes ` +
                 `of configured study capacity. ` +
                 `Short by ${deadlineCapacityRisk.shortfallMinutes} minutes.`,
+        });
+    }
+
+    const timeAwareCapacityRisk = findTimeAwareCapacityRisk(
+        tasks,
+        dailyLimitMinutes,
+        now,
+        timeZone
+    );
+
+    if (timeAwareCapacityRisk) {
+        warnings.push({
+            type: "deadline_time_capacity",
+            message:
+                `You have ${timeAwareCapacityRisk.requiredMinutes} ` +
+                `minutes of work due by ` +
+                `${new Intl.DateTimeFormat("en-US", {
+                    timeZone,
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                }).format(new Date(timeAwareCapacityRisk.deadlineAt))}, ` +
+                `but at most ` +
+                `${timeAwareCapacityRisk.availableMinutes} minutes ` +
+                `of study capacity remain. ` +
+                `Short by ${timeAwareCapacityRisk.shortfallMinutes} minutes.`,
         });
     }
 
@@ -301,6 +491,7 @@ function generateWorkloadRecommendations(
         ...analysis,
         warnings,
         deadlineCapacityRisk,
+        timeAwareCapacityRisk,
         recommendedTasks,
     };
 }
