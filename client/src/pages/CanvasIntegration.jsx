@@ -129,7 +129,19 @@ function CanvasIntegration() {
           : [],
       };
 
-      setSyncResult(result);
+      console.log("LATEST CANVAS SYNC RESULT:", result);
+console.log("CANVAS SYNC DEBUG:", {
+  time: new Date().toISOString(),
+  result,
+});
+console.log("CANVAS RESULT RECEIVED:", {
+  imported: result.imported.length,
+  updated: result.updated.length,
+  skipped: result.skipped.length,
+  failed: result.failed.length,
+});
+
+setSyncResult(result);
 
       setMessage(
         result.failed.length > 0
@@ -165,8 +177,25 @@ function CanvasIntegration() {
     ]);
   };
 
-  const getResultCount = (key) =>
-    syncResult?.[key]?.length || 0;
+  
+const getResultCount = (key) => {
+  // Imported shows the total number of assignments
+  // currently imported into Omni AI.
+  if (key === "imported") {
+    return courses.reduce(
+      (total, course) =>
+        total +
+        (course.assignments || []).filter(
+          (assignment) => assignment.imported === true
+        ).length,
+      0
+    );
+  }
+
+  // Other counts reflect the latest synchronization.
+  return syncResult?.[key]?.length || 0;
+};
+
 
   useEffect(() => {
     // Clear connected state when the authenticated
@@ -393,7 +422,7 @@ function CanvasIntegration() {
           <>
             <div className="canvas-integration-stats">
               {[
-                ["Imported", "imported"],
+                ["Total Imported", "imported"],
                 ["Updated", "updated"],
                 ["Skipped", "skipped"],
                 ["Failed", "failed"],

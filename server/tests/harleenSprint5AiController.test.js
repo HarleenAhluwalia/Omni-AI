@@ -280,4 +280,80 @@ describe("Sprint 5 — AI Controller Response Handling", () => {
       consoleSpy.mockRestore();
     }
   });
+
+test("SCRUM-141: returns HTTP 504 when AI provider times out", async () => {
+  // Simulate an Anthropic Claude timeout.
+  const timeoutError = new Error("Request timed out");
+  timeoutError.name = "APITimeoutError";
+  timeoutError.status = 408;
+
+  askAI.mockRejectedValueOnce(timeoutError);
+
+  const req = createRequest({
+    message: "Prioritize my tasks",
+    response_mode: "text",
+  });
+
+  const res = createResponse();
+
+  const consoleSpy = jest
+    .spyOn(console, "error")
+    .mockImplementation(() => {});
+
+  try {
+    await chat(req, res);
+
+    // Timeout must return HTTP 504.
+    expect(res.status).toHaveBeenCalledWith(504);
+
+    // Frontend receives a safe, understandable message.
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      error:
+        "The AI service took too long to respond. Please try again.",
+    });
+
+    // The provider should only be called once.
+    expect(askAI).toHaveBeenCalledTimes(1);
+  } finally {
+    consoleSpy.mockRestore();
+  }
+});
+
+
+test("SCRUM-142: non-timeout AI errors still return HTTP 500", async () => {
+  // Simulate an ordinary AI provider failure.
+  askAI.mockRejectedValueOnce(
+    new Error("Simulated provider failure")
+  );
+
+  const req = createRequest({
+    message: "Prioritize my tasks",
+    response_mode: "text",
+  });
+
+  const res = createResponse();
+
+  const consoleSpy = jest
+    .spyOn(console, "error")
+    .mockImplementation(() => {});
+
+  try {
+    await chat(req, res);
+
+    // General errors must still return HTTP 500.
+    expect(res.status).toHaveBeenCalledWith(500);
+
+    // Internal error details must not reach the frontend.
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      error: "Could not generate AI response.",
+    });
+
+    expect(askAI).toHaveBeenCalledTimes(1);
+  } finally {
+    consoleSpy.mockRestore();
+  }
+});
+
 });

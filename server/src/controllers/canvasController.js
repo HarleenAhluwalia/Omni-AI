@@ -41,25 +41,54 @@ const buildCanvasOwnedFields = (assignment, course) => ({
 });
 
 // Compare values without treating numeric strings as changes.
+
+/**
+ * Compare Canvas assignment values with existing Task values.
+ *
+ * Prevent unnecessary updates caused by different
+ * representations of the same date or numeric value.
+ */
 const valuesEqual = (key, next, current) => {
   if (next === current) {
     return true;
   }
 
-  if (next == null && current == null) {
-    return true;
+  if (next == null || current == null) {
+    return next == null && current == null;
   }
 
+  // Compare due dates by their actual timestamps.
+  // Supabase may return a different ISO representation.
+  if (key === "due_date") {
+    const nextTime = new Date(next).getTime();
+    const currentTime = new Date(current).getTime();
+
+    return (
+      Number.isFinite(nextTime) &&
+      Number.isFinite(currentTime) &&
+      nextTime === currentTime
+    );
+  }
+
+  // Treat numeric strings and numbers as equal.
   if (
-    key === "point_value" &&
-    next != null &&
-    current != null
-  ) {
-    return Number(next) === Number(current);
+  key === "point_value" ||
+  key === "canvas_course_id"
+) {
+    const nextNumber = Number(next);
+    const currentNumber = Number(current);
+
+    return (
+      Number.isFinite(nextNumber) &&
+      Number.isFinite(currentNumber) &&
+      nextNumber === currentNumber
+    );
   }
 
-  return false;
+  // Other Canvas-owned values must match exactly.
+  return next === current;
 };
+
 
 // Only synchronize fields owned by Canvas.
 const diffCanvasOwnedFields = (canvasFields, existingTask) => {
