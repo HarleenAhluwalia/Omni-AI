@@ -37,6 +37,26 @@ const getWorkloadAnalysis = async (req, res) => {
       throw taskError;
     }
 
+    // Retrieve scheduled study blocks for workload analysis.
+    // Only retrieve schedules belonging to the authenticated user.
+    const {
+      data: schedules,
+      error: schedulesError,
+    } = await supabase
+      .from("schedules")
+      .select(`
+        task_id,
+        start_time,
+        end_time,
+        schedule_type,
+        status
+      `)
+      .eq("user_id", userId);
+
+    if (schedulesError) {
+      throw schedulesError;
+    }
+
     // Retrieve the user's study preferences.
     const {
       data: preferences,
@@ -65,7 +85,8 @@ const getWorkloadAnalysis = async (req, res) => {
       tasks || [],
       dailyLimitMinutes,
       new Date(),
-      timeZone
+      timeZone,
+      schedules || []
     );
 
     return res.status(200).json({

@@ -21,10 +21,16 @@ const app = express();
 app.use(express.json());
 app.use("/api/tasks", taskRoutes);
 
+
 function mockDatabase(
   tasks,
   preferences,
-  { taskError = null, preferencesError = null } = {}
+  {
+    taskError = null,
+    preferencesError = null,
+    schedules = [],
+    schedulesError = null,
+  } = {}
 ) {
   supabase.from.mockImplementation((table) => {
     if (table === "tasks") {
@@ -33,6 +39,17 @@ function mockDatabase(
           eq: async () => ({
             data: tasks,
             error: taskError,
+          }),
+        }),
+      };
+    }
+
+    if (table === "schedules") {
+      return {
+        select: () => ({
+          eq: async () => ({
+            data: schedules,
+            error: schedulesError,
           }),
         }),
       };
@@ -159,6 +176,80 @@ describe("UC-14 Workload API", () => {
     expect(response.body.error).toBe(
       "Could not analyze workload."
     );
+  });
+
+  test("includes scheduled study blocks in workload predictions", async () => {
+    const now = Date.now();
+
+    // Assignment due approximately 2 hours from now.
+    const dueDate = new Date(
+      now + 120 * 60 * 1000
+    ).toISOString();
+
+    const tasks = [
+      {
+        id: "task-1",
+        title: "Upcoming Assignment",
+        due_date: dueDate,
+        has_due_time: true,
+        estimated_effort_minutes: 90,
+        priority: "high",
+        completion_status: "not_started",
+      },
+    ];
+
+    // Another task occupies 60 minutes of the
+    // available time before the deadline.
+    const schedules = [
+      {
+        task_id: "other-task",
+        start_time: new Date(
+          now + 30 * 60 * 1000
+        ).toISOString(),
+        end_time: new Date(
+          now + 90 * 60 * 1000
+        ).toISOString(),
+        schedule_type: "study_block",
+        status: "scheduled",
+      },
+    ];
+
+    mockDatabase(tasks, {
+      daily_workload_limit_minutes: 240,
+    }, {
+      schedules,
+    });
+
+    const response = await request(app)
+      .get("/api/tasks/workload");
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+
+    // Verify that the schedule query was executed.
+    expect(supabase.from).toHaveBeenCalledWith(
+      "schedules"
+    );
+
+    // The 90-minute assignment cannot fit into
+    // approximately 60 minutes of unreserved time.
+    const risk =
+      response.body.data.timeAwareCapacityRisk;
+
+    expect(risk).not.toBeNull();
+    expect(risk.requiredMinutes).toBe(90);
+
+    // Allow minor differences from request execution time.
+    expect(risk.availableMinutes).toBeGreaterThanOrEqual(55);
+    expect(risk.availableMinutes).toBeLessThanOrEqual(60);
+
+    expect(risk.shortfallMinutes).toBeGreaterThanOrEqual(30);
+
+    expect(
+      response.body.data.warnings.map(
+        (warning) => warning.type
+      )
+    ).toContain("deadline_time_capacity");
   });
 
 });
