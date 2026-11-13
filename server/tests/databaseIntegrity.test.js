@@ -274,6 +274,82 @@ describe("Database integrity — simulated connection failures (Section F)", () 
     expect(stillThere).toBeDefined();
   });
 
+  it("DB-AUTO-011 (DB-DEFECT-001, fixed): updateTask returns a controlled 500 when the database call rejects, instead of no response at all", async () => {
+    const created = await createAsUser({ title: "Must survive a failed update" });
+    const taskId = created.body.data.id;
+
+    const originalFrom = supabase.from;
+    supabase.from = jest.fn((table) => {
+      if (table !== "tasks") return originalFrom(table);
+      return {
+        update: () => ({
+          eq: () => ({
+            eq: () => ({
+              select: () => ({
+                maybeSingle: () =>
+                  Promise.reject(new Error("simulated connection failure with sensitive detail")),
+              }),
+            }),
+          }),
+        }),
+      };
+    });
+
+    let res;
+    try {
+      res = await request(app)
+        .put(`/api/tasks/${taskId}`)
+        .set("Authorization", authHeader())
+        .send({ title: "Should get a clean 500 now" })
+        .timeout({ response: 3000, deadline: 3500 });
+    } finally {
+      supabase.from = originalFrom;
+    }
+
+    expect(res.status).toBe(500);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error).toBe("Could not update task.");
+    expect(res.body.error).not.toMatch(/sensitive detail/);
+
+    const stillThere = supabase.__store.tasks.find((t) => t.id === taskId);
+    expect(stillThere.title).toBe("Must survive a failed update");
+  });
+
+  it("DB-AUTO-012 (DB-DEFECT-001, fixed): getTaskById returns a controlled 500 when the database call rejects, instead of no response at all", async () => {
+    const created = await createAsUser({ title: "Read target" });
+    const taskId = created.body.data.id;
+
+    const originalFrom = supabase.from;
+    supabase.from = jest.fn((table) => {
+      if (table !== "tasks") return originalFrom(table);
+      return {
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.reject(new Error("simulated connection failure with sensitive detail")),
+            }),
+          }),
+        }),
+      };
+    });
+
+    let res;
+    try {
+      res = await request(app)
+        .get(`/api/tasks/${taskId}`)
+        .set("Authorization", authHeader())
+        .timeout({ response: 3000, deadline: 3500 });
+    } finally {
+      supabase.from = originalFrom;
+    }
+
+    expect(res.status).toBe(500);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error).toBe("Could not load task.");
+    expect(res.body.error).not.toMatch(/sensitive detail/);
+  });
+
   it("DB-AUTO-010: existing 400/404/success responses are unaffected by the fix (no double-response, no behavior change)", async () => {
     // 400: validation still short-circuits before the try block.
     const badCreate = await request(app)
