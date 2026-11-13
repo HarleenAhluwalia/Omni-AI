@@ -179,6 +179,48 @@ function createMockSupabase() {
       // uses upsert() (no .select()/.single() afterwards).
       then(resolve, reject) {
 
+        // Handle insertions that are awaited directly without .single().
+        if (mode === "insert") {
+          const rows = Array.isArray(insertRows)
+            ? insertRows
+            : [insertRows];
+
+          // Simulate the notifications table's unique constraint.
+          for (const newRow of rows) {
+            if (
+              table === "notifications" &&
+              store[table].some(
+                (existing) =>
+                  existing.deduplication_key === newRow.deduplication_key
+              )
+            ) {
+              return Promise.resolve({
+                data: null,
+                error: {
+                  code: "23505",
+                  message:
+                    'duplicate key value violates unique constraint "notifications_deduplication_key_key"',
+                },
+              }).then(resolve, reject);
+            }
+          }
+
+          // Store the inserted records in the mock database.
+          for (const newRow of rows) {
+            store[table].push({
+              id: nextId(),
+              created_at: new Date().toISOString(),
+              ...(table === "notifications" ? { is_read: false } : {}),
+              ...newRow,
+            });
+          }
+
+          return Promise.resolve({
+            data: null,
+            error: null,
+          }).then(resolve, reject);
+        }
+
         if (mode === "select") {
           const rows = store[table].filter((row) =>
           matchFilters(row, filters)

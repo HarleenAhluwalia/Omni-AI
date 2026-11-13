@@ -9,6 +9,7 @@ const dummyCanvasRoutes = require("../routes/dummyCanvasRoutes");
 const canvasRoutes = require("./routes/canvasRoutes");
 const notificationSettingsRoutes = require("../routes/notificationSettingsRoutes");
 const preferencesRoutes = require("./routes/preferencesRoutes");
+const notificationRoutes = require("../routes/notificationRoutes");
 const { requestId } = require("./middleware/requestId");
 const { logBackendError } = require("./utils/securityLogger");
 
@@ -32,6 +33,9 @@ function createApp() {
       status: "ok"
     });
   });
+
+  // Medrian - UC-4 Smart Notification storage and retrieval
+  app.use("/api/notifications", notificationRoutes);
 
   app.use("/api/auth", authRoutes);
   app.use("/api/ai", aiRoutes);
