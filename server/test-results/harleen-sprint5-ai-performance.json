@@ -1,0 +1,77 @@
+{
+  "testName": "Sprint 5 Live AI Performance",
+  "timestamp": "2026-11-12T18:33:13.253Z",
+  "provider": "Configured Anthropic Claude service",
+  "trials": 10,
+  "successful": 10,
+  "failed": 0,
+  "statistics": {
+    "averageMs": 2896.68,
+    "medianMs": 2764.65,
+    "minMs": 2515.56,
+    "maxMs": 3997.28,
+    "p95Ms": 3997.28
+  },
+  "results": [
+    {
+      "trial": 1,
+      "durationMs": 3997.28,
+      "success": true,
+      "responseLength": 614
+    },
+    {
+      "trial": 2,
+      "durationMs": 2775.74,
+      "success": true,
+      "responseLength": 801
+    },
+    {
+      "trial": 3,
+      "durationMs": 2515.56,
+      "success": true,
+      "responseLength": 477
+    },
+    {
+      "trial": 4,
+      "durationMs": 2753.56,
+      "success": true,
+      "responseLength": 502
+    },
+    {
+      "trial": 5,
+      "durationMs": 2711.42,
+      "success": true,
+      "responseLength": 652
+    },
+    {
+      "trial": 6,
+      "durationMs": 2541.07,
+      "success": true,
+      "responseLength": 491
+    },
+    {
+      "trial": 7,
+      "durationMs": 2907.78,
+      "success": true,
+      "responseLength": 630
+    },
+    {
+      "trial": 8,
+      "durationMs": 2928.48,
+      "success": true,
+      "responseLength": 706
+    },
+    {
+      "trial": 9,
+      "durationMs": 2638.63,
+      "success": true,
+      "responseLength": 557
+    },
+    {
+      "trial": 10,
+      "durationMs": 3197.24,
+      "success": true,
+      "responseLength": 650
+    }
+  ]
+}
