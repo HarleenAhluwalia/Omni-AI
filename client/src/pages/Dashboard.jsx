@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 
 import AddTask from "./AddTask";
@@ -9,13 +10,9 @@ import WeeklySummary from "./WeeklySummary";
 import Preferences from "./Preferences";
 import CanvasIntegration from "./CanvasIntegration";
 
-
-
 import { useAuth } from "../context/AuthContext";
-
 import "./Dashboard.css";
 
-// Must match the CSS fade/pop animation duration for the Add Task modal.
 const ADD_TASK_MODAL_ANIMATION_MS = 180;
 
 function Dashboard() {
@@ -27,6 +24,7 @@ function Dashboard() {
   const [editingTask, setEditingTask] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [taskRefreshKey, setTaskRefreshKey] = useState(0);
+
   const [chatInput, setChatInput] = useState("");
   const [availableMinutes, setAvailableMinutes] = useState(120);
   const [chatResponseMode, setChatResponseMode] = useState("text");
@@ -39,21 +37,22 @@ function Dashboard() {
     },
   ]);
 
-
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState("");
-  const [theme, setTheme] = useState(() => {
-  return localStorage.getItem("omni-theme") || "light";
-});
-useEffect(() => {
-  localStorage.setItem("omni-theme", theme);
-}, [theme]);
 
-const toggleTheme = () => {
-  setTheme((currentTheme) =>
-    currentTheme === "light" ? "dark" : "light"
-  );
-};
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem("omni-theme") || "light";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("omni-theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((currentTheme) =>
+      currentTheme === "light" ? "dark" : "light"
+    );
+  };
 
   const today = new Date();
 
@@ -62,54 +61,54 @@ const toggleTheme = () => {
   });
 
   const year = today.getFullYear();
-
   const calendarYear = today.getFullYear();
-const calendarMonth = today.getMonth();
+  const calendarMonth = today.getMonth();
 
-const daysInMonth = new Date(
-  calendarYear,
-  calendarMonth + 1,
-  0
-).getDate();
+  const daysInMonth = new Date(
+    calendarYear,
+    calendarMonth + 1,
+    0
+  ).getDate();
 
-const firstDayOfMonth = new Date(
-  calendarYear,
-  calendarMonth,
-  1
-).getDay();
+  const firstDayOfMonth = new Date(
+    calendarYear,
+    calendarMonth,
+    1
+  ).getDay();
 
-const dashboardCalendarCells = [];
+  const dashboardCalendarCells = [];
 
-for (let i = 0; i < firstDayOfMonth; i += 1) {
-  dashboardCalendarCells.push(null);
-}
-
-for (let day = 1; day <= daysInMonth; day += 1) {
-  dashboardCalendarCells.push(day);
-}
-
-while (dashboardCalendarCells.length % 7 !== 0) {
-  dashboardCalendarCells.push(null);
-}
-const getTasksForDashboardDay = (day) => {
-  if (!day) {
-    return [];
+  for (let i = 0; i < firstDayOfMonth; i += 1) {
+    dashboardCalendarCells.push(null);
   }
 
-  return tasks.filter((task) => {
-    if (!task.due_date) {
-      return false;
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    dashboardCalendarCells.push(day);
+  }
+
+  while (dashboardCalendarCells.length % 7 !== 0) {
+    dashboardCalendarCells.push(null);
+  }
+
+  const getTasksForDashboardDay = (day) => {
+    if (!day) {
+      return [];
     }
 
-    const dueDate = new Date(task.due_date);
+    return tasks.filter((task) => {
+      if (!task.due_date) {
+        return false;
+      }
 
-    return (
-      dueDate.getFullYear() === calendarYear &&
-      dueDate.getMonth() === calendarMonth &&
-      dueDate.getDate() === day
-    );
-  });
-};
+      const dueDate = new Date(task.due_date);
+
+      return (
+        dueDate.getFullYear() === calendarYear &&
+        dueDate.getMonth() === calendarMonth &&
+        dueDate.getDate() === day
+      );
+    });
+  };
 
   const openAddTaskModal = () => {
     setEditingTask(null);
@@ -141,7 +140,6 @@ const getTasksForDashboardDay = (day) => {
     }
   };
 
-  // Close on Escape and lock background scroll while the modal is open.
   useEffect(() => {
     if (!showAddTask) {
       return;
@@ -171,327 +169,479 @@ const getTasksForDashboardDay = (day) => {
 
         return alreadyTracked
           ? currentTasks.map((currentTask) =>
-              currentTask.id === savedTask.id ? savedTask : currentTask
+              currentTask.id === savedTask.id
+                ? savedTask
+                : currentTask
             )
           : [...currentTasks, savedTask];
       });
     }
 
     closeAddTaskModal();
-
-    // Refresh prioritized To-Do List after creating or editing a task.
     setTaskRefreshKey((current) => current + 1);
   };
 
-  
-const handleSendChatMessage = async (event) => {
-  event.preventDefault();
+  // Existing AI Chat backend request handler
+  const handleSendChatMessage = async (event) => {
+    event.preventDefault();
 
-  const trimmedMessage = chatInput.trim();
-  const requestedMode = chatResponseMode;
-  const requestedMinutes = Number(availableMinutes);
+    const trimmedMessage = chatInput.trim();
+    const requestedMode = chatResponseMode;
+    const requestedMinutes = Number(availableMinutes);
 
-  if (!trimmedMessage || !user?.id || chatLoading) {
-    return;
-  }
-
-  if (
-    !Number.isSafeInteger(requestedMinutes) ||
-    requestedMinutes < 0
-  ) {
-    setChatError(
-      "Available study time must be a nonnegative whole number."
-    );
-    return;
-  }
-
-  setChatError("");
-
-  setChatMessages((messages) => [
-    ...messages,
-    {
-      role: "user",
-      content: trimmedMessage,
-    },
-  ]);
-
-  setChatInput("");
-  setChatLoading(true);
-
-  try {
-    const token = localStorage.getItem("omni_ai_token");
-
-    if (!token) {
-      throw new Error(
-        "Please log in before requesting a study schedule."
-      );
+    if (!trimmedMessage || !user?.id || chatLoading) {
+      return;
     }
 
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/ai/chat`,
+    if (
+      !Number.isSafeInteger(requestedMinutes) ||
+      requestedMinutes < 0
+    ) {
+      setChatError(
+        "Available study time must be a nonnegative whole number."
+      );
+      return;
+    }
+
+    setChatError("");
+
+    setChatMessages((messages) => [
+      ...messages,
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          message: trimmedMessage,
-          available_minutes: requestedMinutes,
-          response_mode: requestedMode,
-          schedule_start_time:
-            requestedMode === "schedule"
-              ? new Date().toISOString()
-              : undefined,
-        }),
-      }
-    );
+        role: "user",
+        content: trimmedMessage,
+      },
+    ]);
 
-    const result = await response.json();
+    setChatInput("");
+    setChatLoading(true);
 
-    if (!response.ok || !result.success) {
-      throw new Error(
-        result.error || "Could not generate AI response."
-      );
-    }
+    try {
+      const token = localStorage.getItem("omni_ai_token");
 
-    if (requestedMode === "schedule") {
-      const aiResponse = result.data?.response;
-      const savedSchedules = result.data?.schedules;
-
-      if (
-        !aiResponse ||
-        !Array.isArray(aiResponse.schedule) ||
-        !Array.isArray(savedSchedules)
-      ) {
+      if (!token) {
         throw new Error(
-          "The server returned an invalid schedule."
+          "Please log in before requesting a study schedule."
         );
       }
 
-      setChatMessages((messages) => [
-        ...messages,
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/ai/chat`,
         {
-          role: "assistant",
-          content:
-            aiResponse.message ||
-            "Here is your study schedule.",
-          schedules: savedSchedules,
-        },
-      ]);
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            message: trimmedMessage,
+            available_minutes: requestedMinutes,
+            response_mode: requestedMode,
+            schedule_start_time:
+              requestedMode === "schedule"
+                ? new Date().toISOString()
+                : undefined,
+          }),
+        }
+      );
 
-      setTaskRefreshKey((current) => current + 1);
-    } else {
-      setChatMessages((messages) => [
-        ...messages,
-        {
-          role: "assistant",
-          content: String(result.data?.response ?? ""),
-        },
-      ]);
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.error || "Could not generate AI response."
+        );
+      }
+
+      if (requestedMode === "schedule") {
+        const aiResponse = result.data?.response;
+        const savedSchedules = result.data?.schedules;
+
+        if (
+          !aiResponse ||
+          !Array.isArray(aiResponse.schedule) ||
+          !Array.isArray(savedSchedules)
+        ) {
+          throw new Error(
+            "The server returned an invalid schedule."
+          );
+        }
+
+        setChatMessages((messages) => [
+          ...messages,
+          {
+            role: "assistant",
+            content:
+              aiResponse.message ||
+              "Here is your study schedule.",
+            schedules: savedSchedules,
+          },
+        ]);
+
+        setTaskRefreshKey((current) => current + 1);
+      } else {
+        setChatMessages((messages) => [
+          ...messages,
+          {
+            role: "assistant",
+            content: String(result.data?.response ?? ""),
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error("AI Chat failed:", error);
+
+      setChatError(
+        error.message || "Could not generate AI response."
+      );
+    } finally {
+      setChatLoading(false);
     }
-  } catch (error) {
-    console.error("AI Chat failed:", error);
+  };
 
-    setChatError(
-      error.message || "Could not generate AI response."
-    );
-  } finally {
-    setChatLoading(false);
-  }
-};
+  // Shared AI Chat interface
+  // Works on Dashboard and the dedicated AI Chat page.
+  const renderAiChat = () => (
+    <aside className="ai-chat-card">
+      <div className="chat-messages">
+        {chatMessages.map((message, index) => (
+          <div
+            key={`${message.role}-${index}`}
+            className={
+              message.role === "user"
+                ? "chat-message user-message"
+                : "chat-message"
+            }
+          >
+            {message.role === "assistant" && (
+              <div className="ai-avatar">AI</div>
+            )}
 
+            <div className="chat-bubble">
+              <p>{message.content}</p>
 
-  return (
-    <div className={`dashboard-page ${theme === "dark" ? "dark-mode" : ""}`}>
+              {Array.isArray(message.schedules) &&
+                message.schedules.length > 0 && (
+                  <div className="generated-schedule">
+                    <h4>Your Study Schedule</h4>
 
-      {/* =========================
-          SIDEBAR
-      ========================= */}
-      
-<aside className="dashboard-sidebar">
-  <h2 className="sidebar-logo">
-    Omni <span>AI</span>
-  </h2>
+                    {message.schedules.map((block, index) => (
+                      <div
+                        className="schedule-block"
+                        key={
+                          block.id ||
+                          `${block.task_id}-${index}`
+                        }
+                      >
+                        <strong>
+                          {block.task_title || "Study Task"}
+                        </strong>
 
-  {/* Sidebar Navigation */}
-  <nav className="sidebar-nav" aria-label="Main navigation">
+                        <p>
+                          {new Date(
+                            block.start_time
+                          ).toLocaleString([], {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })}
+                          {" – "}
+                          {new Date(
+                            block.end_time
+                          ).toLocaleTimeString([], {
+                            timeStyle: "short",
+                          })}
+                        </p>
 
-    {/* Dashboard */}
-    <button
-      type="button"
-      className={
-        activeView === "dashboard"
-          ? "sidebar-item active-menu"
-          : "sidebar-item"
-      }
-      onClick={() => setActiveView("dashboard")}
-    >
-      <span>⌂</span>
-      Dashboard
-    </button>
+                        <small>
+                          {block.allocated_minutes} minutes
+                        </small>
+                      </div>
+                    ))}
+                  </div>
+                )}
+            </div>
 
-    {/* To-Do List */}
-    <button
-      type="button"
-      className={
-        activeView === "todo"
-          ? "sidebar-item active-menu"
-          : "sidebar-item"
-      }
-      onClick={() => setActiveView("todo")}
-    >
-      <span>☷</span>
-      To-Do List
-    </button>
+            {message.role === "user" && (
+              <div className="user-chat-avatar">
+                {(user?.name || user?.email || "U")
+                  .charAt(0)
+                  .toUpperCase()}
+              </div>
+            )}
+          </div>
+        ))}
 
-    {/* Calendar */}
-    <button
-      type="button"
-      className={
-        activeView === "calendar"
-          ? "sidebar-item active-menu"
-          : "sidebar-item"
-      }
-      onClick={() => setActiveView("calendar")}
-    >
-      <span>▣</span>
-      Calendar
-    </button>
+        {chatLoading && (
+          <div className="chat-message">
+            <div className="ai-avatar">AI</div>
 
-    {/* AI Chat */}
-    <button
-      type="button"
-      className="sidebar-item"
-      disabled
-      title="AI Chat functionality is assigned separately."
-    >
-      <span>✎</span>
-      AI Chat
-    </button>
-
-    {/* Preferences */}
-    <button
-      type="button"
-      className={
-        activeView === "preferences"
-          ? "sidebar-item active-menu"
-          : "sidebar-item"
-      }
-      onClick={() => setActiveView("preferences")}
-    >
-      <span>⚙</span>
-      Preferences
-    </button>
-
-    {/* Canvas Integration */}
-    <button
-      type="button"
-      className={
-        activeView === "canvas"
-          ? "sidebar-item active-menu"
-          : "sidebar-item"
-      }
-      onClick={() => setActiveView("canvas")}
-    >
-      <span>▤</span>
-      Canvas Integration
-    </button>
-  </nav>
-
-  {/* Theme and Account Controls */}
-  <div className="sidebar-account-controls">
-
-    {/* Light/Dark Mode */}
-    <div className="theme-toggle-section">
-      <span className="theme-toggle-label">
-        {theme === "dark" ? "Dark Mode" : "Light Mode"}
-      </span>
-
-      <button
-        type="button"
-        className={`theme-toggle ${
-          theme === "dark" ? "theme-toggle--dark" : ""
-        }`}
-        onClick={toggleTheme}
-        aria-label="Toggle dark and light mode"
-      >
-        <span className="theme-toggle-knob">
-          {theme === "dark" ? "☾" : "☀"}
-        </span>
-      </button>
-    </div>
-
-    {/* User Profile */}
-    <div className="user-section">
-      <div className="user-profile-row">
-        <div className="user-avatar">
-          {(user?.name || user?.email || "H")
-            .charAt(0)
-            .toUpperCase()}
-        </div>
-
-        <div>
-          <strong>
-            {user?.name ||
-              user?.display_name ||
-              user?.email ||
-              "Omni AI User"}
-          </strong>
-
-          <small>Omni AI User</small>
-        </div>
+            <div className="chat-bubble">
+              <p>Omni AI is thinking...</p>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Logout */}
-      <button
-        type="button"
-        className="logout-button"
-        onClick={logout}
+      {chatError && (
+        <div className="chat-error" role="alert">
+          {chatError}
+        </div>
+      )}
+
+      <form
+        className="chat-form"
+        onSubmit={handleSendChatMessage}
       >
-        Log Out
-      </button>
-    </div>
+        <div className="chat-time-row">
+          <label htmlFor="available-minutes">
+            Available time
+          </label>
 
-  </div>
-</aside>
+          <input
+            id="available-minutes"
+            type="number"
+            min="0"
+            value={availableMinutes}
+            onChange={(e) =>
+              setAvailableMinutes(e.target.value)
+            }
+          />
 
-      
+          <span>minutes</span>
 
+          <select
+            value={chatResponseMode}
+            onChange={(e) =>
+              setChatResponseMode(e.target.value)
+            }
+            disabled={chatLoading}
+            aria-label="AI response mode"
+          >
+            <option value="text">Chat</option>
+            <option value="schedule">Schedule</option>
+          </select>
+        </div>
 
-      {/* =========================
-          MAIN CONTENT
-      ========================= */}
+        <div className="chat-input-row">
+          <input
+            type="text"
+            value={chatInput}
+            onChange={(e) =>
+              setChatInput(e.target.value)
+            }
+            placeholder="Ask Omni AI..."
+            disabled={chatLoading}
+            aria-label="AI Chat message"
+          />
+
+          <button
+            type="submit"
+            disabled={chatLoading || !chatInput.trim()}
+          >
+            {chatLoading ? "Sending..." : "Send"}
+          </button>
+        </div>
+      </form>
+    </aside>
+  );
+
+  return (
+    <div
+      className={`dashboard-page ${
+        theme === "dark" ? "dark-mode" : ""
+      }`}
+    >
+      {/* SIDEBAR */}
+      <aside className="dashboard-sidebar">
+        <h2 className="sidebar-logo">
+          Omni <span>AI</span>
+        </h2>
+
+        <nav
+          className="sidebar-nav"
+          aria-label="Main navigation"
+        >
+          {/* Dashboard */}
+          <button
+            type="button"
+            className={
+              activeView === "dashboard"
+                ? "sidebar-item active-menu"
+                : "sidebar-item"
+            }
+            onClick={() => setActiveView("dashboard")}
+          >
+            <span>⌂</span>
+            Dashboard
+          </button>
+
+          {/* To-Do List */}
+          <button
+            type="button"
+            className={
+              activeView === "todo"
+                ? "sidebar-item active-menu"
+                : "sidebar-item"
+            }
+            onClick={() => setActiveView("todo")}
+          >
+            <span>☷</span>
+            To-Do List
+          </button>
+
+          {/* Calendar */}
+          <button
+            type="button"
+            className={
+              activeView === "calendar"
+                ? "sidebar-item active-menu"
+                : "sidebar-item"
+            }
+            onClick={() => setActiveView("calendar")}
+          >
+            <span>▣</span>
+            Calendar
+          </button>
+
+          {/* AI Chat */}
+          <button
+            type="button"
+            className={
+              activeView === "ai"
+                ? "sidebar-item active-menu"
+                : "sidebar-item"
+            }
+            onClick={() => setActiveView("ai")}
+          >
+            <span>✎</span>
+            AI Chat
+          </button>
+
+          {/* Preferences */}
+          <button
+            type="button"
+            className={
+              activeView === "preferences"
+                ? "sidebar-item active-menu"
+                : "sidebar-item"
+            }
+            onClick={() => setActiveView("preferences")}
+          >
+            <span>⚙</span>
+            Preferences
+          </button>
+
+          {/* Canvas Integration */}
+          <button
+            type="button"
+            className={
+              activeView === "canvas"
+                ? "sidebar-item active-menu"
+                : "sidebar-item"
+            }
+            onClick={() => setActiveView("canvas")}
+          >
+            <span>▤</span>
+            Canvas Integration
+          </button>
+        </nav>
+
+        {/* Theme and Account Controls */}
+        <div className="sidebar-account-controls">
+          <div className="theme-toggle-section">
+            <span className="theme-toggle-label">
+              {theme === "dark" ? "Dark Mode" : "Light Mode"}
+            </span>
+
+            <button
+              type="button"
+              className={`theme-toggle ${
+                theme === "dark"
+                  ? "theme-toggle--dark"
+                  : ""
+              }`}
+              onClick={toggleTheme}
+              aria-label="Toggle dark and light mode"
+            >
+              <span className="theme-toggle-knob">
+                {theme === "dark" ? "☾" : "☀"}
+              </span>
+            </button>
+          </div>
+
+          {/* User Profile */}
+          <div className="user-section">
+            <div className="user-profile-row">
+              <div className="user-avatar">
+                {(user?.name || user?.email || "H")
+                  .charAt(0)
+                  .toUpperCase()}
+              </div>
+
+              <div>
+                <strong>
+                  {user?.name ||
+                    user?.display_name ||
+                    user?.email ||
+                    "Omni AI User"}
+                </strong>
+
+                <small>Omni AI User</small>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="logout-button"
+              onClick={logout}
+            >
+              Log Out
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* MAIN CONTENT */}
       <main className="dashboard-main">
-
+        {/* Preferences */}
         {activeView === "preferences" && (
           <Preferences />
         )}
-        
+
+        {/* Canvas Integration */}
         {activeView === "canvas" && (
           <CanvasIntegration />
         )}
 
+        {/* Dedicated AI Chat Page */}
+        {activeView === "ai" && (
+          <section className="full-ai-view">
+            <div className="calendar-header">
+              <div>
+                <h1>AI Chat</h1>
+                <p>
+                  Get personalized task recommendations
+                  and generate study schedules.
+                </p>
+              </div>
+            </div>
 
+            {renderAiChat()}
+          </section>
+        )}
 
-        {/* =========================
-            DASHBOARD VIEW
-        ========================= */}
+        {/* DASHBOARD VIEW */}
         {activeView === "dashboard" && (
           <>
             <div className="dashboard-top-row">
-
-              {/* CALENDAR SHELL */}
+              {/* Calendar */}
               <section className="dashboard-calendar-card">
-
                 <div className="calendar-top-header">
-
                   <h1>
                     {monthName} {year}
                   </h1>
 
                   <div className="calendar-actions">
-
                     <button
                       className="text-action-button"
                       onClick={toggleAddTaskModal}
@@ -506,13 +656,10 @@ const handleSendChatMessage = async (event) => {
                     >
                       📥 Import from Canvas
                     </button>
-
                   </div>
                 </div>
 
-                {/* CALENDAR MOCKUP */}
                 <div className="calendar-grid">
-
                   {[
                     "Sunday",
                     "Monday",
@@ -530,249 +677,96 @@ const handleSendChatMessage = async (event) => {
                     </div>
                   ))}
 
-                  {dashboardCalendarCells.map((day, index) => {
-  const dayTasks = day
-    ? getTasksForDashboardDay(day)
-    : [];
+                  {dashboardCalendarCells.map(
+                    (day, index) => {
+                      const dayTasks = day
+                        ? getTasksForDashboardDay(day)
+                        : [];
 
-  return (
-    <div
-      key={`${calendarYear}-${calendarMonth}-${index}`}
-      className={
-        day === today.getDate()
-          ? "calendar-day dashboard-current-day"
-          : "calendar-day"
-      }
-    >
-      {day && (
-        <>
-          <span className="calendar-number">
-            {day}
-          </span>
+                      return (
+                        <div
+                          key={`${calendarYear}-${calendarMonth}-${index}`}
+                          className={
+                            day === today.getDate()
+                              ? "calendar-day dashboard-current-day"
+                              : "calendar-day"
+                          }
+                        >
+                          {day && (
+                            <>
+                              <span className="calendar-number">
+                                {day}
+                              </span>
 
-          <div className="dashboard-calendar-tasks">
-            {dayTasks.slice(0, 3).map((task) => (
-              <button
-                type="button"
-                key={task.id}
-                className={`dashboard-calendar-task dashboard-calendar-task-${
-                  task.priority || "low"
-                }`}
-                title={task.title}
-                onClick={() => openEditTaskModal(task)}
-              >
-                {task.title}
-              </button>
-            ))}
+                              <div className="dashboard-calendar-tasks">
+                                {dayTasks
+                                  .slice(0, 3)
+                                  .map((task) => (
+                                    <button
+                                      type="button"
+                                      key={task.id}
+                                      className={`dashboard-calendar-task dashboard-calendar-task-${
+                                        task.priority || "low"
+                                      }`}
+                                      title={task.title}
+                                      onClick={() =>
+                                        openEditTaskModal(task)
+                                      }
+                                    >
+                                      {task.title}
+                                    </button>
+                                  ))}
 
-            {dayTasks.length > 3 && (
-              <button
-                type="button"
-                className="dashboard-calendar-more"
-                onClick={() =>
-                  setActiveView("calendar")
-                }
-              >
-                +{dayTasks.length - 3} more
-              </button>
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  );
-})}
-
-                </div>
-
-              </section>
-
-              {/* AI CHAT VISUAL PLACEHOLDER */}
-              <aside className="ai-chat-card">
-                <div className="chat-messages">
-                  {chatMessages.map((message, index) => (
-                    <div
-                      key={`${message.role}-${index}`}
-                      className={
-                          message.role === "user"
-                          ? "chat-message user-message"
-                          : "chat-message"
-                      }
-                    >
-                      {message.role === "assistant" && (
-                        <div className="ai-avatar">
-                          AI
-                        </div>
-                      )}
-
-                                            
-                      <div className="chat-bubble">
-                        <p>{message.content}</p>
-
-                        {Array.isArray(message.schedules) &&
-                          message.schedules.length > 0 && (
-                            <div className="generated-schedule">
-                              <h4>Your Study Schedule</h4>
-
-                              {message.schedules.map((block, index) => (
-                                <div
-                                  className="schedule-block"
-                                  key={
-                                    block.id ||
-                                    `${block.task_id}-${index}`
-                                  }
-                                >
-                                  <strong>
-                                    {block.task_title || "Study Task"}
-                                  </strong>
-
-                                  <p>
-                                    {new Date(
-                                      block.start_time
-                                    ).toLocaleString([], {
-                                      dateStyle: "medium",
-                                      timeStyle: "short",
-                                    })}
-                                    {" – "}
-                                    {new Date(
-                                      block.end_time
-                                    ).toLocaleTimeString([], {
-                                      timeStyle: "short",
-                                    })}
-                                  </p>
-
-                                  <small>
-                                    {block.allocated_minutes} minutes
-                                  </small>
-                                </div>
-                              ))}
-                            </div>
+                                {dayTasks.length > 3 && (
+                                  <button
+                                    type="button"
+                                    className="dashboard-calendar-more"
+                                    onClick={() =>
+                                      setActiveView("calendar")
+                                    }
+                                  >
+                                    +{dayTasks.length - 3} more
+                                  </button>
+                                )}
+                              </div>
+                            </>
                           )}
-                      </div>
-
-
-                      {message.role === "user" && (
-                        <div className="user-chat-avatar">
-                          {(user?.name || user?.email || "U")
-                            .charAt(0)
-                            .toUpperCase()}
                         </div>
-                      )}
-                    </div>
-                  ))}
-
-                  {chatLoading && (
-                    <div className="chat-message">
-                      <div className="ai-avatar">
-                        AI
-                      </div>
-
-                      <div className="chat-bubble">
-                        <p>Omni AI is thinking...</p>
-                      </div>
-                    </div>
+                      );
+                    }
                   )}
                 </div>
+              </section>
 
-                {chatError && (
-                  <div className="chat-error">
-                    {chatError}
-                  </div>
-                )}
-
-                <form
-                  className="chat-form"
-                  onSubmit={handleSendChatMessage}
-                >
-                  <div className="chat-time-row">
-                    <label htmlFor="available-minutes">
-                      Available time
-                    </label>
-
-                    <input
-                      id="available-minutes"
-                      type="number"
-                      min="0"
-                      value={availableMinutes}
-                      onChange={(e) =>
-                        setAvailableMinutes(e.target.value)
-                      }
-                    />
-
-                    <span>minutes</span>
-
-                    <select
-                      value={chatResponseMode}
-                      onChange={(e) =>
-                        setChatResponseMode(e.target.value)
-                      }
-                      disabled={chatLoading}
-                    >
-                      <option value="text">Chat</option>
-                      <option value="schedule">Schedule</option>
-                    </select>
-                  </div>
-
-                  <div className="chat-input-row">
-                    <input
-                      type="text"
-                      value={chatInput}
-                      onChange={(e) =>
-                        setChatInput(e.target.value)
-                      }
-                      placeholder="Ask Omni AI..."
-                      disabled={chatLoading}
-                    />
-
-                    <button
-                      type="submit"
-                      disabled={
-                        chatLoading ||
-                        !chatInput.trim()
-                      }
-                    >
-                      {chatLoading ? "Sending..." : "Send"}
-                    </button>
-                  </div>
-                </form>
-              </aside>
-
+              {/* AI Chat on Dashboard */}
+              {renderAiChat()}
             </div>
 
-
-            {/* =========================
-                BOTTOM ROW
-            ========================= */}
+            {/* Dashboard Bottom Row */}
             <div className="dashboard-bottom-row">
-
-              {/* EXISTING TASK MANAGEMENT */}
               <section className="todo-dashboard-card">
-
                 <div className="section-title-row">
-
                   <h2>Tasks</h2>
 
                   <button
                     className="view-all-button"
-                    onClick={() => setActiveView("todo")}
+                    onClick={() =>
+                      setActiveView("todo")
+                    }
                   >
                     Prioritized To-Do List
                   </button>
-
                 </div>
 
                 <TaskList
-  tasks={tasks}
-  setTasks={setTasks}
-  onEditTask={openEditTaskModal}
-  refreshKey={taskRefreshKey}
-/>
-
+                  tasks={tasks}
+                  setTasks={setTasks}
+                  onEditTask={openEditTaskModal}
+                  refreshKey={taskRefreshKey}
+                />
               </section>
 
-              {/* SUMMARY COLUMN */}
               <section className="summary-column">
-
                 <DailySummary
                   onEditTask={openEditTaskModal}
                   refreshKey={taskRefreshKey}
@@ -782,29 +776,21 @@ const handleSendChatMessage = async (event) => {
                   onEditTask={openEditTaskModal}
                   refreshKey={taskRefreshKey}
                 />
-
               </section>
-
             </div>
           </>
         )}
 
-
-        {/* =========================
-            FULL TO-DO LIST VIEW
-        ========================= */}
+        {/* FULL TO-DO LIST */}
         {activeView === "todo" && (
           <section className="full-todo-view">
-
             <div className="calendar-header">
-
               <div>
-                <h1>
-                  Prioritized To-Do List
-                </h1>
+                <h1>Prioritized To-Do List</h1>
 
                 <p>
-                  Tasks returned by the backend in prioritized order.
+                  Tasks returned by the backend
+                  in prioritized order.
                 </p>
               </div>
 
@@ -814,33 +800,25 @@ const handleSendChatMessage = async (event) => {
               >
                 + Add Task
               </button>
-
             </div>
 
             <PrioritizedTodo
               refreshKey={taskRefreshKey}
               onEditTask={openEditTaskModal}
             />
-
           </section>
         )}
 
-
-        {/* =========================
-            CALENDAR VIEW
-        ========================= */}
+        {/* CALENDAR VIEW */}
         {activeView === "calendar" && (
-  <CalendarView
-    refreshKey={taskRefreshKey}
-    onEditTask={openEditTaskModal}
-  />
-)}
-
+          <CalendarView
+            refreshKey={taskRefreshKey}
+            onEditTask={openEditTaskModal}
+          />
+        )}
       </main>
 
-      {/* =========================
-          ADD TASK MODAL
-      ========================= */}
+      {/* ADD TASK MODAL */}
       {(showAddTask || isAddTaskClosing) && (
         <div
           className={
@@ -856,27 +834,37 @@ const handleSendChatMessage = async (event) => {
                 ? "add-task-modal add-task-modal--closing"
                 : "add-task-modal"
             }
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) =>
+              event.stopPropagation()
+            }
             role="dialog"
             aria-modal="true"
-            aria-label={editingTask ? "Edit Task" : "Add Task"}
+            aria-label={
+              editingTask
+                ? "Edit Task"
+                : "Add Task"
+            }
           >
             <button
               type="button"
               className="modal-close-button"
               onClick={closeAddTaskModal}
               aria-label={
-                editingTask ? "Close Edit Task dialog" : "Close Add Task dialog"
+                editingTask
+                  ? "Close Edit Task dialog"
+                  : "Close Add Task dialog"
               }
             >
               ×
             </button>
 
-            <AddTask task={editingTask} onTaskSaved={handleTaskSaved} />
+            <AddTask
+              task={editingTask}
+              onTaskSaved={handleTaskSaved}
+            />
           </div>
         </div>
       )}
-
     </div>
   );
 }

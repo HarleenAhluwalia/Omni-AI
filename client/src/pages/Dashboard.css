@@ -2655,3 +2655,33 @@ input.add-task-all-day-switch:not(:checked) {
 .sidebar-account-controls .logout-button {
   margin-top: 10px !important;
 }
+
+
+/* Sprint 5 — Dedicated AI Chat Page */
+
+.full-ai-view {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.full-ai-view .ai-chat-card {
+  width: 100%;
+  max-width: 100%;
+  min-height: 550px;
+  display: flex;
+  flex-direction: column;
+}
+
+.full-ai-view .chat-messages {
+  flex: 1;
+  min-height: 350px;
+  overflow-y: auto;
+}
+
+.full-ai-view .chat-form {
+  margin-top: auto;
+}
