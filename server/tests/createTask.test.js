@@ -155,6 +155,39 @@ describe("Create Task — field validation", () => {
   });
 });
 
+describe("Create Task — has_due_time", () => {
+  it("persists has_due_time: true alongside a due_date", async () => {
+    const res = await postTask({ ...baseTask, has_due_time: true });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.has_due_time).toBe(true);
+    expect(res.body.data.due_date).toBe(baseTask.due_date);
+    expect(supabase.__store.tasks[0].has_due_time).toBe(true);
+  });
+
+  it("rejects has_due_time: true when due_date is explicitly null, per the existing contract", async () => {
+    const res = await postTask({
+      ...baseTask,
+      has_due_time: true,
+      due_date: null,
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error).toMatch(/due date is required/i);
+    expect(supabase.__store.tasks).toHaveLength(0);
+  });
+
+  it("rejects a non-boolean has_due_time", async () => {
+    const res = await postTask({ ...baseTask, has_due_time: "yes" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error).toMatch(/has_due_time/i);
+    expect(supabase.__store.tasks).toHaveLength(0);
+  });
+});
+
 describe("Create Task — authentication", () => {
   it("rejects a request with no Authorization header", async () => {
     const res = await postTask(baseTask, { skipAuth: true });

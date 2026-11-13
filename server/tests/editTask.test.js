@@ -154,6 +154,61 @@ describe("Edit Task — protected fields", () => {
   });
 });
 
+describe("Edit Task — has_due_time", () => {
+  it("accepts has_due_time: true on a task that already has a due_date, and it is read back via GET", async () => {
+    // baseTask already carries a due_date, so this update only touches
+    // has_due_time — due_date stays whatever the task already has rather
+    // than being resubmitted, matching how the frontend sends partial edits.
+    const created = await createAsUser();
+
+    const res = await putTask(created.body.data.id, {
+      has_due_time: true,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.has_due_time).toBe(true);
+    expect(res.body.data.due_date).toBe(baseTask.due_date);
+
+    const fetched = await request(app)
+      .get(`/api/tasks/${created.body.data.id}`)
+      .set("Authorization", authHeader());
+
+    expect(fetched.body.data.has_due_time).toBe(true);
+  });
+
+  it("rejects has_due_time: true when due_date is explicitly cleared to null in the same update", async () => {
+    // validateFields only looks at fields submitted in this request, not
+    // the task's current stored due_date — so the rejection only fires
+    // when due_date is explicitly nulled out alongside has_due_time: true.
+    const created = await createAsUser();
+
+    const res = await putTask(created.body.data.id, {
+      has_due_time: true,
+      due_date: null,
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/due date is required/i);
+
+    const stored = supabase.__store.tasks.find(
+      (t) => t.id === created.body.data.id
+    );
+    expect(stored.due_date).toBe(baseTask.due_date);
+    expect(stored.has_due_time).toBeUndefined();
+  });
+
+  it("rejects a non-boolean has_due_time on update", async () => {
+    const created = await createAsUser();
+
+    const res = await putTask(created.body.data.id, {
+      has_due_time: "yes",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/has_due_time/i);
+  });
+});
+
 describe("Edit Task — validation", () => {
   it("rejects an update with no fields", async () => {
     const created = await createAsUser();
