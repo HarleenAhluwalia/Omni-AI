@@ -1,3 +1,6 @@
+const {
+    getActiveScheduleBlocks,
+} = require("./workloadScheduleUtils");
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -239,11 +242,48 @@ function getNextLocalDayStart(date, timeZone) {
     return high;
 }
 
+function calculateOccupiedMinutes(blocks) {
+    if (!blocks.length) {
+        return 0;
+    }
+
+    // Sort blocks by starting time.
+    const sorted = [...blocks].sort(
+        (a, b) => a.startMs - b.startMs
+    );
+
+    let totalMs = 0;
+    let currentStart = sorted[0].startMs;
+    let currentEnd = sorted[0].endMs;
+
+    for (let i = 1; i < sorted.length; i++) {
+        const block = sorted[i];
+
+        if (block.startMs <= currentEnd) {
+            // Merge overlapping scheduled blocks.
+            currentEnd = Math.max(
+                currentEnd,
+                block.endMs
+            );
+        } else {
+            totalMs += currentEnd - currentStart;
+
+            currentStart = block.startMs;
+            currentEnd = block.endMs;
+        }
+    }
+
+    totalMs += currentEnd - currentStart;
+
+    return totalMs / 60000;
+}
+
 function findTimeAwareCapacityRisk(
     tasks,
     dailyLimitMinutes,
     now,
-    timeZone = "UTC"
+    timeZone = "UTC",
+    schedules = []
 ) {
     const today = getDayInTimeZone(now, timeZone);
 
@@ -290,6 +330,20 @@ function findTimeAwareCapacityRisk(
         let cursor = now.getTime();
         let availableMinutes = 0;
 
+        // Identify tasks already included in the workload
+        // calculation for this deadline.
+        const includedTaskIds = new Set(
+            timedTasks
+                .filter(
+                    (candidate) =>
+                        new Date(candidate.due_date).getTime() <=
+                        deadline.getTime()
+                )
+                .map((candidate) => candidate.id)
+                .filter((id) => id != null)
+                .map(String)
+        );
+
         // Count available clock time separately for each
         // local calendar day, capped by the daily study limit.
         while (cursor < deadline.getTime()) {
@@ -298,6 +352,7 @@ function findTimeAwareCapacityRisk(
                 timeZone
             );
 
+            // Determine the end of the current day's window.
             const end = Math.min(
                 nextDayStart,
                 deadline.getTime()
@@ -305,13 +360,55 @@ function findTimeAwareCapacityRisk(
 
             const minutesRemaining = (end - cursor) / 60000;
 
+            // Retrieve scheduled blocks within this window.
+            const activeBlocks = getActiveScheduleBlocks(
+                schedules,
+                new Date(cursor),
+                new Date(end)
+            );
+
+            // Avoid subtracting planned work for tasks
+            // already included in requiredMinutes.
+            const unrelatedBlocks = activeBlocks.filter(
+                (block) =>
+                    block.taskId == null ||
+                    !includedTaskIds.has(String(block.taskId))
+            );
+
+            // Merge overlaps to prevent double-counting.
+            const occupiedMinutes = calculateOccupiedMinutes(
+                unrelatedBlocks
+            );
+
+            // Scheduled study sessions for other tasks
+            // reserve part of the daily study capacity.
+            const reservedStudyMinutes = calculateOccupiedMinutes(
+                unrelatedBlocks.filter(
+                    (block) => block.scheduleType === "study_block"
+                )
+            );
+
+            // Calculate remaining clock time.
+            const remainingClockMinutes = Math.max(
+                0,
+                minutesRemaining - occupiedMinutes
+            );
+
+            // Calculate remaining daily study capacity.
+            const remainingStudyMinutes = Math.max(
+                0,
+                dailyLimitMinutes - reservedStudyMinutes
+            );
+
+            // Add available capacity only once.
             availableMinutes += Math.min(
-                dailyLimitMinutes,
-                minutesRemaining
+                remainingClockMinutes,
+                remainingStudyMinutes
             );
 
             cursor = end;
         }
+
 
         availableMinutes = Math.floor(availableMinutes);
 
@@ -333,7 +430,8 @@ function generateWorkloadRecommendations(
     tasks,
     dailyLimitMinutes = 240,
     now = new Date(),
-    timeZone = "UTC"
+    timeZone = "UTC",
+    schedules = []
 ) {
     const analysis = analyzeWorkload(
         tasks,
@@ -425,7 +523,8 @@ function generateWorkloadRecommendations(
         tasks,
         dailyLimitMinutes,
         now,
-        timeZone
+        timeZone,
+        schedules
     );
 
     if (timeAwareCapacityRisk) {
