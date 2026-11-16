@@ -343,7 +343,7 @@ const getTaskById = async (req, res) => {
 // POST /api/tasks
 // =========================================================
 const createTask = async (req, res) => {
-  const { title } = req.body;
+  const { title } = req.body || {};
 
   const user_id = req.user.id;
 
@@ -357,8 +357,7 @@ const createTask = async (req, res) => {
     });
   }
 
-  const fields =
-    pickWritableFields(req.body);
+  const fields = pickWritableFields(req.body || {});
 
   const validationError =
     validateFields(fields);
@@ -426,15 +425,11 @@ const updateTask = async (req, res) => {
 
   const user_id = req.user.id;
 
-  const updates =
-    pickWritableFields(req.body);
+  const updates = pickWritableFields(req.body || {});
 
-  if (
-    Object.keys(updates).length === 0
-  ) {
+  if (Object.keys(updates).length === 0) {
     return res.status(400).json({
-      success: false,
-      error: "Nothing to update"
+      error: "No valid fields provided for update"
     });
   }
 
@@ -677,19 +672,19 @@ const getPrioritizedTasks = async (req, res) => {
 const resolveSchedule = async (req, res) => {
   try {
     const {
-      taskA,
-      taskB,
-      scheduledTasks,
-      availableMinutes = 60,
-      incrementMinutes = 30,
-    } = req.body;
+  taskA,
+  taskB,
+  scheduledTasks,
+  availableMinutes = 60,
+  incrementMinutes = 30
+} = req.body || {};
 
-    if (!taskA || !taskB) {
-      return res.status(400).json({
-        success: false,
-        error: "taskA and taskB are required",
-      });
-    }
+if (!taskA || !taskB) {
+  return res.status(400).json({
+    success: false,
+    error: "taskA and taskB are required"
+  });
+}
 
     if (!Array.isArray(scheduledTasks)) {
       return res.status(400).json({
