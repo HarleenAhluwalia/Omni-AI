@@ -2,7 +2,7 @@ name: CI
  
 on:
   push:
-    branches: [main]
+    branches: [main, Jerry-Sprint-5-cicd]
   pull_request:
     branches: [main]
  
@@ -213,6 +213,10 @@ jobs:
         working-directory: client
         run: npm run test:harleen
 
+      - name: Install Dummy Canvas dependencies
+        working-directory: dummy-canvas
+        run: npm install --no-audit --no-fund
+
       - name: Run standalone Dummy Canvas import tests
         working-directory: dummy-canvas
         run: npm test
@@ -264,4 +268,66 @@ jobs:
             echo "PASS - CC7.2 - ${{ steps.cc72_build_id.outputs.build_id }}"
           else
             echo "FAIL - CC7.2 - ${{ steps.cc72_build_id.outputs.build_id }}"
+          fi
+
+  jerry-sprint5-reliability:
+    name: Jerry - Sprint 5 integrity, fault-injection and reliability
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: server
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies (reproducible)
+        run: npm ci
+
+      - name: Generate Sprint 5 build ID
+        id: s5_build_id
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          BUILD_ID="omni-ai-build-${{ github.run_number }}-${SHORT_SHA}"
+          echo "build_id=$BUILD_ID" >> "$GITHUB_OUTPUT"
+          echo "Sprint 5 build ID: $BUILD_ID"
+
+      - name: Run full backend suite with coverage
+        env:
+          JWT_SECRET: ci-test-secret
+        run: npx jest --runInBand --ci --coverage --json --outputFile=s5-results.json
+
+      - name: Run database integrity tests (skipped without secrets)
+        env:
+          JWT_SECRET: ci-test-secret
+          TEST_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+          TEST_SUPABASE_SERVICE_KEY: ${{ secrets.TEST_SUPABASE_SERVICE_KEY }}
+        run: npx jest --runInBand --ci tests/dbIntegrity.test.js
+
+      - name: Upload Sprint 5 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sprint5-results-${{ steps.s5_build_id.outputs.build_id }}
+          path: |
+            server/s5-results.json
+            server/reliability-results.json
+            server/coverage/
+          if-no-files-found: warn
+
+      - name: Report Sprint 5 status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "PASS - Sprint 5 - ${{ steps.s5_build_id.outputs.build_id }}"
+          else
+            echo "FAIL - Sprint 5 - ${{ steps.s5_build_id.outputs.build_id }}"
           fi
