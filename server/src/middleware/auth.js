@@ -20,9 +20,11 @@ function requireAuth(req, res, next) {
   const header = req.headers.authorization || "";
   const [scheme, token] = header.split(" ");
 
-  if (scheme !== "Bearer" || !token) {
-    // CC7.2: record why the header was rejected. Only a predefined reason
-    // code is logged — never the header value itself.
+  if (
+    scheme !== "Bearer" ||
+    !token ||
+    header.split(" ").length !== 2
+  ) {
     let event = EVENTS.AUTH_TOKEN_INVALID;
     let reason = "malformed_header";
 
@@ -34,35 +36,72 @@ function requireAuth(req, res, next) {
       reason = "empty_token";
     }
 
-    logSecurityEvent({ event, reason, req, status: 401 });
+    logSecurityEvent({
+      event,
+      reason,
+      req,
+      status: 401
+    });
 
-    return res.status(401).json({ error: "Missing or malformed Authorization header." });
+    return res.status(401).json({
+      error: "Missing or malformed Authorization header."
+    });
   }
 
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    req.user = { id: payload.sub, email: payload.email };
+
+    if (
+      typeof payload.sub !== "string" ||
+      !payload.sub ||
+      typeof payload.email !== "string"
+    ) {
+      logSecurityEvent({
+        event: EVENTS.AUTH_TOKEN_INVALID,
+        reason: "invalid_claims",
+        req,
+        status: 401
+      });
+
+      return res.status(401).json({
+        error: "Invalid token."
+      });
+    }
+
+    req.user = {
+      id: payload.sub,
+      email: payload.email
+    };
+
     return next();
+
   } catch (err) {
     if (err.name === "TokenExpiredError") {
       logSecurityEvent({
         event: EVENTS.AUTH_TOKEN_EXPIRED,
         reason: "token_expired",
         req,
-        status: 401,
+        status: 401
       });
-      return res.status(401).json({ error: "Session expired. Please log in again." });
+
+      return res.status(401).json({
+        error: "Session expired. Please log in again."
+      });
     }
 
     logSecurityEvent({
       event: EVENTS.AUTH_TOKEN_INVALID,
       reason: classifyJwtFailure(err),
       req,
-      status: 401,
+      status: 401
     });
-    return res.status(401).json({ error: "Invalid token." });
+
+    return res.status(401).json({
+      error: "Invalid token."
+    });
   }
 }
+
 
 /**
  * Map a jsonwebtoken verification error to a predefined log reason.
