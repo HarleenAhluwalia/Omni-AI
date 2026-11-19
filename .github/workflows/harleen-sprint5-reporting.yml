@@ -1,0 +1,62 @@
+
+name: Harleen Sprint 5 Performance and Regression Reporting
+
+on:
+  push:
+    branches: [main, feature/sprint-5-ai-chat]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sprint5-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Run Sprint 5 regression tests and capture JSON
+        id: tests
+        continue-on-error: true
+        working-directory: server
+        run: |
+          mkdir -p test-results
+          npx jest --runInBand --ci --json --outputFile=test-results/sprint5-jest.json tests/harleenSprint5DefectRegression.test.js tests/taskAuth.test.js tests/createTask.test.js tests/editTask.test.js
+
+      - name: Create build-linked report
+        if: always()
+        env:
+          BUILD_SHA: ${{ github.sha }}
+          BUILD_RUN: ${{ github.run_number }}
+          BUILD_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TEST_OUTCOME: ${{ steps.tests.outcome }}
+        run: node server/scripts/harleenSprint5BuildReport.js
+
+      - name: Upload evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: harleen-sprint5-${{ github.run_number }}-${{ github.sha }}
+          path: server/test-results/sprint5-*
+          retention-days: 90
+
+      - name: Add summary
+        if: always()
+        run: cat server/test-results/sprint5-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Enforce regression result
+        if: steps.tests.outcome != 'success'
+        run: exit 1
