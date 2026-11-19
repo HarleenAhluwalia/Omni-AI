@@ -29,21 +29,51 @@ function hasConflict(taskA, taskB) {
     return startA < endB && startB < endA;
 }
 
+
 /**
  * Finds every scheduling conflict among a list of tasks.
+ *
+ * Sprint 5 optimization:
+ * Convert task timestamps once instead of repeatedly
+ * converting them for every pairwise comparison.
  */
 function detectConflicts(tasks) {
     const conflicts = [];
 
-    for (let i = 0; i < tasks.length; i++) {
-        for (let j = i + 1; j < tasks.length; j++) {
-            const taskA = tasks[i];
-            const taskB = tasks[j];
+    // Precompute timestamps for each scheduled task.
+    const normalizedTasks = tasks.map((task) => {
+        if (!task.start_time || !task.end_time) {
+            return null;
+        }
 
-            if (hasConflict(taskA, taskB)) {
+        return {
+            start: new Date(task.start_time).getTime(),
+            end: new Date(task.end_time).getTime(),
+        };
+    });
+
+    // Compare task pairs using numeric timestamps.
+    for (let i = 0; i < tasks.length; i++) {
+        const taskA = normalizedTasks[i];
+
+        if (!taskA) {
+            continue;
+        }
+
+        for (let j = i + 1; j < tasks.length; j++) {
+            const taskB = normalizedTasks[j];
+
+            if (!taskB) {
+                continue;
+            }
+
+            if (
+                taskA.start < taskB.end &&
+                taskB.start < taskA.end
+            ) {
                 conflicts.push({
-                    taskA,
-                    taskB,
+                    taskA: tasks[i],
+                    taskB: tasks[j],
                 });
             }
         }
@@ -51,6 +81,7 @@ function detectConflicts(tasks) {
 
     return conflicts;
 }
+
 
 /**
  * Determines which task should keep its scheduled time

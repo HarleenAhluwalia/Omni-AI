@@ -1,0 +1,22 @@
+Omni-AI Sprint 5 Performance Baseline
+Local service execution only - no external API calls
+┌─────────┬────────────────────────────┬───────┬──────────────┬─────────────┬──────────┐
+│ (index) │ Feature                    │ Tasks │ Average (ms) │ Median (ms) │ P95 (ms) │
+├─────────┼────────────────────────────┼───────┼──────────────┼─────────────┼──────────┤
+│ 0       │ 'Task Prioritization'      │ 10    │ '0.005'      │ '0.005'     │ '0.007'  │
+│ 1       │ 'Conflict Detection'       │ 10    │ '0.006'      │ '0.005'     │ '0.009'  │
+│ 2       │ 'Workload Analysis'        │ 10    │ '0.306'      │ '0.260'     │ '0.565'  │
+│ 3       │ 'Workload Recommendations' │ 10    │ '10.373'     │ '10.578'    │ '10.924' │
+│ 4       │ 'Task Prioritization'      │ 50    │ '0.015'      │ '0.015'     │ '0.020'  │
+│ 5       │ 'Conflict Detection'       │ 50    │ '0.121'      │ '0.016'     │ '0.027'  │
+│ 6       │ 'Workload Analysis'        │ 50    │ '1.205'      │ '1.138'     │ '1.671'  │
+│ 7       │ 'Workload Recommendations' │ 50    │ '16.305'     │ '15.986'    │ '17.272' │
+│ 8       │ 'Task Prioritization'      │ 100   │ '0.082'      │ '0.018'     │ '0.020'  │
+│ 9       │ 'Conflict Detection'       │ 100   │ '0.049'      │ '0.039'     │ '0.085'  │
+│ 10      │ 'Workload Analysis'        │ 100   │ '2.347'      │ '2.142'     │ '3.614'  │
+│ 11      │ 'Workload Recommendations' │ 100   │ '20.334'     │ '20.428'    │ '21.279' │
+│ 12      │ 'Task Prioritization'      │ 200   │ '0.134'      │ '0.037'     │ '0.714'  │
+│ 13      │ 'Conflict Detection'       │ 200   │ '0.096'      │ '0.097'     │ '0.104'  │
+│ 14      │ 'Workload Analysis'        │ 200   │ '5.031'      │ '4.501'     │ '8.072'  │
+│ 15      │ 'Workload Recommendations' │ 200   │ '29.782'     │ '29.562'    │ '31.678' │
+└─────────┴────────────────────────────┴───────┴──────────────┴─────────────┴──────────┘

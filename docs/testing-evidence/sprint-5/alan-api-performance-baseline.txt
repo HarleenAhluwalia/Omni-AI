@@ -1,0 +1,37 @@
+  console.log
+
+    Omni-AI Sprint 5 - Mocked API Performance
+
+      at Object.log (tests/sprint5ApiPerformance.test.js:200:21)
+
+  console.log
+    No real database or Claude requests.
+
+      at Object.log (tests/sprint5ApiPerformance.test.js:203:21)
+
+  console.log
+    ┌─────────┬───────────────────────────┬───────┬──────────────┬─────────────┬──────────┐
+    │ (index) │ Feature                   │ Tasks │ Average (ms) │ Median (ms) │ P95 (ms) │
+    ├─────────┼───────────────────────────┼───────┼──────────────┼─────────────┼──────────┤
+    │ 0       │ 'Task Prioritization API' │ 10    │ '1.480'      │ '1.181'     │ '2.864'  │
+    │ 1       │ 'Workload Analysis API'   │ 10    │ '7.839'      │ '7.823'     │ '7.983'  │
+    │ 2       │ 'Schedule Retrieval API'  │ 10    │ '0.768'      │ '0.765'     │ '0.843'  │
+    │ 3       │ 'Task Prioritization API' │ 50    │ '0.940'      │ '0.928'     │ '1.020'  │
+    │ 4       │ 'Workload Analysis API'   │ 50    │ '8.795'      │ '6.442'     │ '28.264' │
+    │ 5       │ 'Schedule Retrieval API'  │ 50    │ '0.837'      │ '0.836'     │ '0.889'  │
+    │ 6       │ 'Task Prioritization API' │ 200   │ '1.562'      │ '1.550'     │ '1.645'  │
+    │ 7       │ 'Workload Analysis API'   │ 200   │ '20.369'     │ '19.481'    │ '27.435' │
+    │ 8       │ 'Schedule Retrieval API'  │ 200   │ '3.619'      │ '1.140'     │ '26.228' │
+    └─────────┴───────────────────────────┴───────┴──────────────┴─────────────┴──────────┘
+
+      at Object.table (tests/sprint5ApiPerformance.test.js:206:21)
+
+PASS tests/sprint5ApiPerformance.test.js
+  Sprint 5 - Mocked API Performance
+    ✓ benchmarks prioritized tasks, workload, and schedules (578 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        0.786 s, estimated 1 s
+Ran all test suites matching /tests\/sprint5ApiPerformance.test.js/i.
