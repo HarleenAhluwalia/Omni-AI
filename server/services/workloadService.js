@@ -321,6 +321,11 @@ function findTimeAwareCapacityRisk(
 
     let requiredMinutes = 0;
 
+    // Sprint 5 optimization:
+    // Reuse the set of tasks included by each deadline.
+    const includedTaskIds = new Set();
+    let includedThrough = 0;
+
     for (const task of timedTasks) {
         requiredMinutes += Number(
             task.estimated_effort_minutes
@@ -330,19 +335,25 @@ function findTimeAwareCapacityRisk(
         let cursor = now.getTime();
         let availableMinutes = 0;
 
-        // Identify tasks already included in the workload
-        // calculation for this deadline.
-        const includedTaskIds = new Set(
-            timedTasks
-                .filter(
-                    (candidate) =>
-                        new Date(candidate.due_date).getTime() <=
-                        deadline.getTime()
-                )
-                .map((candidate) => candidate.id)
-                .filter((id) => id != null)
-                .map(String)
-        );
+
+        // Add tasks whose deadlines are at or before
+        // the current deadline.
+        // timedTasks is already sorted by due_date.
+        while (
+            includedThrough < timedTasks.length &&
+            new Date(
+                timedTasks[includedThrough].due_date
+            ).getTime() <= deadline.getTime()
+        ) {
+            const includedTask = timedTasks[includedThrough];
+
+            if (includedTask.id != null) {
+                includedTaskIds.add(String(includedTask.id));
+            }
+
+            includedThrough++;
+        }
+
 
         // Count available clock time separately for each
         // local calendar day, capped by the daily study limit.

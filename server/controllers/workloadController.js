@@ -1,5 +1,5 @@
-
 const supabase = require("../config/supabase");
+const { performance } = require("node:perf_hooks");
 
 const {
   generateWorkloadRecommendations,
@@ -27,45 +27,65 @@ const getWorkloadAnalysis = async (req, res) => {
       });
     }
 
-    // Retrieve tasks belonging to the logged-in user.
-    const { data: tasks, error: taskError } = await supabase
-      .from("tasks")
-      .select("*")
-      .eq("user_id", userId);
 
+    // Sprint 5 optimization:
+    // Retrieve independent database records concurrently.
+    const databaseStart = performance.now();
+
+    const [
+      taskResult,
+      scheduleResult,
+      preferenceResult,
+    ] = await Promise.all([
+      supabase
+        .from("tasks")
+        .select("*")
+        .eq("user_id", userId),
+
+      supabase
+        .from("schedules")
+        .select(`
+                task_id,
+                start_time,
+                end_time,
+                schedule_type,
+                status
+            `)
+        .eq("user_id", userId),
+
+      supabase
+        .from("preferences")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle(),
+    ]);
+
+    const databaseMs =
+      performance.now() - databaseStart;
+
+    const {
+      data: tasks,
+      error: taskError,
+    } = taskResult;
+
+    const {
+      data: schedules,
+      error: schedulesError,
+    } = scheduleResult;
+
+    const {
+      data: preferences,
+      error: preferencesError,
+    } = preferenceResult;
+
+    // Preserve existing database error handling.
     if (taskError) {
       throw taskError;
     }
 
-    // Retrieve scheduled study blocks for workload analysis.
-    // Only retrieve schedules belonging to the authenticated user.
-    const {
-      data: schedules,
-      error: schedulesError,
-    } = await supabase
-      .from("schedules")
-      .select(`
-        task_id,
-        start_time,
-        end_time,
-        schedule_type,
-        status
-      `)
-      .eq("user_id", userId);
-
     if (schedulesError) {
       throw schedulesError;
     }
-
-    // Retrieve the user's study preferences.
-    const {
-      data: preferences,
-      error: preferencesError,
-    } = await supabase
-      .from("preferences")
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
 
     if (preferencesError) {
       throw preferencesError;
@@ -81,6 +101,7 @@ const getWorkloadAnalysis = async (req, res) => {
         ? savedLimit
         : 240;
 
+    const analysisStart = performance.now();
     const analysis = generateWorkloadRecommendations(
       tasks || [],
       dailyLimitMinutes,
@@ -88,6 +109,22 @@ const getWorkloadAnalysis = async (req, res) => {
       timeZone,
       schedules || []
     );
+    const analysisMs = performance.now() - analysisStart;
+
+
+
+    if (process.env.PERF_LOGS === "true") {
+        console.info("[Sprint 5 Workload Performance]", {
+            databaseMs: Number(databaseMs.toFixed(3)),
+            analysisMs: Number(analysisMs.toFixed(3)),
+            totalMeasuredMs: Number((
+                databaseMs + analysisMs
+            ).toFixed(3)),
+            taskCount: tasks?.length ?? 0,
+            scheduleCount: schedules?.length ?? 0,
+        });
+    }
+
 
     return res.status(200).json({
       success: true,
