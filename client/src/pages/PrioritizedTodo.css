@@ -73,13 +73,7 @@
   min-width: 1240px;
 
   grid-template-columns:
-    46px
-    minmax(220px, 1fr)
-    200px
-    210px
-    100px
-    100px
-    160px;
+    46px minmax(220px, 1fr) 200px 210px 100px 100px 160px;
 
   align-items: center;
   column-gap: 20px;
@@ -477,4 +471,70 @@
   display: block;
   font-size: 12px;
   color: #555;
+}
+
+
+/* =========================================
+   DARK MODE - DAILY SUMMARY FIX
+========================================= */
+
+/* Daily summary task cards */
+.dashboard-page.dark-mode .daily-summary-task-row {
+  background: #34343d;
+  color: #f2f2f2;
+}
+
+/* Hover effect */
+.dashboard-page.dark-mode .daily-summary-task-row:hover {
+  background: #41414c;
+}
+
+/* Task titles */
+.dashboard-page.dark-mode .daily-summary-task-title {
+  color: #f2f2f2;
+}
+
+/* Task dates, points, and priority labels */
+.dashboard-page.dark-mode .daily-summary-task-meta,
+.dashboard-page.dark-mode .daily-summary-task-priority {
+  color: #c5c5cf;
+}
+
+/* Completed tasks */
+.dashboard-page.dark-mode .daily-summary-row-completed {
+  background: #303038;
+  opacity: 1;
+}
+
+.dashboard-page.dark-mode .daily-summary-row-completed .daily-summary-task-title {
+  color: #b8b8c3;
+}
+
+/* Summary section headings */
+.dashboard-page.dark-mode .daily-summary-section h4 {
+  color: #b5b5bf;
+}
+
+/* Summary dates and workload information */
+.dashboard-page.dark-mode .daily-summary-date,
+.dashboard-page.dark-mode .daily-summary-workload-row,
+.dashboard-page.dark-mode .daily-summary-empty,
+.dashboard-page.dark-mode .daily-summary-progress-label,
+.dashboard-page.dark-mode .daily-summary-stat-label {
+  color: #c5c5cf;
+}
+
+/* Summary statistics */
+.dashboard-page.dark-mode .daily-summary-stat {
+  background: #34343d;
+}
+
+/* Overdue statistics */
+.dashboard-page.dark-mode .daily-summary-stat--overdue {
+  background: rgba(223, 32, 41, 0.2);
+}
+
+/* Progress bar background */
+.dashboard-page.dark-mode .daily-summary-progress-track {
+  background: #1c1c23;
 }
