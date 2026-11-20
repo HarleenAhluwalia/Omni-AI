@@ -453,6 +453,12 @@ describe("Canvas sync — database failures", () => {
       expect(res.body.data.imported).toEqual([]);
       expect(res.body.data.failed).toHaveLength(1);
       expect(res.body.data.failed[0].reason).toBe("import_failed");
+
+      // SCRUM-469: Internal database errors must not be exposed to API clients.
+      expect(JSON.stringify(res.body)).not.toContain(
+        "simulated insert failure"
+      );
+
     } finally {
       supabase.from = originalFrom;
     }
@@ -461,6 +467,62 @@ describe("Canvas sync — database failures", () => {
     // query), and nothing was left behind by the failed insert.
     expect(selectCallCount).toBeGreaterThan(0);
     expect(supabase.__store.tasks).toHaveLength(0);
+  });
+
+  it("does not expose internal database errors when an assignment update fails", async () => {
+    // Create an existing assignment with outdated information.
+    seedExistingCanvasTask({
+      title: "Old stale title",
+      due_date: "2020-01-01T23:59:59.000Z",
+      point_value: 1,
+      canvas_assignment_id: UNLOCKED_ASSIGNMENT_ID,
+      canvas_course_id: 1,
+      canvas_locked: false,
+    });
+
+    const originalFrom = supabase.from;
+
+    // Simulate a database failure during the update.
+    supabase.from = jest.fn((table) => {
+      const query = originalFrom(table);
+
+      if (table === "tasks") {
+        query.update = () => ({
+          eq: () => ({
+            eq: () => ({
+              select: () => ({
+                maybeSingle: () =>
+                  Promise.resolve({
+                    data: null,
+                    error: {
+                      message: "simulated internal update failure",
+                    },
+                  }),
+              }),
+            }),
+          }),
+        });
+      }
+
+      return query;
+    });
+
+    try {
+      const res = await importAssignments({
+        assignment_ids: [UNLOCKED_ASSIGNMENT_ID],
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.failed).toHaveLength(1);
+      expect(res.body.data.failed[0].reason).toBe("update_failed");
+
+      // SCRUM-469: Internal database errors must not reach API clients.
+      expect(JSON.stringify(res.body)).not.toContain(
+        "simulated internal update failure"
+      );
+    } finally {
+      supabase.from = originalFrom;
+    }
   });
 });
 
@@ -963,6 +1025,12 @@ describe("Canvas sync — course-aware duplicate prevention and locked assignmen
       expect(res.body.data.imported).toEqual([]);
       expect(res.body.data.failed).toHaveLength(1);
       expect(res.body.data.failed[0].reason).toBe("duplicate_lookup_failed");
+
+      // SCRUM-469: Internal database lookup errors must not be exposed to API clients.
+      expect(JSON.stringify(res.body)).not.toContain(
+        "simulated race-winner lookup failure"
+      );
+
     } finally {
       supabase.from = originalFrom;
     }

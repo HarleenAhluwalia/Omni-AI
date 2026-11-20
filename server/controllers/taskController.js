@@ -6,6 +6,9 @@ const {
   resolveAndReschedule,
 } = require("../services/schedulingService");
 const {
+  getDayInTimeZone,
+} = require("../services/workloadService");
+const {
   EVENTS,
   logSecurityEvent,
   logDatabaseFailure,
@@ -754,20 +757,21 @@ if (!taskA || !taskB) {
 };
 
 // ---------------------------------------------------------
-// Daily Summary helpers.
+// Daily/Weekly Summary helpers.
 //
-// "Today" is the current UTC calendar date, and due_date is compared
-// by its UTC calendar date rather than its exact timestamp - Tasks
-// are day-granularity even though due_date is a timestamptz (the
-// frontend always writes end-of-day). Using UTC consistently avoids
-// the summary's classification depending on the server/CI runner's
-// local timezone.
+// A Task with has_due_time false/absent is intentionally
+// day-granularity and UTC-anchored - the frontend always writes
+// end-of-day UTC for these, and that must keep classifying the same
+// way regardless of the viewer's timezone (toUtcDateOnly, unchanged).
 //
-// Known limitation: due_date is written as "end of the browser's
-// local day, converted to UTC," so a user in a timezone behind UTC
-// can have a task due "today" by their own clock land on tomorrow's
-// UTC date. This will need real per-user timezone support to fix;
-// out of scope for this first Sprint 2 version.
+// A Task with has_due_time true carries a genuine local timestamp
+// (the same semantics as a schedule's start_time), matching how
+// CalendarView.jsx and PrioritizedTodo.jsx already classify it by
+// the viewer's own local day. getClassificationDayMs below applies
+// that same rule here, using getDayInTimeZone (workloadService.js) -
+// the same tested IANA-timezone utility and request convention
+// (time_zone query param, validated via Intl.DateTimeFormat,
+// defaulting to UTC) already established by workloadController.js.
 // ---------------------------------------------------------
 const toUtcDateOnly = (value) => {
   if (!value) {
@@ -785,6 +789,50 @@ const toUtcDateOnly = (value) => {
     date.getUTCMonth(),
     date.getUTCDate()
   );
+};
+
+// Resolves and validates the viewer's time_zone query parameter,
+// matching workloadController.js's own getWorkloadAnalysis exactly.
+// Returns { timeZone } on success or { error: true } when invalid -
+// the caller is responsible for returning the 400 response itself,
+// since Daily and Weekly Summary have their own distinct database
+// error-handling shape around this point.
+const resolveTimeZone = (req) => {
+  const timeZone = req.query.time_zone ?? "UTC";
+
+  if (typeof timeZone !== "string") {
+    return { error: true };
+  }
+
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone });
+  } catch {
+    return { error: true };
+  }
+
+  return { timeZone };
+};
+
+// The day (as a UTC-midnight-equivalent timestamp) a Task is
+// classified under. has_due_time:false/absent Tasks always use the
+// existing UTC-only rule; has_due_time:true Tasks use the viewer's
+// own local day in timeZone, matching Calendar/To-Do.
+const getClassificationDayMs = (task, timeZone) => {
+  if (!task.due_date) {
+    return null;
+  }
+
+  if (task.has_due_time) {
+    const date = new Date(task.due_date);
+
+    if (Number.isNaN(date.getTime())) {
+      return null;
+    }
+
+    return getDayInTimeZone(date, timeZone);
+  }
+
+  return toUtcDateOnly(task.due_date);
 };
 
 const toSummaryItem = (task) => ({
@@ -809,6 +857,15 @@ const byDueDateAscending = (a, b) =>
 // =========================================================
 const getDailySummary = async (req, res) => {
   const user_id = req.user.id;
+
+  const { timeZone, error: timeZoneError } = resolveTimeZone(req);
+
+  if (timeZoneError) {
+    return res.status(400).json({
+      success: false,
+      error: "Invalid time_zone.",
+    });
+  }
 
   const {
     data,
@@ -840,6 +897,10 @@ const getDailySummary = async (req, res) => {
     .toISOString()
     .slice(0, 10);
 
+  // Only used for has_due_time:true Tasks - date-only Tasks keep
+  // comparing against todayUtcMs, exactly as before.
+  const todayLocalMs = getDayInTimeZone(now, timeZone);
+
   const dueToday = [];
   const overdue = [];
   const upcoming = [];
@@ -865,15 +926,19 @@ const getDailySummary = async (req, res) => {
       continue;
     }
 
-    const dueDateUtcMs = toUtcDateOnly(task.due_date);
+    const dueDateMs = getClassificationDayMs(task, timeZone);
 
-    if (dueDateUtcMs === null) {
+    if (dueDateMs === null) {
       continue;
     }
 
-    if (dueDateUtcMs === todayUtcMs) {
+    const todayReferenceMs = task.has_due_time
+      ? todayLocalMs
+      : todayUtcMs;
+
+    if (dueDateMs === todayReferenceMs) {
       dueToday.push(task);
-    } else if (dueDateUtcMs < todayUtcMs) {
+    } else if (dueDateMs < todayReferenceMs) {
       overdue.push(task);
     } else {
       upcoming.push(task);
@@ -906,10 +971,11 @@ const getDailySummary = async (req, res) => {
 // ---------------------------------------------------------
 // Weekly Summary helpers.
 //
-// Week = Monday through Sunday, UTC - matching Daily Summary's UTC
-// "today" so both summaries share one consistent, deterministic time
-// definition. Inherits the same day-boundary caveat documented above
-// getDailySummary for users in timezones behind UTC.
+// Week = Monday through Sunday. For has_due_time:false/absent Tasks
+// this stays UTC, matching Daily Summary's UTC "today" exactly as
+// before. For has_due_time:true Tasks, see getClassificationDayMs
+// and getWeeklySummary below - the week boundary is computed in the
+// viewer's own timeZone instead.
 // ---------------------------------------------------------
 const getUtcWeekStart = (date) => {
   const utcDayOfWeek = date.getUTCDay(); // 0 = Sunday ... 6 = Saturday
@@ -936,6 +1002,15 @@ const sumField = (tasks, field) =>
 // =========================================================
 const getWeeklySummary = async (req, res) => {
   const user_id = req.user.id;
+
+  const { timeZone, error: timeZoneError } = resolveTimeZone(req);
+
+  if (timeZoneError) {
+    return res.status(400).json({
+      success: false,
+      error: "Invalid time_zone.",
+    });
+  }
 
   const {
     data,
@@ -976,21 +1051,42 @@ const getWeeklySummary = async (req, res) => {
     .toISOString()
     .slice(0, 10);
 
+  // Only used for has_due_time:true Tasks - date-only Tasks keep
+  // comparing against the UTC week above, exactly as before.
+  // getUtcWeekStart is reused unchanged: getDayInTimeZone already
+  // returns a UTC-midnight timestamp for the viewer's local calendar
+  // date, so feeding that straight back into getUtcWeekStart yields
+  // the viewer's own local week start, with no new week-math needed.
+  const todayLocalMs = getDayInTimeZone(now, timeZone);
+  const weekStartLocalMs = getUtcWeekStart(new Date(todayLocalMs));
+  const weekEndExclusiveLocalMs =
+    weekStartLocalMs + 7 * 24 * 60 * 60 * 1000;
+
   const tasksThisWeek = [];
   const overdue = [];
   const upcoming = [];
 
   for (const task of allTasks) {
     const isCompleted = task.completion_status === "completed";
-    const dueDateUtcMs = toUtcDateOnly(task.due_date);
+    const dueDateMs = getClassificationDayMs(task, timeZone);
 
-    if (dueDateUtcMs === null) {
+    if (dueDateMs === null) {
       continue;
     }
 
+    const weekStart = task.has_due_time
+      ? weekStartLocalMs
+      : weekStartMs;
+    const weekEndExclusive = task.has_due_time
+      ? weekEndExclusiveLocalMs
+      : weekEndExclusiveMs;
+    const todayReferenceMs = task.has_due_time
+      ? todayLocalMs
+      : todayUtcMs;
+
     if (
-      dueDateUtcMs >= weekStartMs &&
-      dueDateUtcMs < weekEndExclusiveMs
+      dueDateMs >= weekStart &&
+      dueDateMs < weekEndExclusive
     ) {
       tasksThisWeek.push(task);
 
@@ -998,12 +1094,12 @@ const getWeeklySummary = async (req, res) => {
       // Daily Summary's dueToday/overdue/upcoming split. A task due
       // earlier this week but still incomplete is "overdue" (below),
       // not "upcoming" - the two are mutually exclusive.
-      if (!isCompleted && dueDateUtcMs >= todayUtcMs) {
+      if (!isCompleted && dueDateMs >= todayReferenceMs) {
         upcoming.push(task);
       }
     }
 
-    if (!isCompleted && dueDateUtcMs < todayUtcMs) {
+    if (!isCompleted && dueDateMs < todayReferenceMs) {
       overdue.push(task);
     }
   }

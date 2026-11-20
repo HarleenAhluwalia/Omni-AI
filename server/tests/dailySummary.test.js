@@ -52,10 +52,61 @@ const createAsUser = (userId, overrides = {}) =>
       ...overrides,
     });
 
-const getSummary = (auth = authHeader()) =>
-  request(app)
+const getSummary = (auth = authHeader(), timeZone = null) => {
+  const req = request(app)
     .get("/api/tasks/summary/daily")
     .set("Authorization", auth);
+
+  return timeZone
+    ? req.query({ time_zone: timeZone })
+    : req;
+};
+
+// The has_due_time/timezone tests below pin "now" with
+// jest.setSystemTime rather than using real wall-clock time, because
+// the relationship between a UTC calendar day and a local calendar
+// day (ahead or behind) itself depends on what time of day it
+// happens to be when the suite runs - using real time here would
+// make these specific tests intermittently flaky. A fixed, known
+// instant removes that entirely. (The rest of this file's existing
+// tests are untouched and keep using real time via isoForDayOffset,
+// which has no such boundary-dependent ambiguity.)
+//
+// FIXED_NOW_ISO = 2026-06-15T18:00:00.000Z. At this instant:
+//   - UTC's calendar day is Jun 15.
+//   - America/Los_Angeles (UTC-7 in June, PDT) is 11:00 Jun 15 -
+//     same calendar day as UTC, no pre-existing day-boundary gap.
+// The LA-focused tests below use this fixed instant.
+const FIXED_NOW_ISO = "2026-06-15T18:00:00.000Z";
+
+// FIXED_NOW_TOKYO_ISO = 2026-06-15T12:00:00.000Z. At this instant,
+// Asia/Tokyo (UTC+9, no DST) is 21:00 Jun 15 - same calendar day as
+// UTC, no pre-existing day-boundary gap. A separate fixed instant
+// from the LA tests, so each boundary case starts from its own
+// no-gap baseline rather than compounding both zones' offsets.
+const FIXED_NOW_TOKYO_ISO = "2026-06-15T12:00:00.000Z";
+
+// LA 23:30 on its own June 15 "today" = UTC June 16 06:30 (+7h PDT).
+// Its UTC calendar date (Jun 16) is tomorrow relative to UTC's actual
+// today (Jun 15) - a naive UTC-only classification would wrongly call
+// this "upcoming" when the user actually meant "due today."
+const LA_TODAY_LATE_ISO = "2026-06-16T06:30:00.000Z";
+
+// LA 23:30 on June 14 (LA's yesterday) = UTC June 15 06:30 (+7h PDT).
+// Its UTC calendar date (Jun 15) equals UTC's actual today - a naive
+// UTC-only classification would wrongly call this "due today" when
+// the user actually meant "due yesterday" (overdue).
+const LA_YESTERDAY_LATE_ISO = "2026-06-15T06:30:00.000Z";
+
+// Relative to FIXED_NOW_TOKYO_ISO: UTC June 15 23:30 (today, late) =
+// Tokyo June 16 08:30 (+9h, no DST) - already Tokyo's tomorrow. A
+// naive UTC-only classification would wrongly call this "due today."
+const TOKYO_TOMORROW_EARLY_ISO = "2026-06-15T23:30:00.000Z";
+
+// A date-only Task due UTC-tomorrow (noon, safely inside the day),
+// for the mixed has_due_time/date-only test - its classification must
+// stay UTC-based and unaffected by the time_zone query param.
+const DATE_ONLY_TOMORROW_ISO = "2026-06-16T12:00:00.000Z";
 
 beforeEach(() => {
   supabase.__reset();
@@ -222,6 +273,118 @@ describe("Daily Summary — ownership", () => {
     expect(res.body.data.counts.total).toBe(1);
     expect(res.body.data.dueToday).toHaveLength(1);
     expect(res.body.data.dueToday[0].title).toBe("Mine");
+  });
+});
+
+describe("Daily Summary — has_due_time timezone-aware classification", () => {
+  beforeEach(() => {
+    jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });
+    jest.setSystemTime(new Date(FIXED_NOW_ISO));
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("classifies a has_due_time Task near local midnight as dueToday in America/Los_Angeles, even though its UTC date is tomorrow", async () => {
+    const created = await createAsUser(USER_ID, {
+      title: "Timed, due late tonight in LA",
+      due_date: LA_TODAY_LATE_ISO,
+      has_due_time: true,
+    });
+
+    const res = await getSummary(authHeader(), "America/Los_Angeles");
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.counts.dueToday).toBe(1);
+    expect(res.body.data.dueToday.map((t) => t.id)).toEqual([
+      created.body.data.id,
+    ]);
+    expect(res.body.data.upcoming).toEqual([]);
+  });
+
+  it("classifies a has_due_time Task as overdue in America/Los_Angeles when it's already past locally, even though its UTC date is still today", async () => {
+    const created = await createAsUser(USER_ID, {
+      title: "Timed, due late last night in LA",
+      due_date: LA_YESTERDAY_LATE_ISO,
+      has_due_time: true,
+    });
+
+    const res = await getSummary(authHeader(), "America/Los_Angeles");
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.counts.overdue).toBe(1);
+    expect(res.body.data.counts.dueToday).toBe(0);
+    expect(res.body.data.overdue.map((t) => t.id)).toEqual([
+      created.body.data.id,
+    ]);
+  });
+
+  it("classifies a has_due_time Task as upcoming in Asia/Tokyo when it's already tomorrow locally, even though its UTC date is still today", async () => {
+    jest.setSystemTime(new Date(FIXED_NOW_TOKYO_ISO));
+
+    const created = await createAsUser(USER_ID, {
+      title: "Timed, due just after midnight in Tokyo",
+      due_date: TOKYO_TOMORROW_EARLY_ISO,
+      has_due_time: true,
+    });
+
+    const res = await getSummary(authHeader(), "Asia/Tokyo");
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.counts.dueToday).toBe(0);
+    expect(res.body.data.upcoming.map((t) => t.id)).toEqual([
+      created.body.data.id,
+    ]);
+  });
+
+  it("classifies a mixed has_due_time and date-only Task list correctly, each by its own rule, in a single request", async () => {
+    const timed = await createAsUser(USER_ID, {
+      title: "Timed, due late tonight in LA",
+      due_date: LA_TODAY_LATE_ISO,
+      has_due_time: true,
+    });
+    const dateOnly = await createAsUser(USER_ID, {
+      title: "Date-only, due tomorrow UTC",
+      due_date: DATE_ONLY_TOMORROW_ISO,
+    });
+
+    const res = await getSummary(authHeader(), "America/Los_Angeles");
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.dueToday.map((t) => t.id)).toEqual([
+      timed.body.data.id,
+    ]);
+    expect(res.body.data.upcoming.map((t) => t.id)).toEqual([
+      dateOnly.body.data.id,
+    ]);
+  });
+
+  it("falls back to UTC classification for a has_due_time Task when time_zone is omitted", async () => {
+    const created = await createAsUser(USER_ID, {
+      title: "Timed, no time_zone supplied",
+      due_date: LA_TODAY_LATE_ISO,
+      has_due_time: true,
+    });
+
+    // No time_zone query param at all - must behave exactly like a
+    // date-only Task would for the same due_date (plain UTC
+    // classification), not guess or silently assume a fixed offset.
+    const res = await getSummary();
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.counts.dueToday).toBe(0);
+    expect(res.body.data.upcoming.map((t) => t.id)).toEqual([
+      created.body.data.id,
+    ]);
+  });
+
+  it("rejects an invalid time_zone with HTTP 400", async () => {
+    const res = await getSummary(authHeader(), "Not/AZone");
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error).toBe("Invalid time_zone.");
   });
 });
 
