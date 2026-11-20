@@ -610,4 +610,5 @@ function generateWorkloadRecommendations(
 module.exports = {
     analyzeWorkload,
     generateWorkloadRecommendations,
+    getDayInTimeZone,
 };

@@ -77,10 +77,47 @@ const createAsUser = (userId, overrides = {}) =>
       ...overrides,
     });
 
-const getSummary = (auth = authHeader()) =>
-  request(app)
+const getSummary = (auth = authHeader(), timeZone = null) => {
+  const req = request(app)
     .get("/api/tasks/summary/weekly")
     .set("Authorization", auth);
+
+  return timeZone
+    ? req.query({ time_zone: timeZone })
+    : req;
+};
+
+// The has_due_time/timezone tests below pin "now" with
+// jest.setSystemTime rather than using real wall-clock time, for the
+// same reason as dailySummary.test.js: the relationship between a
+// UTC week/day and a local week/day depends on what time of day (and
+// day of week) it happens to be when the suite runs, which would make
+// boundary-straddling fixtures intermittently flaky with real time.
+//
+// FIXED_NOW_ISO = 2026-06-15T18:00:00.000Z, a Monday. At this instant:
+//   - UTC's week starts Monday June 15 (this instant is early in it).
+//   - America/Los_Angeles (UTC-7 in June, PDT) is 11:00 Monday June 15 -
+//     same calendar day and week as UTC, no pre-existing boundary gap.
+const FIXED_NOW_ISO = "2026-06-15T18:00:00.000Z";
+
+// LA Sunday June 14 (last week, LA-local) 23:30 = UTC Monday June 15
+// 06:30 (+7h PDT). Its UTC calendar date (Jun 15, Monday) is already
+// inside the UTC week that just started - a naive UTC-only
+// classification would wrongly include this in "this week" (and as
+// due-today-ish), when the user's own local day is still Sunday of
+// last week.
+const LA_LAST_WEEK_SUNDAY_LATE_ISO = "2026-06-15T06:30:00.000Z";
+
+// A has_due_time Task safely inside both the UTC and LA calendar/week
+// definitions of "this week" (Wednesday local, nowhere near either
+// boundary), used to prove the completed/remaining/percentage counts
+// still compute correctly once has_due_time Tasks are classified
+// locally rather than breaking that arithmetic.
+const LA_THIS_WEEK_WEDNESDAY_ISO = "2026-06-17T20:00:00.000Z";
+
+// A date-only Task due this UTC week (Monday, noon) - must stay
+// classified by UTC regardless of the time_zone query param.
+const DATE_ONLY_THIS_WEEK_ISO = "2026-06-15T12:00:00.000Z";
 
 beforeEach(() => {
   supabase.__reset();
@@ -375,6 +412,110 @@ describe("Weekly Summary — ownership", () => {
 
     expect(res.body.data.counts.total).toBe(1);
     expect(res.body.data.tasks[0].title).toBe("Mine");
+  });
+});
+
+describe("Weekly Summary — has_due_time timezone-aware classification", () => {
+  beforeEach(() => {
+    jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });
+    jest.setSystemTime(new Date(FIXED_NOW_ISO));
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("excludes a has_due_time Task from this week in America/Los_Angeles when it's actually last week locally, even though its UTC date already falls in this week", async () => {
+    const created = await createAsUser(USER_ID, {
+      title: "Timed, due Sunday night last week in LA",
+      due_date: LA_LAST_WEEK_SUNDAY_LATE_ISO,
+      has_due_time: true,
+    });
+
+    const res = await getSummary(authHeader(), "America/Los_Angeles");
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.tasks).toEqual([]);
+    expect(res.body.data.counts.total).toBe(0);
+    expect(res.body.data.overdue.map((t) => t.id)).toEqual([
+      created.body.data.id,
+    ]);
+  });
+
+  it("includes the same has_due_time Task in this week when classified by UTC (time_zone omitted), proving the local/UTC week boundary actually differs", async () => {
+    const created = await createAsUser(USER_ID, {
+      title: "Timed, due Sunday night last week in LA",
+      due_date: LA_LAST_WEEK_SUNDAY_LATE_ISO,
+      has_due_time: true,
+    });
+
+    const res = await getSummary();
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.tasks.map((t) => t.id)).toEqual([
+      created.body.data.id,
+    ]);
+    expect(res.body.data.counts.total).toBe(1);
+  });
+
+  it("classifies a mixed has_due_time and date-only Task list correctly for week membership, each by its own rule", async () => {
+    const dateOnly = await createAsUser(USER_ID, {
+      title: "Date-only, due this UTC week",
+      due_date: DATE_ONLY_THIS_WEEK_ISO,
+    });
+    const timedLastWeekLocally = await createAsUser(USER_ID, {
+      title: "Timed, due Sunday night last week in LA",
+      due_date: LA_LAST_WEEK_SUNDAY_LATE_ISO,
+      has_due_time: true,
+    });
+
+    const res = await getSummary(authHeader(), "America/Los_Angeles");
+
+    expect(res.status).toBe(200);
+    const taskIds = res.body.data.tasks.map((t) => t.id);
+    expect(taskIds).toEqual([dateOnly.body.data.id]);
+    expect(taskIds).not.toContain(timedLastWeekLocally.body.data.id);
+  });
+
+  it("keeps completed/remaining/completionPercentage counts correct once a has_due_time Task is included in this week", async () => {
+    await createAsUser(USER_ID, {
+      title: "Timed, completed, this week",
+      due_date: LA_THIS_WEEK_WEDNESDAY_ISO,
+      has_due_time: true,
+      completion_status: "completed",
+      estimated_effort_minutes: 30,
+      point_value: 5,
+    });
+    await createAsUser(USER_ID, {
+      title: "Date-only, not done, this week",
+      due_date: DATE_ONLY_THIS_WEEK_ISO,
+      estimated_effort_minutes: 90,
+      point_value: 10,
+    });
+
+    const res = await getSummary(authHeader(), "America/Los_Angeles");
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.counts.total).toBe(2);
+    expect(res.body.data.counts.completed).toBe(1);
+    expect(res.body.data.counts.remaining).toBe(1);
+    expect(res.body.data.completionPercentage).toBe(50);
+    expect(res.body.data.workload).toEqual({
+      totalEffortMinutes: 120,
+      completedEffortMinutes: 30,
+      remainingEffortMinutes: 90,
+      totalPoints: 15,
+      completedPoints: 5,
+      remainingPoints: 10,
+    });
+  });
+
+  it("rejects an invalid time_zone with HTTP 400", async () => {
+    const res = await getSummary(authHeader(), "Not/AZone");
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error).toBe("Invalid time_zone.");
   });
 });
 

@@ -85,8 +85,11 @@ function WeeklySummary({ onEditTask, refreshKey = 0 }) {
       try {
         setLoading(true);
 
+        const browserTimeZone =
+          Intl.DateTimeFormat().resolvedOptions().timeZone;
+
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/tasks/summary/weekly`,
+          `${import.meta.env.VITE_API_URL}/tasks/summary/weekly?time_zone=${encodeURIComponent(browserTimeZone)}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

@@ -123,6 +123,39 @@ describe("2. Sync updates the same Task row in place", () => {
 });
 
 // =========================================================
+// 2b. Rejecting a sync whose assignment id and courseId don't match
+// =========================================================
+describe("2b. Sync rejects a course/assignment mismatch", () => {
+  it("CANVAS4-AUTO-011: syncing assignment 101 under courseId 2 is rejected with 400 and leaves the original Task untouched", async () => {
+    const importRes = await importAssignment(UNLOCKED_ASSIGNMENT.id);
+    const original = importRes.body.data;
+
+    // Assignment 101 actually belongs to course 1 in the Dummy Canvas
+    // fixture - submitting courseId 2 here, with otherwise-valid fields,
+    // exercises updateImportedTask's course-mismatch guard, which had no
+    // test at any level before this.
+    const syncRes = await syncAssignment({
+      id: UNLOCKED_ASSIGNMENT.id,
+      courseId: 2,
+      title: "Sprint 3 Report (revised)",
+      dueDate: "2026-10-20",
+      points: 150,
+    });
+
+    expect(syncRes.status).toBe(400);
+    expect(syncRes.body.success).toBe(false);
+    expect(syncRes.body.error).toBe(
+      "Canvas assignment does not belong to the specified course"
+    );
+
+    const stored = supabase.__store.tasks.find((t) => t.id === original.id);
+    expect(stored).toEqual(original);
+    expect(stored.canvas_course_id).toBe(1);
+    expect(stored.canvas_assignment_id).toBe(101);
+  });
+});
+
+// =========================================================
 // 3. Preserving user-managed Task fields during synchronization
 // =========================================================
 describe("3. Sync preserves user-managed progress", () => {
