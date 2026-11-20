@@ -431,7 +431,7 @@ const importAssignments = async (req, res) => {
               failed.push({
                 assignment_id: assignmentId,
                 reason: "duplicate_lookup_failed",
-                detail: raceError.message,
+                detail: "Could not verify the existing assignment.",
               });
 
               continue;
@@ -453,9 +453,8 @@ const importAssignments = async (req, res) => {
           failed.push({
             assignment_id: assignmentId,
             reason: "import_failed",
-            detail: error.message,
+            detail: "Could not import assignment.",
           });
-
           continue;
         }
 
@@ -499,7 +498,7 @@ const importAssignments = async (req, res) => {
         failed.push({
           assignment_id: assignmentId,
           reason: "update_failed",
-          detail: error?.message || "Task not found.",
+          detail: "Could not update assignment.",
         });
 
         continue;
