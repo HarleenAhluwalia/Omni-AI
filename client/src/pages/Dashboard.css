@@ -2685,3 +2685,104 @@ input.add-task-all-day-switch:not(:checked) {
 .full-ai-view .chat-form {
   margin-top: auto;
 }
+
+/* =========================================
+   LIGHT MODE - TEXT VISIBILITY FIX
+========================================= */
+
+/* Ensure browser-native controls match the selected theme */
+.dashboard-page {
+  color-scheme: light;
+}
+
+.dashboard-page.dark-mode {
+  color-scheme: dark;
+}
+
+/* Sidebar logo */
+.dashboard-page:not(.dark-mode) .sidebar-logo {
+  color: #222;
+}
+
+/* Prioritized To-Do List page heading */
+.dashboard-page:not(.dark-mode) .full-todo-view .calendar-header h1 {
+  color: #222;
+}
+
+/* Prioritized To-Do List card headings */
+.dashboard-page:not(.dark-mode) .prioritized-header h1,
+.dashboard-page:not(.dark-mode) .prioritized-header h2 {
+  color: #222;
+}
+
+/* Add Task button */
+.dashboard-page:not(.dark-mode) .add-task-header-button {
+  background: #fff;
+  color: #222;
+  border-color: #777;
+}
+
+/* Dashboard task section headings */
+.dashboard-page:not(.dark-mode) .section-title-row h2 {
+  color: #222;
+}
+
+/* =========================================
+   GLOBAL LIGHT MODE - TEXT VISIBILITY FIX
+========================================= */
+
+/* Respect Omni AI's selected theme */
+.dashboard-page:not(.dark-mode) {
+  color-scheme: light;
+  color: #222;
+}
+
+.dashboard-page.dark-mode {
+  color-scheme: dark;
+}
+
+/* Headings across all pages */
+.dashboard-page:not(.dark-mode) h1,
+.dashboard-page:not(.dark-mode) h2,
+.dashboard-page:not(.dark-mode) h3,
+.dashboard-page:not(.dark-mode) h4 {
+  color: #222;
+}
+
+/* Page subtitles and descriptions */
+.dashboard-page:not(.dark-mode) .full-todo-view .calendar-header p,
+.dashboard-page:not(.dark-mode) .full-ai-view .calendar-header p,
+.dashboard-page:not(.dark-mode) .calendar-view-header p {
+  color: #555;
+}
+
+/* Dashboard and Calendar buttons */
+.dashboard-page:not(.dark-mode) .text-action-button,
+.dashboard-page:not(.dark-mode) .view-all-button,
+.dashboard-page:not(.dark-mode) .task-page-arrow,
+.dashboard-page:not(.dark-mode) .calendar-navigation button,
+.dashboard-page:not(.dark-mode) .add-task-header-button {
+  color: #222;
+}
+
+/* Task action buttons */
+.dashboard-page:not(.dark-mode) .task-complete-button,
+.dashboard-page:not(.dark-mode) .confirm-cancel-button {
+  color: #222;
+}
+
+/* Ensure Canvas badge keeps its purple text */
+.dashboard-page:not(.dark-mode) .canvas-integration-badge {
+  background: #eeeaff;
+  color: #5d52c4;
+}
+
+/* Preserve error heading colors */
+.dashboard-page:not(.dark-mode) .canvas-integration-failures h3 {
+  color: #9b1b1b;
+}
+
+/* Preserve the purple Omni AI logo accent */
+.dashboard-page:not(.dark-mode) .sidebar-logo span {
+  color: #7267d9;
+}
