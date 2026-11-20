@@ -44,20 +44,44 @@ is derived from local `git log` / `git merge-base`, which can confirm
   `0e041b7`, parent `509a99b`), from an earlier session in this
   conversation.
 
-**NOT VERIFIED this session:**
-- PR #117's actual GitHub Actions check results, run IDs, or run URLs.
-- Task 3's claimed "workflow #173, 46 suites, 668 tests" — this was
-  reported to this session by the user in an earlier turn; it is
-  **not** re-derived or confirmed here, and is not treated as fact
-  for this report beyond "reported."
+**Verified by the user (manual GitHub Actions check, not this session's
+own tool access):** GitHub Actions workflow run **#195**, associated
+with PR #117, backend unit/integration job — confirmed via screenshot
+reviewed by the user. Reported Jest results from that run:
+- Test Suites: 2 skipped, 54 passed, 56 total
+- Tests: 7 skipped, 746 passed, 753 total
+- Failures: 0
+- Execution time: 10.173 seconds
+
+This session has no direct GitHub API/`gh` access and did not itself
+load the Actions page — the result above is recorded as **user-verified**,
+not independently re-derived by this session. The exact workflow run
+URL was not provided and is **not invented** here; use the PR link and
+run number below for manual confirmation:
+- PR: `https://github.com/HarleenAhluwalia/Omni-AI/pull/117`
+- Run: workflow run **#195** (open PR #117's Checks tab to navigate to it
+  directly — no run-specific URL is recorded here since none was given)
+
+See §3.4 for how this compares to this session's own local run, and why
+the counts differ.
+
+**Still NOT VERIFIED this session (beyond the one confirmed run above):**
+- Task 3's claimed "workflow #173, 46 suites, 668 tests" — reported to
+  this session by the user in an earlier turn; still not re-derived or
+  confirmed here beyond "reported."
 - Any screenshot evidence for Task 3 or for Jerry's Sprint 5
   preferences verification (`docs/testing-evidence/sprint-5/jerry-preferences-uc9-uc16-verification.md`,
   merged separately via PR #116) — that document's own screenshot
   and demo-step tables are still template placeholders (`_<path>_`,
   `_<date>_`) as of `origin/main`, not filled in.
+- Whether every other job in the PR #117 workflow (frontend build,
+  AI/API tests, Dummy Canvas/Preferences contract tests, CC7.2
+  monitoring, Sprint 5 reliability) also passed — only the backend
+  unit/integration job's result was reported and reviewed.
 
-**Manual verification needed** (exact steps, since no automated access exists):
-1. Open `https://github.com/HarleenAhluwalia/Omni-AI/pull/117` → Checks tab.
+**Manual verification still available** (exact steps, since no automated
+access exists in this session):
+1. Open `https://github.com/HarleenAhluwalia/Omni-AI/pull/117` → Checks tab → run #195, to confirm the other jobs.
 2. Or: `https://github.com/HarleenAhluwalia/Omni-AI/commit/c8c324a9` → check ✓/✗ status.
 3. Or, once `gh` is available: `gh pr checks 117` / `gh run list --commit c8c324a9`.
 
@@ -119,6 +143,31 @@ tests per that PR's own evidence doc) is not part of the 728 total
 above. The two branches were merged independently into `origin/main`;
 this report covers what Tasks 1–5 actually changed and verified, not
 `origin/main`'s current full state.
+
+### 3.4 CI-verified result (PR #117, workflow run #195) vs. this session's local run
+
+These are **two distinct results from two distinct environments** —
+recorded separately rather than merged into one number, so neither is
+overstated as the other:
+
+| | Test Suites | Tests passed | Skipped | Failed | Source |
+|---|---|---|---|---|---|
+| Local (this session, §3.3) | 53 passed, 2 skipped, 55 total | 721 | 7 | 0 | This session's own `npx jest` run, on this feature branch |
+| CI (PR #117, run #195) | 54 passed, 2 skipped, 56 total | 746 | 7 | 0 | **User-verified by screenshot**, not re-run by this session |
+
+Both show **0 failures** and the same **7 skipped tests**, consistent
+with the same two pre-existing, environment-gated files (§3.3) being
+skipped in both environments.
+
+The difference of **+1 suite / +25 tests** in the CI run is consistent
+with CI having run against `origin/main`'s actual current tip (which
+also includes the separately-merged PR #116, adding
+`server/tests/preferences.test.js` — 25 tests per that PR's own
+evidence doc), while this session's local run was against the feature
+branch only, which does not include PR #116's commits. **This
+explanation is offered as the consistent, arithmetic-matching reading
+of the two numbers, not as something independently re-verified by
+re-running the suite against `origin/main`'s full tree this session.**
 
 ---
 
@@ -197,14 +246,18 @@ that they remain closed, not an assumption.
 
 ## 6. Screenshot evidence
 
-No screenshots were captured or are claimed in this session — no
-browser-automation or screenshot tool was available. Placeholders only:
+No screenshot files were captured by this session, and none are
+committed to this repository — no browser-automation or screenshot
+tool was available to this session. The filenames below are
+**references only** (for whoever holds the actual image to file it
+under), not claims that the files exist in the repo:
 
 | ID | Description | File |
 |---|---|---|
 | SS-S5-01 | PR #117 Checks tab (all jobs) | *\<path — not yet captured\>* |
 | SS-S5-02 | Local full backend suite run (53/55 suites, 721/728 tests) | *\<path — not yet captured\>* |
 | SS-S5-03 | Local frontend suite run (31/31 tests) | *\<path — not yet captured\>* |
+| SS-S5-04 | GitHub Actions workflow run #195 (PR #117), backend unit/integration job — 56 suites (54 passed, 2 skipped), 753 tests (746 passed, 7 skipped), 0 failed, 10.173s. **Reviewed by the user directly; the image itself has not been added to this repository.** | *\<path — user has the screenshot; not yet committed\>* |
 
 ---
 
@@ -222,11 +275,17 @@ browser-automation or screenshot tool was available. Placeholders only:
 - The Dummy Canvas course-mismatch guard is now regression-tested; no
   defect was found in it.
 
+**Verified by the user (manual screenshot review, PR #117, run #195):**
+- The backend unit/integration job passed in CI: 54 of 56 suites
+  passed (2 skipped), 746 of 753 tests passed (7 skipped), **0
+  failures**. This is a real CI result, not a local-only claim — see
+  §3.4 for the full comparison against this session's own local run.
+
 **Pending / not verified (blocks a confident "ready to ship" call):**
-- PR #117's actual GitHub Actions results are unknown from this
-  session. Local green does not by itself confirm CI green (different
-  Node version pins, secrets availability, and `jerry-sprint5-reliability`'s
-  live-DB step could behave differently in CI than locally).
+- The *other* jobs in PR #117's workflow (frontend build, AI/API
+  tests, Dummy Canvas/Preferences contract tests, CC7.2 monitoring,
+  Sprint 5 reliability) have **not** been confirmed — only the backend
+  unit/integration job's result was reviewed and reported.
 - The priority-weights defect is a real, open, user-facing
   inconsistency (a documented preference that silently does nothing)
   and has not been fixed or ticketed with a known Jira key.
@@ -234,9 +293,12 @@ browser-automation or screenshot tool was available. Placeholders only:
   in this report.
 
 **Overall:** Sprint 5 Tasks 1–5's own changes are **conditionally
-ready** — fully verified at the local test level, with zero regressions
-introduced, but **not yet confirmed at the CI level**, and with one
-known, unresolved, non-blocking (cosmetic-only) defect (`priority_weight`/
-`deadline_weight`/`effort_weight` having no effect). Recommend
-confirming PR #117's actual Actions result (manually, or via `gh` once
-available) before treating Sprint 5 as fully closed.
+ready** — fully verified at the local test level with zero regressions
+introduced, and the backend unit/integration job is now **confirmed
+green in CI** (PR #117, run #195, user-verified). What remains
+unconfirmed is the *rest* of that PR's workflow (the other jobs listed
+above), plus one known, unresolved, non-blocking (cosmetic-only) defect
+(`priority_weight`/`deadline_weight`/`effort_weight` having no effect).
+Recommend confirming the remaining jobs in PR #117's Checks tab
+(manually, or via `gh` once available) before treating Sprint 5 as
+fully closed.
